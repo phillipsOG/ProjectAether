@@ -76,23 +76,23 @@ impl TextState {
     fn process_input(&mut self) {
         match self.key_event {
             KeyCode::Left => {
-                move_player(self);
-                text_director(self, "You walk left.");
+                self.move_player();
+                self.text_director("You walk left.");
             }
             KeyCode::Right => {
-                move_player(self);
-                text_director(self,"You walk right.");
+                self.move_player();
+                self.text_director("You walk right.");
             }
             KeyCode::Up => {
-                move_player(self);
-                text_director(self,"You walk up.");
+                self.move_player();
+                self.text_director("You walk up.");
             }
             KeyCode::Down => {
-                move_player(self);
-                text_director(self,"You walk down.");
+                self.move_player();
+                self.text_director("You walk down.");
             }
             KeyCode::Esc => {
-                text_director(self,"Pressed ESC & Exited the Game");
+                self.text_director("Pressed ESC & Exited the Game");
                 self.previous_key_event = KeyCode::Esc;
                 self.key_state = true;
             }
@@ -132,6 +132,51 @@ impl TextState {
         // 2D rep of our ascii map
         self.map = map_lines.iter().map(|line| line.chars().collect()).collect();
     }
+
+    fn text_director(&mut self, message: &str) {
+        let key_event = self.key_event;
+        let previous_key_event = self.previous_key_event;
+
+        self.chat[self.input_counter] = message.parse().unwrap();
+
+        if key_event == previous_key_event {
+            clear_chat(0);
+            self.is_repeat_message = true;
+        } else {
+            self.is_repeat_message = false;
+        }
+
+        self.previous_key_event = key_event;
+    }
+
+    fn move_player(&mut self) {
+
+        if let Some((row_idx, col_idx)) = self.player_position {
+            let (new_row_idx, new_col_idx) = match self.key_event {
+                KeyCode::Up => (row_idx - 1, col_idx),    // Move up
+                KeyCode::Down => (row_idx + 1, col_idx),  // Move down
+                KeyCode::Left => (row_idx, col_idx - 1),  // Move left
+                KeyCode::Right => (row_idx, col_idx + 1), // Move right
+                _ => (row_idx, col_idx), // invalid direction, stay in place
+            };
+
+            // update the player position
+            //let move_from = map_chars[row_idx][col_idx];
+            let move_to = self.map[new_row_idx][new_col_idx];
+
+            // basic collision
+            // @TODO create fn to handle the collision of other objects
+            if move_to != '#' {
+                self.map[new_row_idx][new_col_idx] = '@'; // Set the new position
+                self.map[row_idx][col_idx] = move_to;
+            }
+
+            self.update_player_position();
+            //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
+        } else {
+            println!("No '@' symbol found in the map.");
+        }
+    }
 }
 
 fn main() {
@@ -168,51 +213,6 @@ fn main() {
             }
             _ => {}
         }
-    }
-}
-
-fn text_director(mut input: &mut TextState, message: &str) {
-    let key_event = input.key_event;
-    let previous_key_event = input.previous_key_event;
-
-    input.chat[input.input_counter] = message.parse().unwrap();
-
-    if key_event == previous_key_event {
-        clear_chat(0);
-        input.is_repeat_message = true;
-    } else {
-        input.is_repeat_message = false;
-    }
-
-    input.previous_key_event = key_event;
-}
-
-fn move_player(mut input: &mut TextState) {
-
-    if let Some((row_idx, col_idx)) = input.player_position {
-        let (new_row_idx, new_col_idx) = match input.key_event {
-            KeyCode::Up => (row_idx - 1, col_idx),    // Move up
-            KeyCode::Down => (row_idx + 1, col_idx),  // Move down
-            KeyCode::Left => (row_idx, col_idx - 1),  // Move left
-            KeyCode::Right => (row_idx, col_idx + 1), // Move right
-            _ => (row_idx, col_idx), // invalid direction, stay in place
-        };
-
-        // update the player position
-        //let move_from = map_chars[row_idx][col_idx];
-        let move_to = input.map[new_row_idx][new_col_idx];
-
-        // basic collision
-        // @TODO create fn to handle the collision of other objects
-        if move_to != '#' {
-            input.map[new_row_idx][new_col_idx] = '@'; // Set the new position
-            input.map[row_idx][col_idx] = move_to;
-        }
-
-        input.update_player_position();
-        //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
-    } else {
-        println!("No '@' symbol found in the map.");
     }
 }
 
