@@ -53,6 +53,56 @@ impl TextState {
             self.input_counter += 1;
         }
     }
+
+    fn print_map(&self) {
+        let mut stdout = stdout();
+        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+        println!("{}\n", self.map);
+    }
+
+    fn process_input(&mut self) {
+        match self.key_event {
+            KeyCode::Left => {
+                move_player(self);
+                text_director(self, "You walk left.");
+            }
+            KeyCode::Right => {
+                move_player(self);
+                text_director(self,"You walk right.");
+            }
+            KeyCode::Up => {
+                move_player(self);
+                text_director(self,"You walk up.");
+            }
+            KeyCode::Down => {
+                move_player(self);
+                text_director(self,"You walk down.");
+            }
+            KeyCode::Esc => {
+                println!("Pressed ESC & Exited the Game");
+                self.previous_key_event = KeyCode::Esc;
+                self.key_state = true;
+            }
+            _ => {}
+        }
+    }
+
+    fn update_player_position(&mut self) {
+        let map_lines: Vec<&str> = self.map.trim().lines().collect();
+        let at_position: Option<(usize, usize)> = None;
+
+        for (row_idx, row) in map_lines.iter().enumerate() {
+            for (col_idx, c) in row.chars().enumerate() {
+                if c == '@' {
+                    self.player_position = Option::from((row_idx, col_idx));
+                    break;
+                }
+            }
+            if at_position.is_some() {
+                break;
+            }
+        }
+    }
 }
 
 fn main() {
@@ -73,9 +123,8 @@ fn main() {
     }
 
     text_state.map = map;
-
-    text_state = get_player_position(text_state);
-    text_state = get_map(text_state);
+    text_state.update_player_position();
+    text_state.print_map();
 
     loop {
         match event::read().unwrap() {
@@ -88,8 +137,8 @@ fn main() {
                         clear_chat(8);
                     }
 
-                    text_state = process_input(text_state);
-                    text_state = get_map(text_state);
+                    text_state.process_input();
+                    text_state.print_map();
                     text_state.print_processed_input();
 
                     if text_state.key_state {
@@ -104,49 +153,7 @@ fn main() {
     }
 }
 
-fn get_map(input: TextState) -> TextState {
-    let mut stdout = stdout();
-    stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
-
-    println!("{}\n", input.map);
-
-    input
-}
-
-fn process_input(mut input: TextState) -> TextState {
-    match input.key_event {
-        KeyCode::Left => {
-            input = move_player(input);
-            input = text_director(input, "You walk left.");
-            input
-        }
-        KeyCode::Right => {
-            input = move_player(input);
-            input = text_director(input,"You walk right.");
-            input
-        }
-        KeyCode::Up => {
-            input = move_player(input);
-            input = text_director(input,"You walk up.");
-            input
-        }
-        KeyCode::Down => {
-            input = move_player(input);
-            input = text_director(input,"You walk down.");
-            input
-        }
-        KeyCode::Esc => {
-            println!("Pressed ESC & Exited the Game");
-            input.previous_key_event = KeyCode::Esc;
-            input.key_state = true;
-            input
-        }
-
-        _ => input
-    }
-}
-
-fn text_director(mut input: TextState, message: &str) -> TextState {
+fn text_director(mut input: &mut TextState, message: &str) {
     let key_event = input.key_event;
     let previous_key_event = input.previous_key_event;
 
@@ -160,32 +167,9 @@ fn text_director(mut input: TextState, message: &str) -> TextState {
     }
 
     input.previous_key_event = key_event;
-    input
 }
 
-
-
-fn get_player_position(mut input: TextState) -> TextState {
-    let map_lines: Vec<&str> = input.map.trim().lines().collect();
-    let at_position: Option<(usize, usize)> = None;
-
-    for (row_idx, row) in map_lines.iter().enumerate() {
-        for (col_idx, c) in row.chars().enumerate() {
-            if c == '@' {
-                input.player_position = Option::from((row_idx, col_idx));
-                break;
-            }
-        }
-
-        if at_position.is_some() {
-            break;
-        }
-    }
-
-    input
-}
-
-fn move_player(mut input: TextState) -> TextState {
+fn move_player(mut input: &mut TextState) {
     let map_lines: Vec<&str> = input.map.trim().lines().collect();
 
     if let Some((row_idx, col_idx)) = input.player_position {
@@ -217,14 +201,12 @@ fn move_player(mut input: TextState) -> TextState {
             .collect::<Vec<String>>()
             .join("\n");
 
-        input = get_player_position(input);
+        input.update_player_position();
 
         //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
     } else {
         println!("No '@' symbol found in the map.");
     }
-
-    input
 }
 
 fn clear_chat(amount: u16)
