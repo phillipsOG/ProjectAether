@@ -10,6 +10,7 @@ struct TextState
     pub key_event: KeyCode,
     pub previous_key_event: KeyCode,
     pub key_state: bool,
+    pub is_repeat_message: bool,
     pub repeat_key_counter: i32,
     pub input_counter: usize,
     pub map: String,
@@ -17,29 +18,48 @@ struct TextState
     pub player_position: Option<(usize, usize)>
 }
 
-fn main() {
-    let mut stdout = stdout();
-    stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+impl TextState {
+    fn new() -> Self {
+        TextState {
+            key_event: KeyCode::Enter,
+            previous_key_event: KeyCode::Null,
+            key_state: false,
+            is_repeat_message: false,
+            repeat_key_counter: 0,
+            input_counter: 0,
+            map: String::new(),
+            chat: [
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string()
+            ],
+            player_position: None
+        }
+    }
 
-    let mut text_state = TextState {
-        key_event: KeyCode::Enter,
-        previous_key_event: KeyCode::Null,
-        key_state: false,
-        repeat_key_counter: 0,
-        input_counter: 0,
-        map: String::new(),
-        chat: [
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            "".to_string()
-        ],
-        player_position: None
-    };
+    fn print_processed_input(&mut self) {
+        if self.is_repeat_message {
+             self.repeat_key_counter += 1;
+            println!("{} x{}", self.chat[self.input_counter], self.repeat_key_counter);
+        }
+        else {
+            println!("{}", self.chat[self.input_counter]);
+            self.repeat_key_counter = 0;
+            self.input_counter += 1;
+        }
+    }
+}
+
+fn main() {
+    //let stdout = stdout();
+    //stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+
+    let mut text_state = TextState::new();
 
     let mut map = "".to_owned();
     map += "\n";
@@ -70,7 +90,7 @@ fn main() {
 
                     text_state = process_input(text_state);
                     text_state = get_map(text_state);
-                    text_state = print_processed_input(text_state);
+                    text_state.print_processed_input();
 
                     if text_state.key_state {
                         break;
@@ -84,7 +104,7 @@ fn main() {
     }
 }
 
-fn get_map(mut input: TextState) -> TextState {
+fn get_map(input: TextState) -> TextState {
     let mut stdout = stdout();
     stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
 
@@ -97,18 +117,22 @@ fn process_input(mut input: TextState) -> TextState {
     match input.key_event {
         KeyCode::Left => {
             input = move_player(input);
+            input = text_director(input, "You walk left.");
             input
         }
         KeyCode::Right => {
             input = move_player(input);
+            input = text_director(input,"You walk right.");
             input
         }
         KeyCode::Up => {
             input = move_player(input);
+            input = text_director(input,"You walk up.");
             input
         }
         KeyCode::Down => {
             input = move_player(input);
+            input = text_director(input,"You walk down.");
             input
         }
         KeyCode::Esc => {
@@ -122,37 +146,33 @@ fn process_input(mut input: TextState) -> TextState {
     }
 }
 
-fn print_processed_input(mut input: TextState) -> TextState {
-    match input.key_event {
-        KeyCode::Left => {
-            input = text_director(input, "You walk left.");
-            input
-        }
-        KeyCode::Right => {
-            input = text_director(input,"You walk right.");
-            input
-        }
-        KeyCode::Up => {
-            input = text_director(input,"You walk up.");
-            input
-        }
-        KeyCode::Down => {
-            input = text_director(input,"You walk down.");
-            input
-        }
+fn text_director(mut input: TextState, message: &str) -> TextState {
+    let key_event = input.key_event;
+    let previous_key_event = input.previous_key_event;
 
-        _ => input
+    input.chat[input.input_counter] = message.parse().unwrap();
+
+    if key_event == previous_key_event {
+        clear_chat(0);
+        input.is_repeat_message = true;
+    } else {
+        input.is_repeat_message = false;
     }
+
+    input.previous_key_event = key_event;
+    input
 }
+
+
 
 fn get_player_position(mut input: TextState) -> TextState {
     let map_lines: Vec<&str> = input.map.trim().lines().collect();
-    let mut at_position: Option<(usize, usize)> = None;
+    let at_position: Option<(usize, usize)> = None;
 
     for (row_idx, row) in map_lines.iter().enumerate() {
         for (col_idx, c) in row.chars().enumerate() {
             if c == '@' {
-                input.player_position = Option::from(((row_idx, col_idx)));
+                input.player_position = Option::from((row_idx, col_idx));
                 break;
             }
         }
@@ -181,8 +201,8 @@ fn move_player(mut input: TextState) -> TextState {
         let mut map_chars: Vec<Vec<char>> = map_lines.iter().map(|line| line.chars().collect()).collect();
 
         // update the player position
-        let mut move_from = map_chars[row_idx][col_idx];
-        let mut move_to = map_chars[new_row_idx][new_col_idx];
+        //let move_from = map_chars[row_idx][col_idx];
+        let move_to = map_chars[new_row_idx][new_col_idx];
 
         // basic collision
         if move_to != '#' {
@@ -198,6 +218,7 @@ fn move_player(mut input: TextState) -> TextState {
             .join("\n");
 
         input = get_player_position(input);
+
         //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
     } else {
         println!("No '@' symbol found in the map.");
@@ -206,39 +227,7 @@ fn move_player(mut input: TextState) -> TextState {
     input
 }
 
-fn text_director(mut input: TextState, message: &str) -> TextState {
-    let key_event = input.key_event;
-    let previous_key_event = input.previous_key_event;
-
-    input.chat[input.input_counter] = message.parse().unwrap();
-
-    if key_event == previous_key_event {
-        clear_chat(0);
-        input = print_message(input, true);
-    } else {
-        input = print_message(input, false);
-    }
-
-    input.previous_key_event = key_event;
-    input
-}
-
-fn print_message(mut input: TextState, mut is_repeat_message: bool) -> TextState
-{
-    if is_repeat_message {
-        input.repeat_key_counter += 1;
-        println!("{} x{}", input.chat[input.input_counter], input.repeat_key_counter);
-    }
-    else {
-        println!("{}", input.chat[input.input_counter]);
-        input.repeat_key_counter = 0;
-        input.input_counter += 1;
-    }
-
-    input
-}
-
-fn clear_chat(mut amount: u16)
+fn clear_chat(amount: u16)
 {
     let mut stdout = stdout();
     stdout.queue(cursor::MoveToPreviousLine(amount)).unwrap();
