@@ -103,6 +103,18 @@ impl TextState {
             }
         }
     }
+
+    fn load_map(&mut self, name: &str) {
+        self.map += "\n";
+        if let Ok(lines) = read_lines( name) {
+            for line in lines {
+                if let Ok(tile) = line {
+                    self.map += &tile;
+                    self.map += "\n";
+                }
+            }
+        }
+    }
 }
 
 fn main() {
@@ -111,18 +123,7 @@ fn main() {
 
     let mut text_state = TextState::new();
 
-    let mut map = "".to_owned();
-    map += "\n";
-    if let Ok(lines) = read_lines("src/map1.txt") {
-        for line in lines {
-            if let Ok(tile) = line {
-                map += &tile;
-                map += "\n";
-            }
-        }
-    }
-
-    text_state.map = map;
+    text_state.load_map("src/map1.txt");
     text_state.update_player_position();
     text_state.print_map();
 
