@@ -337,11 +337,19 @@ impl PlayerState {
     fn process_move(&mut self, move_to_tile: char) -> bool {
         if move_to_tile == self.map.tile_set.wall {
             return false;
-
         } else if move_to_tile == self.map.tile_set.key {
             self.chat.process_chat_message("You pick up a rusty key.");
             self.inventory.add_key(1);
             return true;
+        } else if move_to_tile == self.map.tile_set.door {
+            return if self.inventory.keys >= 1 {
+                self.inventory.remove_key(1);
+                self.chat.process_chat_message("You unlock the door using a rusty key.");
+                true
+            } else {
+                self.chat.process_chat_message("You need a rusty key to open this door.");
+                false
+            }
         }
         true
     }
