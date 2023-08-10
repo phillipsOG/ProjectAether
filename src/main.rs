@@ -13,7 +13,7 @@ struct TextState
     pub is_repeat_message: bool,
     pub repeat_key_counter: i32,
     pub input_counter: usize,
-    pub map: String,
+    pub map: Vec<Vec<char>>,
     pub chat: [String; 8],
     pub player_position: Option<(usize, usize)>
 }
@@ -27,7 +27,7 @@ impl TextState {
             is_repeat_message: false,
             repeat_key_counter: 0,
             input_counter: 0,
-            map: String::new(),
+            map: vec![vec![]],
             chat: [
                 "".to_string(),
                 "".to_string(),
@@ -57,7 +57,11 @@ impl TextState {
     fn print_map(&self) {
         let mut stdout = stdout();
         stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
-        println!("{}\n", self.map);
+
+        for tile in &self.map {
+            let tile_line : String = tile.iter().collect();
+            println!("{}", tile_line);
+        }
     }
 
     fn process_input(&mut self) {
@@ -88,11 +92,10 @@ impl TextState {
     }
 
     fn update_player_position(&mut self) {
-        let map_lines: Vec<&str> = self.map.trim().lines().collect();
         let at_position: Option<(usize, usize)> = None;
 
-        for (row_idx, row) in map_lines.iter().enumerate() {
-            for (col_idx, c) in row.chars().enumerate() {
+        for (row_idx, row) in self.map.iter().enumerate() {
+            for (col_idx, &c) in row.iter().enumerate() {
                 if c == '@' {
                     self.player_position = Option::from((row_idx, col_idx));
                     break;
@@ -105,15 +108,20 @@ impl TextState {
     }
 
     fn load_map(&mut self, name: &str) {
-        self.map += "\n";
-        if let Ok(lines) = read_lines( name) {
+        let mut map = "".to_owned();
+        map += "\n";
+        if let Ok(lines) = read_lines(name) {
             for line in lines {
                 if let Ok(tile) = line {
-                    self.map += &tile;
-                    self.map += "\n";
+                    map += &tile;
+                    map += "\n";
                 }
             }
         }
+        let map_lines: Vec<&str> = map.trim().lines().collect();
+
+        // 2D rep of our ascii map
+        self.map = map_lines.iter().map(|line| line.chars().collect()).collect();
     }
 }
 
@@ -171,7 +179,6 @@ fn text_director(mut input: &mut TextState, message: &str) {
 }
 
 fn move_player(mut input: &mut TextState) {
-    let map_lines: Vec<&str> = input.map.trim().lines().collect();
 
     if let Some((row_idx, col_idx)) = input.player_position {
         let (new_row_idx, new_col_idx) = match input.key_event {
@@ -179,31 +186,21 @@ fn move_player(mut input: &mut TextState) {
             KeyCode::Down => (row_idx + 1, col_idx),  // Move down
             KeyCode::Left => (row_idx, col_idx - 1),  // Move left
             KeyCode::Right => (row_idx, col_idx + 1), // Move right
-            _ => (row_idx, col_idx), // Invalid direction, stay in place
+            _ => (row_idx, col_idx), // invalid direction, stay in place
         };
-
-        // 2D rep of our ascii map
-        let mut map_chars: Vec<Vec<char>> = map_lines.iter().map(|line| line.chars().collect()).collect();
 
         // update the player position
         //let move_from = map_chars[row_idx][col_idx];
-        let move_to = map_chars[new_row_idx][new_col_idx];
+        let move_to = input.map[new_row_idx][new_col_idx];
 
         // basic collision
+        // @TODO create fn to handle the collision of other objects
         if move_to != '#' {
-            map_chars[new_row_idx][new_col_idx] = '@'; // Set the new position
-            map_chars[row_idx][col_idx] = move_to;
+            input.map[new_row_idx][new_col_idx] = '@'; // Set the new position
+            input.map[row_idx][col_idx] = move_to;
         }
 
-        // convert the map back to a string
-        input.map = map_chars
-            .iter()
-            .map(|line| line.iter().collect::<String>())
-            .collect::<Vec<String>>()
-            .join("\n");
-
         input.update_player_position();
-
         //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
     } else {
         println!("No '@' symbol found in the map.");
