@@ -44,12 +44,20 @@ impl TextState {
 
     fn print_processed_input(&mut self) {
         if self.is_repeat_message {
-             self.repeat_key_counter += 1;
+            self.repeat_key_counter += 1;
+
+            /*for i in 0..self.input_counter {
+                println!("{}", self.chat[i]);
+            }*/
             println!("{} x{}", self.chat[self.input_counter], self.repeat_key_counter);
         }
         else {
             println!("{}", self.chat[self.input_counter]);
-            self.repeat_key_counter = 0;
+            /*for i in 0..self.input_counter {
+                println!("{}", self.chat[i]);
+            }*/
+
+            self.repeat_key_counter = 1;
             self.input_counter += 1;
         }
     }
@@ -62,6 +70,7 @@ impl TextState {
             let tile_line : String = tile.iter().collect();
             println!("{}", tile_line);
         }
+        println!("\n");
     }
 
     fn process_input(&mut self) {
@@ -83,7 +92,7 @@ impl TextState {
                 text_director(self,"You walk down.");
             }
             KeyCode::Esc => {
-                println!("Pressed ESC & Exited the Game");
+                text_director(self,"Pressed ESC & Exited the Game");
                 self.previous_key_event = KeyCode::Esc;
                 self.key_state = true;
             }
