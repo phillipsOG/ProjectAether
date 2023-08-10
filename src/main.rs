@@ -17,183 +17,6 @@ struct PlayerState
     pub status: Status
 }
 
-struct Chat {
-    pub chat: [String; 9],
-    pub input_counter: usize,
-    pub is_repeat_message: bool,
-    pub repeat_message_counter: i32,
-}
-
-impl Chat {
-    fn new() -> Self {
-        Chat {
-            chat: [
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string(),
-                "".to_string()
-            ],
-            input_counter: 0,
-            is_repeat_message: false,
-            repeat_message_counter: 0,
-        }
-    }
-
-    fn print_chat(&mut self) {
-        for i in 0..self.input_counter {
-            println!("{}", self.chat[i]);
-        }
-    }
-
-    fn process_chat_message(&mut self, message: &str) {
-        if self.input_counter == 8 {
-            self.input_counter = 0;
-        }
-
-        if self.chat[self.input_counter] == message {
-            self.is_repeat_message = true;
-        } else {
-            self.is_repeat_message = false;
-        }
-
-        if self.is_repeat_message == true {
-            self.repeat_message_counter += 1;
-
-            let repeat_suffix = format!("x{}", self.repeat_message_counter);
-            let repeated_message = format!("{} {}", message, repeat_suffix);
-            self.chat[self.input_counter] = repeated_message;
-
-        } else {
-            self.chat[self.input_counter] = message.parse().unwrap();
-            self.input_counter += 1;
-            self.repeat_message_counter = 1;
-
-        }
-        /*if self.chat[self.input_counter] != message {
-            self.chat[self.input_counter] = message.parse().unwrap();
-            self.input_counter += 1;
-        } else {
-            self.repeat_message_counter += 1;
-
-            let repeat_suffix = format!("x{}", self.repeat_message_counter);
-            let repeated_message = format!("{} {}", message, repeat_suffix);
-
-            self.chat[self.input_counter] = repeated_message;
-        }*/
-    }
-
-    fn print_processed_input(&mut self) {
-        if self.is_repeat_message {
-            println!("{} x{}", self.chat[self.input_counter], self.repeat_message_counter);
-        } else {
-            println!("{}", self.chat[self.input_counter]);
-        }
-    }
-}
-
-struct Map {
-    pub map: Vec<Vec<char>>,
-    pub tile_set: TileSet
-}
-
-impl Map {
-    fn new() -> Self {
-        Map {
-            map: vec![vec![]],
-            tile_set: TileSet::new(),
-        }
-    }
-
-    fn load_map(&mut self, name: &str) {
-        let mut map = "".to_owned();
-        map += "\n";
-        if let Ok(lines) = read_lines(name) {
-            for line in lines {
-                if let Ok(tile) = line {
-                    map += &tile;
-                    map += "\n";
-                }
-            }
-        }
-        let map_lines: Vec<&str> = map.trim().lines().collect();
-
-        // 2D rep of our ascii map
-        self.map = map_lines.iter().map(|line| line.chars().collect()).collect();
-    }
-
-    fn print_map(&self) {
-        let mut stdout = stdout();
-        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
-
-        for tile in &self.map {
-            let tile_line : String = tile.iter().collect();
-            println!("{}", tile_line);
-        }
-        println!("\n");
-    }
-}
-
-struct Inventory
-{
-    keys: i32
-}
-
-impl Inventory {
-    fn new() -> Self {
-        Inventory {
-            keys: 0,
-        }
-    }
-
-    fn add_key(&mut self, amount: i32) {
-        self.keys += amount;
-    }
-
-    fn remove_key(&mut self, amount: i32) {
-        self.keys -= amount;
-    }
-}
-
-struct Status
-{
-    pub health: i32,
-    pub str: i32,
-    pub def: i32
-}
-
-impl Status {
-    fn new() -> Self {
-        Status {
-            health: 100,
-            str: 3,
-            def: 1,
-        }
-    }
-}
-
-struct TileSet {
-    pub wall: char,
-    pub door: char,
-    pub key: char,
-    pub floor: char
-}
-
-impl TileSet {
-    fn new() -> Self {
-        TileSet {
-            wall: '#',
-            door: '|',
-            key: 'k',
-            floor: '.'
-        }
-    }
-}
-
 impl PlayerState {
     fn new() -> Self {
         PlayerState {
@@ -207,46 +30,6 @@ impl PlayerState {
             status: Status::new()
         }
     }
-
-   /* fn print_processed_input(&mut self) {
-        if self.is_repeat_message {
-            self.repeat_key_counter += 1;
-
-            /*for i in 0..self.input_counter {
-                println!("{}", self.chat[i]);
-            }*/
-
-            println!("{} x{}", self.chat[self.input_counter], self.repeat_key_counter);
-        }
-        else {
-            println!("{}", self.chat[self.input_counter]);
-            /*for i in 0..self.input_counter {
-                println!("{}", self.chat[self.input_counter-i]);
-            }*/
-            /*for tile in &self.chat {
-                println!("{}", tile);
-            }*/
-            self.repeat_key_counter = 1;
-            self.input_counter += 1;
-        }
-    }*/
-    /* fn process_direction_input(&mut self, direction: &str) {
-        let key_event = self.key_event;
-        let previous_key_event = self.previous_key_event;
-
-        self.chat[self.input_counter] = direction.parse().unwrap();
-
-        if key_event == previous_key_event {
-            self.is_repeat_message = true;
-            self.repeat_key_counter += 1;
-
-        } else {
-            self.repeat_key_counter = 1;
-            self.is_repeat_message = false;
-        }
-
-        self.previous_key_event = key_event;
-    }*/
 
     fn process_input(&mut self) {
         match self.key_event {
@@ -353,6 +136,204 @@ impl PlayerState {
         }
         true
     }
+
+    fn print_terminal(&mut self) {
+        self.map.print_map_with_module(self.status.get_status());
+        self.chat.print_chat();
+    }
+}
+
+struct Chat {
+    pub chat: [String; 9],
+    pub input_counter: usize,
+    pub is_repeat_message: bool,
+    pub repeat_message_counter: i32,
+    pub previous_message: String
+}
+
+impl Chat {
+    fn new() -> Self {
+        Chat {
+            chat: [
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string()
+            ],
+            input_counter: 0,
+            is_repeat_message: false,
+            repeat_message_counter: 1,
+            previous_message: "".parse().unwrap()
+        }
+    }
+
+    fn print_chat(&mut self) {
+        for i in 0..self.input_counter {
+            println!("{}", self.chat[i]);
+        }
+    }
+
+    fn process_chat_message(&mut self, message: &str) {
+        if self.input_counter == 8 {
+            self.input_counter = 0;
+        }
+
+        // check if message is the same as previous
+        if self.previous_message == message {
+            self.repeat_message_counter += 1;
+
+            let repeat_suffix = format!("x{}", self.repeat_message_counter);
+            let repeated_message = format!("{} {}", message, repeat_suffix);
+            self.chat[self.input_counter-1] = repeated_message;
+        } else {
+            self.chat[self.input_counter] = message.parse().unwrap();
+            self.input_counter += 1;
+            self.repeat_message_counter = 1;
+        }
+
+        // store previous message
+        self.previous_message = message.parse().unwrap();
+    }
+
+    fn print_processed_input(&mut self) {
+        if self.is_repeat_message {
+            println!("{} x{}", self.chat[self.input_counter], self.repeat_message_counter);
+        } else {
+            println!("{}", self.chat[self.input_counter]);
+        }
+    }
+}
+
+struct Map {
+    pub map: Vec<Vec<char>>,
+    pub tile_set: TileSet
+}
+
+impl Map {
+    fn new() -> Self {
+        Map {
+            map: vec![vec![]],
+            tile_set: TileSet::new(),
+        }
+    }
+
+    fn load_map(&mut self, name: &str) {
+        let mut map = "".to_owned();
+        map += "\n";
+        if let Ok(lines) = read_lines(name) {
+            for line in lines {
+                if let Ok(tile) = line {
+                    map += &tile;
+                    map += "\n";
+                }
+            }
+        }
+        let map_lines: Vec<&str> = map.trim().lines().collect();
+
+        // 2D rep of our ascii map
+        self.map = map_lines.iter().map(|line| line.chars().collect()).collect();
+    }
+
+    fn print_map(&self) {
+        let mut stdout = stdout();
+        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+
+        for tile in &self.map {
+            let tile_line : String = tile.iter().collect();
+            println!("{}", tile_line);
+        }
+    }
+
+    fn print_map_with_module(&self, module: [String; 3]) {
+        let mut stdout = stdout();
+        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+        let mut counter = 0;
+        for tile in &self.map {
+            let tile_line : String = tile.iter().collect();
+            if counter <= module.len()-1 {
+                println!("{}          {}", tile_line, module[counter]);
+                counter += 1;
+            } else {
+                println!("{}", tile_line);
+            }
+        }
+        println!("\n");
+    }
+}
+
+struct Inventory
+{
+    keys: i32
+}
+
+impl Inventory {
+    fn new() -> Self {
+        Inventory {
+            keys: 0,
+        }
+    }
+
+    fn add_key(&mut self, amount: i32) {
+        self.keys += amount;
+    }
+
+    fn remove_key(&mut self, amount: i32) {
+        self.keys -= amount;
+    }
+}
+
+struct Status
+{
+    pub health: i32,
+    pub str: i32,
+    pub def: i32
+}
+
+impl Status {
+    fn new() -> Self {
+        Status {
+            health: 100,
+            str: 3,
+            def: 1,
+        }
+    }
+
+    fn print_status(&mut self) {
+        println!("HP: {}", self.health);
+        println!("STR: {}", self.str);
+        println!("DEF: {}", self.def);
+    }
+
+    fn get_status(&mut self) -> [String; 3] {
+        [
+            format!("HP: {}", self.health),
+            format!("STR: {}", self.str),
+            format!("DEF: {}", self.def),
+        ]
+    }
+}
+
+struct TileSet {
+    pub wall: char,
+    pub door: char,
+    pub key: char,
+    pub floor: char
+}
+
+impl TileSet {
+    fn new() -> Self {
+        TileSet {
+            wall: '#',
+            door: '|',
+            key: 'k',
+            floor: '.'
+        }
+    }
 }
 
 fn main() {
@@ -362,7 +343,7 @@ fn main() {
 
     player_state.map.load_map("src/map1.txt");
     player_state.update_player_position();
-    player_state.map.print_map();
+    player_state.print_terminal();
 
     loop {
         match event::read().unwrap() {
@@ -371,8 +352,7 @@ fn main() {
                     player_state.key_event = key_input.code;
 
                     player_state.process_input();
-                    player_state.map.print_map();
-                    player_state.chat.print_chat();
+                    player_state.print_terminal();
 
                     if player_state.key_state {
                         break;
