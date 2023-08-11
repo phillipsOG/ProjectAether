@@ -1,6 +1,8 @@
-use std::io::stdout;
+use std::fs::File;
+use std::io;
+use std::io::{BufRead, stdout};
+use std::path::Path;
 use crossterm::{QueueableCommand, terminal};
-use crate::read_lines;
 
 pub struct Map {
     pub map: Vec<Vec<char>>,
@@ -18,7 +20,7 @@ impl Map {
     pub(crate) fn load_map(&mut self, name: &str) {
         let mut map = "".to_owned();
         map += "\n";
-        if let Ok(lines) = read_lines(name) {
+        if let Ok(lines) = self.read_lines(name) {
             for line in lines {
                 if let Ok(tile) = line {
                     map += &tile;
@@ -72,6 +74,13 @@ impl Map {
             }
         }
         println!("\n");
+    }
+
+    /* TODO place inside of a helper class */
+    fn read_lines<P>(&mut self, filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+        where P: AsRef<Path>, {
+        let file = File::open(filename)?;
+        Ok(io::BufReader::new(file).lines())
     }
 }
 

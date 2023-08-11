@@ -11,6 +11,4 @@ impl Collision {
 
         }
     }
-
-
 }
