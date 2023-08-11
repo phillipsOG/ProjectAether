@@ -16,7 +16,7 @@ fn main() {
     let mut collision_engine = CollisionEngine::new();
 
     player.map.load_map("src/map2.txt");
-    collision_engine.update_player_position(player);
+    collision_engine.update_player_position(&mut player);
     player.print_terminal();
 
     loop {
@@ -25,7 +25,7 @@ fn main() {
                 if key_input.kind == KeyEventKind::Press {
                     player.key_event = key_input.code;
 
-                    collision_engine.process_input(player);
+                    collision_engine.process_input(&mut player);
                     player.print_terminal();
 
                     if player.key_state {
