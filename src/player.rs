@@ -1,7 +1,5 @@
-use std::thread::sleep;
 use crossterm::event::KeyCode;
 use crate::chat::Chat;
-use crate::collision::Collision;
 use crate::inventory::Inventory;
 use crate::map::Map;
 use crate::status::Status;
@@ -29,30 +27,6 @@ impl Player {
             map: Map::new(),
             inventory: Inventory::new(),
             status: Status::new()
-        }
-    }
-
-    pub(crate) fn process_input(&mut self) {
-
-        match self.key_event {
-            KeyCode::Left => {
-                self.move_player();
-            }
-            KeyCode::Right => {
-                self.move_player();
-            }
-            KeyCode::Up => {
-                self.move_player();
-            }
-            KeyCode::Down => {
-                self.move_player();
-            }
-            KeyCode::Esc => {
-                self.chat.process_chat_message("Pressed ESC & Exited the Game");
-                self.previous_key_event = KeyCode::Esc;
-                self.key_state = true;
-            }
-            _ => {}
         }
     }
 
@@ -100,22 +74,6 @@ impl Player {
             //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
         } else {
             println!("No '@' symbol found in the map.");
-        }
-    }
-
-    pub(crate) fn update_player_position(&mut self) {
-        let at_position: Option<(usize, usize)> = None;
-
-        for (row_idx, row) in self.map.map.iter().enumerate() {
-            for (col_idx, &c) in row.iter().enumerate() {
-                if c == '@' {
-                    self.player_position = Option::from((row_idx, col_idx));
-                    break;
-                }
-            }
-            if at_position.is_some() {
-                break;
-            }
         }
     }
 
