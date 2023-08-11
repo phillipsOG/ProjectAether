@@ -1,10 +1,12 @@
+use std::thread::sleep;
 use crossterm::event::KeyCode;
 use crate::chat::Chat;
+use crate::collision::Collision;
 use crate::inventory::Inventory;
 use crate::map::Map;
 use crate::status::Status;
 
-pub struct PlayerState
+pub struct Player
 {
     pub key_event: KeyCode,
     pub previous_key_event: KeyCode,
@@ -16,9 +18,9 @@ pub struct PlayerState
     pub status: Status
 }
 
-impl PlayerState {
+impl Player {
     pub(crate) fn new() -> Self {
-        PlayerState {
+        Player {
             key_event: KeyCode::Enter,
             previous_key_event: KeyCode::Null,
             key_state: false,
@@ -31,6 +33,7 @@ impl PlayerState {
     }
 
     pub(crate) fn process_input(&mut self) {
+
         match self.key_event {
             KeyCode::Left => {
                 self.move_player();
@@ -53,23 +56,7 @@ impl PlayerState {
         }
     }
 
-    pub(crate) fn update_player_position(&mut self) {
-        let at_position: Option<(usize, usize)> = None;
-
-        for (row_idx, row) in self.map.map.iter().enumerate() {
-            for (col_idx, &c) in row.iter().enumerate() {
-                if c == '@' {
-                    self.player_position = Option::from((row_idx, col_idx));
-                    break;
-                }
-            }
-            if at_position.is_some() {
-                break;
-            }
-        }
-    }
-
-    fn move_player(&mut self) {
+    pub(crate) fn move_player(&mut self) {
         if let Some((row_idx, col_idx)) = self.player_position {
             let (new_row_idx, new_col_idx) = match self.key_event {
                 KeyCode::Up => {
@@ -116,7 +103,23 @@ impl PlayerState {
         }
     }
 
-    fn process_move(&mut self, move_to_tile: char) -> bool {
+    pub(crate) fn update_player_position(&mut self) {
+        let at_position: Option<(usize, usize)> = None;
+
+        for (row_idx, row) in self.map.map.iter().enumerate() {
+            for (col_idx, &c) in row.iter().enumerate() {
+                if c == '@' {
+                    self.player_position = Option::from((row_idx, col_idx));
+                    break;
+                }
+            }
+            if at_position.is_some() {
+                break;
+            }
+        }
+    }
+
+    pub(crate) fn process_move(&mut self, move_to_tile: char) -> bool {
         if move_to_tile == self.map.tile_set.floor {
             return true;
         } else if move_to_tile == self.map.tile_set.wall {

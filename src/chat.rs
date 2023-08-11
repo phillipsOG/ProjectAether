@@ -41,7 +41,7 @@ impl Chat {
     }
 
     pub(crate) fn process_chat_message(&mut self, message: &str) {
-        if self.input_counter == self.chat.len()-1 {
+        if self.input_counter == self.chat.len() {
             self.input_counter = 0;
         }
 
@@ -50,21 +50,18 @@ impl Chat {
             self.repeat_message_counter += 1;
             let repeat_suffix = format!("x{}", self.repeat_message_counter);
             let repeated_message = format!("{} {}", message, repeat_suffix);
-
             let mut tmp = 0;
             if self.input_counter > 0 {
-                tmp = self.input_counter -1;
-            } else {
-                tmp = self.input_counter;
+                tmp = 1;
             }
-
-            self.chat[tmp] = repeated_message;
+            self.chat[self.input_counter-tmp] = repeated_message;
             self.is_repeat_message = true;
         } else {
+            self.chat[self.input_counter] = message.parse().unwrap();
+
             self.input_counter += 1;
             self.repeat_message_counter = 1;
 
-            self.chat[self.input_counter] = message.parse().unwrap();
             self.is_repeat_message = false;
         }
 

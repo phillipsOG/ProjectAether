@@ -3,6 +3,7 @@ mod chat;
 mod map;
 mod inventory;
 mod status;
+mod collision;
 
 use std::io::{stdout};
 use crossterm::{cursor, event, QueueableCommand, terminal};
@@ -10,25 +11,27 @@ use crossterm::event::{Event, KeyCode, KeyEventKind};
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use crate::player::PlayerState;
+use crate::collision::Collision;
+use crate::player::Player;
 
 fn main() {
-    let mut player_state = PlayerState::new();
+    let mut player = Player::new();
+    let mut collision_engine = Collision::new();
 
-    player_state.map.load_map("src/map2.txt");
-    player_state.update_player_position();
-    player_state.print_terminal();
+    player.map.load_map("src/map2.txt");
+    player.update_player_position();
+    player.print_terminal();
 
     loop {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
-                    player_state.key_event = key_input.code;
+                    player.key_event = key_input.code;
 
-                    player_state.process_input();
-                    player_state.print_terminal();
+                    player.process_input();
+                    player.print_terminal();
 
-                    if player_state.key_state {
+                    if player.key_state {
                         break;
                     }
                     else {
