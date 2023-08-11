@@ -41,7 +41,7 @@ impl Chat {
     }
 
     pub(crate) fn process_chat_message(&mut self, message: &str) {
-        if self.input_counter == self.chat.len() {
+        if self.input_counter == self.chat.len()-1 {
             self.input_counter = 0;
         }
 
