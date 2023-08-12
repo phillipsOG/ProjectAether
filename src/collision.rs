@@ -124,10 +124,9 @@ impl CollisionEngine {
         let mut tile_left = player.map.map[new_row_coord][new_col_coord+1];
         let mut tile_right = player.map.map[new_row_coord][new_col_coord-1];
         let mut ladder = format!("{}{}{}", tile_left, tmp_tile, tile_right );
-        player.chat.process_chat_message(&ladder);
         if format!("{}{}{}", tile_left, tmp_tile, tile_right ) == tile_set.ladder {
-            //player.chat.process_chat_message("Ladder?");
-
+            player.chat.process_chat_message("Ladder?");
+            // @TODO logic for changing scene
             process_move = true;
         }
 
