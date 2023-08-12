@@ -101,7 +101,7 @@ impl CollisionEngine {
             player.map.map[new_row_coord][new_col_coord] = tile_set.floor;
             process_move = false;
         }
-        else if tmp_tile == tile_set.closed_door
+        else if tmp_tile == tile_set.closed_door_side || tmp_tile == tile_set.closed_door_top
         {
             if player.inventory.keys >= 1
             {
@@ -121,14 +121,14 @@ impl CollisionEngine {
             process_move = true;
         }
 
-        /*let mut tile_left = player.map.map[new_row_coord -1][new_col_coord];
-        let mut tile_right = player.map.map[new_row_coord +1][new_col_coord];
-        let mut ladder = format!("{}{}{}", tile_left, new_tile, tile_right );
+        let mut tile_left = player.map.map[new_row_coord][new_col_coord+1];
+        let mut tile_right = player.map.map[new_row_coord][new_col_coord-1];
+        let mut ladder = format!("{}{}{}", tile_left, tmp_tile, tile_right );
         player.chat.process_chat_message(&ladder);
-        if format!("{}{}{}", tile_left, new_tile, tile_right ) == player.map.tile_set.ladder {
+        if format!("{}{}{}", tile_left, tmp_tile, tile_right ) == tile_set.ladder {
             player.chat.process_chat_message("Ladder?");
             process_move = false;
-        }*/
+        }
 
         if process_move {
             // set the new player position

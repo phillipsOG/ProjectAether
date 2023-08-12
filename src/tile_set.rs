@@ -3,7 +3,8 @@ use std::string::ToString;
 pub struct TileSet {
     pub player: char,
     pub wall: char,
-    pub closed_door: char,
+    pub closed_door_side: char,
+    pub closed_door_top: char,
     pub open_door: char,
     pub key: char,
     pub floor: char,
@@ -14,7 +15,8 @@ pub struct TileSet {
 pub const TILE_SET: TileSet = TileSet {
     player: '@',
     wall: '#',
-    closed_door: '|',
+    closed_door_side: '|',
+    closed_door_top: '-',
     open_door: '/',
     key: 'k',
     floor: '.',
