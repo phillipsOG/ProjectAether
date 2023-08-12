@@ -126,8 +126,9 @@ impl CollisionEngine {
         let mut ladder = format!("{}{}{}", tile_left, tmp_tile, tile_right );
         player.chat.process_chat_message(&ladder);
         if format!("{}{}{}", tile_left, tmp_tile, tile_right ) == tile_set.ladder {
-            player.chat.process_chat_message("Ladder?");
-            process_move = false;
+            //player.chat.process_chat_message("Ladder?");
+
+            process_move = true;
         }
 
         if process_move {
@@ -148,6 +149,10 @@ impl CollisionEngine {
 
         if player.map.tile_below_player == tile_set.open_door {
             tmp_tile = tile_set.open_door;
+        }
+
+        if player.map.tile_below_player == tile_set.closed_door_top {
+            tmp_tile = tile_set.closed_door_top;
         }
 
         return tmp_tile;
