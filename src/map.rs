@@ -6,14 +6,18 @@ use crossterm::{QueueableCommand, terminal};
 
 pub struct Map {
     pub map: Vec<Vec<char>>,
-    pub tile_set: TileSet
+    pub tile_below_player: char,
+    pub previous_tile_x_coord: usize,
+    pub previous_tile_y_coord: usize
 }
 
 impl Map {
     pub(crate) fn new() -> Self {
         Map {
             map: vec![vec![]],
-            tile_set: TileSet::new(),
+            tile_below_player: '.',
+            previous_tile_x_coord: 0,
+            previous_tile_y_coord: 0
         }
     }
 
@@ -32,6 +36,12 @@ impl Map {
 
         // 2D rep of our ascii map
         self.map = map_lines.iter().map(|line| line.chars().collect()).collect();
+    }
+
+    pub(crate) fn update_tile_below_player(&mut self, tile: char, x_coord: usize, y_coord: usize) {
+        self.tile_below_player = tile;
+        self.previous_tile_x_coord = x_coord;
+        self.previous_tile_y_coord = y_coord;
     }
 
     pub(crate) fn print_map(&self) {
@@ -84,20 +94,3 @@ impl Map {
     }
 }
 
-pub struct TileSet {
-    pub wall: char,
-    pub door: char,
-    pub key: char,
-    pub floor: char,
-}
-
-impl TileSet {
-    fn new() -> Self {
-        TileSet {
-            wall: '#',
-            door: '|',
-            key: 'k',
-            floor: '.'
-        }
-    }
-}

@@ -4,6 +4,7 @@ mod map;
 mod inventory;
 mod status;
 mod collision;
+mod tile_set;
 
 use crossterm::{cursor, event, QueueableCommand, terminal};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -16,7 +17,7 @@ fn main() {
     let mut collision_engine = CollisionEngine::new();
 
     player.map.load_map("src/map2.txt");
-    collision_engine.update_player_position(&mut player);
+    player.update_player_position();
     player.print_terminal();
 
     loop {

@@ -30,6 +30,22 @@ impl Player {
         }
     }
 
+    pub(crate) fn update_player_position(&mut self) {
+        let at_position: Option<(usize, usize)> = None;
+
+        for (row_idx, row) in self.map.map.iter().enumerate() {
+            for (col_idx, &c) in row.iter().enumerate() {
+                if c == '@' {
+                    self.player_position = Option::from((row_idx, col_idx));
+                    break;
+                }
+            }
+            if at_position.is_some() {
+                break;
+            }
+        }
+    }
+
     pub(crate) fn print_terminal(&mut self) {
         //self.map.print_map_with_module(&self.status.get_status());
         let modules = [self.status.get_status(), self.inventory.get_inventory_to_size(2)];

@@ -1,5 +1,7 @@
 use crossterm::event::KeyCode;
 use crate::player::Player;
+use crate::tile_set;
+use crate::tile_set::TILE_SET;
 
 pub struct CollisionEngine {
 
@@ -28,7 +30,7 @@ impl CollisionEngine {
             }
             KeyCode::Esc => {
                 player.chat.process_chat_message("Pressed ESC & Exited the Game");
-                player.previous_key_event = KeyCode::Esc;
+                player.previous_key_event  = KeyCode::Esc;
                 player.key_state = true;
             }
             _ => {}
@@ -61,62 +63,93 @@ impl CollisionEngine {
                 _ => (row_idx, col_idx), // invalid direction, stay in place
             };
 
-            // update the player position
-            //let move_from = self.map[row_idx][col_idx];
-            let move_to = player.map.map[new_row_idx][new_col_idx];
-
             // basic collision
-            // @TODO create fn to handle the collision of other objects
-            if self.process_move(player, move_to) {
-                // set the new player position
-                player.map.map[new_row_idx][new_col_idx] = '@';
+            self.process_move(player, row_idx, col_idx, new_row_idx, new_col_idx);
 
-                //set previous player tile
-                player.map.map[row_idx][col_idx] = player.map.tile_set.floor;
-
-                self.update_player_position(player);
-            }
             //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
         } else {
             println!("No '@' symbol found in the map.");
         }
     }
 
-    pub(crate) fn process_move(&mut self, mut player: &mut Player, move_to_tile: char) -> bool {
-        if move_to_tile == player.map.tile_set.floor {
-            return true;
-        } else if move_to_tile == player.map.tile_set.wall {
-            return false;
-        } else if move_to_tile == player.map.tile_set.key {
+    pub(crate) fn process_move(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
+        let tile_set = &tile_set::TILE_SET;
+        let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
+
+        /*
+        let msg = format!("{}", tmp_tile);
+        player.chat.process_chat_message(&msg);
+
+        let prev_tile = player.map.map[previous_row_coord][previous_col_coord];
+        let msg_ii = format!("{}", prev_tile);
+        player.chat.process_chat_message(&msg_ii);*/
+
+        let mut process_move = false;
+
+        if tmp_tile ==  tile_set.floor
+        {
+            process_move = true;
+        }
+        else if tmp_tile == tile_set.wall
+        {
+            process_move = false;
+        }
+        else if tmp_tile == tile_set.key
+        {
             player.chat.process_chat_message("You pick up a rusty key.");
             player.inventory.add_key(1);
-            return true;
-        } else if move_to_tile == player.map.tile_set.door {
-            return if player.inventory.keys >= 1 {
+            player.map.map[new_row_coord][new_col_coord] = tile_set.floor;
+            process_move = false;
+        }
+        else if tmp_tile == tile_set.closed_door
+        {
+            if player.inventory.keys >= 1
+            {
                 player.inventory.remove_key(1);
                 player.chat.process_chat_message("You unlock the door using a rusty key.");
-                true
-            } else {
+                player.map.map[new_row_coord][new_col_coord] = tile_set.open_door;
+                process_move = false;
+            }
+            else
+            {
                 player.chat.process_chat_message("You need a rusty key to open this door.");
-                false
+                process_move = false;
             }
         }
-        false
+        else if tmp_tile == tile_set.open_door
+        {
+            process_move = true;
+        }
+
+        /*let mut tile_left = player.map.map[new_row_coord -1][new_col_coord];
+        let mut tile_right = player.map.map[new_row_coord +1][new_col_coord];
+        let mut ladder = format!("{}{}{}", tile_left, new_tile, tile_right );
+        player.chat.process_chat_message(&ladder);
+        if format!("{}{}{}", tile_left, new_tile, tile_right ) == player.map.tile_set.ladder {
+            player.chat.process_chat_message("Ladder?");
+            process_move = false;
+        }*/
+
+        if process_move {
+            // set the new player position
+            player.map.map[new_row_coord][new_col_coord] = TILE_SET.player;
+            player.map.map[previous_row_coord][previous_col_coord] = self.update_tile(player, tmp_tile, new_row_coord, new_col_coord);
+            player.map.update_tile_below_player(tmp_tile, new_row_coord, new_col_coord);
+            player.update_player_position();
+        }
     }
 
-    pub(crate) fn update_player_position(&mut self, mut player: &mut Player) {
-        let at_position: Option<(usize, usize)> = None;
+    fn update_tile(&mut self, mut player: &mut Player, mut tmp_tile: char, new_row_coord: usize, new_col_coord: usize) -> char {
+        let tile_set = &tile_set::TILE_SET;
 
-        for (row_idx, row) in player.map.map.iter().enumerate() {
-            for (col_idx, &c) in row.iter().enumerate() {
-                if c == '@' {
-                    player.player_position = Option::from((row_idx, col_idx));
-                    break;
-                }
-            }
-            if at_position.is_some() {
-                break;
-            }
+        if tmp_tile == tile_set.open_door {
+            tmp_tile = tile_set.floor;
         }
+
+        if player.map.tile_below_player == tile_set.open_door {
+            tmp_tile = tile_set.open_door;
+        }
+
+        return tmp_tile;
     }
 }
