@@ -6,7 +6,9 @@ use crossterm::{QueueableCommand, terminal};
 
 pub struct Map {
     pub map: Vec<Vec<char>>,
+    pub str_map: String,
     pub tile_below_player: char,
+    pub multi_tile_below_player: bool,
     pub previous_tile_x_coord: usize,
     pub previous_tile_y_coord: usize
 }
@@ -15,16 +17,20 @@ impl Map {
     pub(crate) fn new() -> Self {
         Map {
             map: vec![vec![]],
+            str_map: String::new(),
             tile_below_player: '.',
+            multi_tile_below_player: false,
             previous_tile_x_coord: 0,
             previous_tile_y_coord: 0
         }
     }
 
-    pub(crate) fn load_map(&mut self, name: &str) {
+    pub(crate) fn load_map(&mut self, map_name: &str) {
         let mut map = "".to_owned();
+        let map_name = format!("src/maps/{}.txt", map_name);
+
         map += "\n";
-        if let Ok(lines) = self.read_lines(name) {
+        if let Ok(lines) = self.read_lines(map_name) {
             for line in lines {
                 if let Ok(tile) = line {
                     map += &tile;
@@ -70,7 +76,7 @@ impl Map {
         println!("\n");
     }
 
-    pub(crate) fn print_map_with_modules(&self, module: &[[String; 3]; 2]) {
+    /*pub(crate) fn print_map_with_modules(&self, module: &[[String; 3]; 2]) {
         let mut stdout = stdout();
         stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
         let mut counter = 0;
@@ -84,6 +90,21 @@ impl Map {
             }
         }
         println!("\n");
+    }*/
+
+    pub(crate) fn update_str_map_with_modules(&mut self, module: &[[String; 3]; 2]) {
+        let mut counter = 0;
+        self.str_map = String::new();
+        for tile in &self.map {
+            let tile_line : String = tile.iter().collect();
+            if counter <= module.len() {
+                self.str_map += &*format!("{}      {}      {}", tile_line, module[0][counter], module[1][counter]);
+                counter += 1;
+            } else {
+                self.str_map += &*format!("{}", tile_line);
+            }
+            self.str_map += &*format!("\n");
+        }
     }
 
     /* TODO place inside of a helper class */

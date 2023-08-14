@@ -66,6 +66,9 @@ impl CollisionEngine {
             // basic collision
             self.process_move(player, row_idx, col_idx, new_row_idx, new_col_idx);
 
+            // update map
+            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
+            player.map.update_str_map_with_modules(&modules);
             //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
         } else {
             println!("No '@' symbol found in the map.");
@@ -75,14 +78,6 @@ impl CollisionEngine {
     pub(crate) fn process_move(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
         let tile_set = &tile_set::TILE_SET;
         let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
-
-        /*
-        let msg = format!("{}", tmp_tile);
-        player.chat.process_chat_message(&msg);
-
-        let prev_tile = player.map.map[previous_row_coord][previous_col_coord];
-        let msg_ii = format!("{}", prev_tile);
-        player.chat.process_chat_message(&msg_ii);*/
 
         let mut process_move = false;
 
@@ -127,7 +122,15 @@ impl CollisionEngine {
         if format!("{}{}{}", tile_left, tmp_tile, tile_right ) == tile_set.ladder {
             player.chat.process_chat_message("Ladder?");
             // @TODO logic for changing scene
-            process_move = true;
+
+            // update map
+            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
+            player.map.load_map("scene_ladder");
+            player.update_player_position();
+            player.map.update_str_map_with_modules(&modules);
+
+
+            process_move = false;
         }
 
         if process_move {
@@ -137,6 +140,7 @@ impl CollisionEngine {
             player.map.update_tile_below_player(tmp_tile, new_row_coord, new_col_coord);
             player.update_player_position();
         }
+
     }
 
     fn update_tile(&mut self, mut player: &mut Player, mut tmp_tile: char, new_row_coord: usize, new_col_coord: usize) -> char {

@@ -16,8 +16,12 @@ fn main() {
     let mut player = Player::new();
     let mut collision_engine = CollisionEngine::new();
 
-    player.map.load_map("src/map2.txt");
-    player.update_player_position();
+    player.map.load_map("map2");
+    player.set_player_position(2, 5);
+
+    // update map
+    let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
+    player.map.update_str_map_with_modules(&modules);
     player.print_terminal();
 
     loop {

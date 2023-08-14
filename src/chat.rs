@@ -28,12 +28,6 @@ impl Chat {
         }
     }
 
-    /*pub(crate) fn prepare_chat(&mut self) {
-        for i in (0..self.chat.len()).rev() {
-            println!("{}", self.chat[i]);
-        }
-    }*/
-
     pub(crate) fn print_chat(&mut self) {
         for i in 0..self.chat.len() {
             println!("{}", self.chat[i]);
