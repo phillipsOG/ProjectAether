@@ -16,8 +16,7 @@ fn main() {
     let mut player = Player::new();
     let mut collision_engine = CollisionEngine::new();
 
-    player.map.load_map("map2");
-    player.set_player_position(2, 5);
+    player.map.load_map_set_player_position("map2", 1, 5);
 
     // update map
     let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
