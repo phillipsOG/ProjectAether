@@ -3,7 +3,6 @@ use std::io;
 use std::io::{BufRead, stdout};
 use std::path::Path;
 use crossterm::{QueueableCommand, terminal};
-use crate::{player, tile_set};
 use crate::tile_set::{DEFAULT_TILE_SET, TileSet};
 
 pub struct Map {
@@ -14,7 +13,8 @@ pub struct Map {
     pub tile_below_player: char,
     pub multi_tile_below_player: bool,
     pub previous_tile_x_coord: usize,
-    pub previous_tile_y_coord: usize
+    pub previous_tile_y_coord: usize,
+    pub previous_map: String
 }
 
 impl Map {
@@ -27,7 +27,8 @@ impl Map {
             tile_below_player: '.',
             multi_tile_below_player: false,
             previous_tile_x_coord: 0,
-            previous_tile_y_coord: 0
+            previous_tile_y_coord: 0,
+            previous_map: String::new()
         }
     }
 
@@ -36,7 +37,7 @@ impl Map {
         let map_name = format!("src/maps/{}.txt", map_name);
 
         map += "\n";
-        if let Ok(lines) = self.read_lines(map_name) {
+        if let Ok(lines) = self.read_lines(&map_name) {
             for line in lines {
                 if let Ok(tile) = line {
                     map += &tile;

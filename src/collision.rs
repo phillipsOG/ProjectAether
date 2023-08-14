@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use crate::player::Player;
 use crate::{player, tile_set};
-use crate::tile_set::{LADDER_TILE_SET, TileSet};
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, TileSet};
 //use crate::tile_set::TILE_SET;
 
 pub struct CollisionEngine {
@@ -78,9 +78,28 @@ impl CollisionEngine {
 
     pub(crate) fn process_move(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
         //let tile_set = &;
+        let mut process_move = false;
+        if player.map.previous_map == "scene_ladder" {
+            let mut enter_scene_direction = 0;
+
+            if player.key_event == KeyCode::Down {
+                enter_scene_direction = 0;
+            } else {
+                enter_scene_direction = 3;
+            }
+
+            let scene = "map2";
+
+            // maybe store previous coords
+            player.map.load_map_set_player_position(scene, enter_scene_direction, 3);
+            player.map.set_map_tile_set(DEFAULT_TILE_SET);
+            player.map.previous_map = scene.parse().unwrap();
+
+            process_move = false;
+        }
+
         let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
 
-        let mut process_move = false;
 
         if tmp_tile ==  player.map.tile_set.floor
         {
@@ -122,18 +141,20 @@ impl CollisionEngine {
         let mut ladder = format!("{}{}{}", tile_left, tmp_tile, tile_right );
         if format!("{}{}{}", tile_left, tmp_tile, tile_right ) == player.map.tile_set.ladder {
             // @TODO logic for changing scene
-            // update map
             let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
-            let mut enter_scene_direction = 0;
 
+            let mut enter_scene_direction = 0;
             if player.key_event == KeyCode::Down {
                 enter_scene_direction = 0;
             } else {
                 enter_scene_direction = 3;
             }
-            player.map.load_map_set_player_position("scene_ladder", enter_scene_direction, 3);
+            let scene = "scene_ladder";
+
+            player.map.load_map_set_player_position(scene, enter_scene_direction, 3);
             player.map.update_str_map_with_modules(&modules);
             player.map.set_map_tile_set(LADDER_TILE_SET);
+            player.map.previous_map = scene.parse().unwrap();
 
             process_move = false;
         }
