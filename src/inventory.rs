@@ -24,12 +24,8 @@ impl Inventory {
         ]
     }
 
-    pub(crate) fn get_inventory_to_size(&mut self, size: usize) -> [String; 3] {
-        let mut inventory_items = [format!("Keys: {}", self.keys), String::new(), String::new()];
-
-        for i in 1..size {
-            inventory_items[i] = String::new();
-        }
+    pub(crate) fn get_inventory_to_size(&mut self, size: usize, module_part: String) -> [String; 3] {
+        let mut inventory_items = [format!("{}", module_part), format!("Keys: {}", self.keys), String::new()];
 
         inventory_items
     }

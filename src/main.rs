@@ -19,7 +19,7 @@ fn main() {
     player.map.load_map_set_player_position("map2", 1, 5);
 
     // update map
-    let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
+    let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", player.map.current_floor))];
     player.map.update_str_map_with_modules(&modules);
     player.print_terminal();
 
@@ -30,6 +30,7 @@ fn main() {
                     player.key_event = key_input.code;
 
                     collision_engine.process_input(&mut player);
+
                     player.print_terminal();
 
                     if player.key_state {

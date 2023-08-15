@@ -67,8 +67,9 @@ impl CollisionEngine {
             self.process_move(player, row_idx, col_idx, new_row_idx, new_col_idx);
 
             // update map
-            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
+            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", player.map.current_floor))];
             player.map.update_str_map_with_modules(&modules);
+
             //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
         } else {
             println!("No '@' symbol found in the map.");
@@ -78,6 +79,7 @@ impl CollisionEngine {
     pub(crate) fn process_move(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
         //let tile_set = &;
         let mut process_move = false;
+
         let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
 
         if tmp_tile == player.map.tile_set.floor
@@ -109,30 +111,36 @@ impl CollisionEngine {
             process_move = true;
         }
 
-        match self.check_for_multi_tile(player, new_row_coord, new_col_coord) {
-            s if s == format!("{}", DEFAULT_TILE_SET.ladder) => {
+        // @TODO logic for changing scene
+        if self.check_for_multi_tile(player, tmp_tile, new_row_coord, new_col_coord) == player.map.tile_set.ladder {
 
-                let mut enter_scene_direction = 0;
-                if player.key_event == KeyCode::Down {
-                    enter_scene_direction = 0;
-                } else {
-                    enter_scene_direction = 3;
+            let mut enter_scene_direction = 0;
+            let mut scene = "scene_ladder";
+
+            if player.key_event == KeyCode::Down {
+                enter_scene_direction = 1;
+                player.map.current_floor -= 1;
+
+                if player.map.previous_map_name == "map2" {
+                    scene = "map2";
+                    player.map.load_previous_map();
+                    player.map.update_player_position();
+                    player.map.set_map_tile_set(DEFAULT_TILE_SET);
                 }
-                let scene = "scene_ladder";
+            } else {
+                player.map.previous_map = player.map.map.clone();
 
-                let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2)];
+                enter_scene_direction = 2;
+                player.map.current_floor += 1;
                 player.map.load_map_set_player_position(scene, enter_scene_direction, 3);
-                player.map.update_str_map_with_modules(&modules);
                 player.map.set_map_tile_set(LADDER_TILE_SET);
-                player.map.previous_map = scene.parse().unwrap();
+            }
+            player.map.set_previous_map_data("map2");
 
-                process_move = false;
-                player.map.update_player_position();
-            }
-            // Add more cases as needed
-            _ => {
-                // Default case
-            }
+            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", player.map.current_floor))];
+            player.map.update_str_map_with_modules(&modules);
+            player.chat.process_chat_message("ladder?");
+            process_move = false;
         }
 
         if process_move {
@@ -144,17 +152,15 @@ impl CollisionEngine {
         }
     }
 
-    fn check_for_multi_tile(&mut self, mut player: &mut Player, current_x: usize, current_y: usize) -> String {
+    fn check_for_multi_tile(&mut self, mut player: &mut Player, tmp_tile: char, current_x: usize, current_y: usize) -> String {
         for (row_idx, row) in player.map.map.iter().enumerate() {
             for (col_idx, &c) in row.iter().enumerate() {
                 if c == '@' {
-                    let mut tile_left = player.map.map[current_x][current_y+1];
-                    let mut tile_middle = player.map.map[current_x][current_y];
-                    let mut tile_right = player.map.map[current_x][current_y-1];
-                    let mut next_tile = format!("{}{}{}", tile_left, tile_middle, tile_right );
+                    let mut tile_left = player.map.map[current_x][current_y - 1];
+                    let mut tile_right = player.map.map[current_x][current_y + 1];
+                    let mut next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right );
 
                     //player.chat.process_chat_message(&next_tile);
-
                     if next_tile == DEFAULT_TILE_SET.ladder {
                         return format!("{}", DEFAULT_TILE_SET.ladder);
                     }

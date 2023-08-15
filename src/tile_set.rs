@@ -36,7 +36,7 @@ pub const DEFAULT_TILE_SET: TileSet = TileSet {
     open_door: '/',
     key: 'k',
     floor: '.',
-    ladder: "|-|",
+    ladder: &"|-|",
     previous_tile: '.',
 };
 
@@ -48,6 +48,6 @@ pub const LADDER_TILE_SET: TileSet = TileSet {
     open_door: ' ',
     key: ' ',
     floor: '-',
-    ladder: " ",
+    ladder: &"|-|",
     previous_tile: ' ',
 };

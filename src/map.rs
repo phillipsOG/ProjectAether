@@ -14,7 +14,10 @@ pub struct Map {
     pub multi_tile_below_player: bool,
     pub previous_tile_x_coord: usize,
     pub previous_tile_y_coord: usize,
-    pub previous_map: String
+    pub previous_map_name: String,
+    pub previous_map: Vec<Vec<char>>,
+    pub previous_map_player_position: Option<(usize, usize)>,
+    pub current_floor: usize
 }
 
 impl Map {
@@ -28,7 +31,10 @@ impl Map {
             multi_tile_below_player: false,
             previous_tile_x_coord: 0,
             previous_tile_y_coord: 0,
-            previous_map: String::new()
+            previous_map_name: String::new(),
+            previous_map: vec![vec![]],
+            previous_map_player_position: None,
+            current_floor: 0
         }
     }
 
@@ -50,6 +56,11 @@ impl Map {
         // 2D rep of our ascii map
         self.map = map_lines.iter().map(|line| line.chars().collect()).collect();
         self.set_player_position(pos_x, pos_y);
+    }
+
+    pub(crate) fn load_previous_map(&mut self) {
+        self.map = self.previous_map.clone();
+        self.player_position = self.previous_map_player_position;
     }
 
     pub(crate) fn set_player_position(&mut self, pos_x: usize, pos_y: usize) {
@@ -127,22 +138,6 @@ impl Map {
         println!("\n");
     }
 
-    /*pub(crate) fn print_map_with_modules(&self, module: &[[String; 3]; 2]) {
-        let mut stdout = stdout();
-        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
-        let mut counter = 0;
-        for tile in &self.map {
-            let tile_line : String = tile.iter().collect();
-            if counter <= module.len() {
-                println!("{}      {}      {}", tile_line, module[0][counter], module[1][counter]);
-                counter += 1;
-            } else {
-                println!("{}", tile_line);
-            }
-        }
-        println!("\n");
-    }*/
-
     pub(crate) fn update_str_map_with_modules(&mut self, module: &[[String; 3]; 2]) {
         let mut counter = 0;
         self.str_map = String::new();
@@ -156,6 +151,21 @@ impl Map {
             }
             self.str_map += &*format!("\n");
         }
+    }
+
+    pub(crate) fn get_current_floor_to_size(&mut self, size: usize) -> [String; 3] {
+        let mut module_pieces = [format!("FLOOR: {}", self.current_floor), String::new(), String::new()];
+
+        for i in 1..size {
+            module_pieces[i] = String::new();
+        }
+
+        module_pieces
+    }
+
+    pub(crate) fn set_previous_map_data(&mut self, map_name: &str) {
+        self.previous_map_name = map_name.parse().unwrap();
+        self.previous_map_player_position = self.player_position;
     }
 
     /* TODO place inside of a helper class */
