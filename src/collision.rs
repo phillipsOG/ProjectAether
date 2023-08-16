@@ -65,7 +65,12 @@ impl CollisionEngine {
             };
 
             // basic collision
-            self.process_move(player, row_idx, col_idx, new_row_idx, new_col_idx);
+            if player.map.tile_set.name == DEFAULT_TILE_SET.name {
+                self.process_move(player, row_idx, col_idx, new_row_idx, new_col_idx);
+            } else if player.map.tile_set.name == LADDER_TILE_SET.name {
+                // we're in a ladder scene
+                self.process_move_ladder(player, row_idx, col_idx, new_row_idx, new_col_idx);
+            }
 
             // update map
             let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", player.map.current_floor))];
@@ -77,23 +82,25 @@ impl CollisionEngine {
     }
 
     pub(crate) fn process_move(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
-        //let tile_set = &;
         let mut process_move = false;
         let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
 
         if tmp_tile == player.map.tile_set.floor
         {
             process_move = true;
-        } else if tmp_tile == player.map.tile_set.wall
+        }
+        else if tmp_tile == player.map.tile_set.wall
         {
             process_move = false;
-        } else if tmp_tile == player.map.tile_set.key
+        }
+        else if tmp_tile == player.map.tile_set.key
         {
             player.chat.process_chat_message("You pick up a rusty key.");
             player.inventory.add_key(1);
             player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.floor;
             process_move = false;
-        } else if tmp_tile == player.map.tile_set.closed_door_side || tmp_tile == player.map.tile_set.closed_door_top
+        }
+        else if tmp_tile == player.map.tile_set.closed_door_side || tmp_tile == player.map.tile_set.closed_door_top
         {
             if player.inventory.keys >= 1
             {
@@ -110,54 +117,57 @@ impl CollisionEngine {
             process_move = true;
         }
 
-        let res = self.check_for_multi_tile(player, tmp_tile, new_row_coord, new_col_coord);
-        let down = 3;
-        let up = 1;
-        let mut exit_ladder_scene = false;
         // @TODO logic for changing scene
+        let res = self.check_for_multi_tile(player, tmp_tile, new_row_coord, new_col_coord);
         if res == player.map.tile_set.ladder && player.map.tile_set.name == DEFAULT_TILE_SET.name {
             let mut enter_scene_direction = 0;
 
             if player.key_event == KeyCode::Up {
                 enter_scene_direction = 2;
-                player.map.current_floor += 1;
                 player.map.set_previous_map_data("map2");
+                player.map.current_floor += 1;
 
                 player.map.load_map_set_player_position("scene_ladder", enter_scene_direction, 3);
                 player.map.set_map_tile_set(LADDER_TILE_SET);
                 process_move = false;
             }
-        } else if res == player.map.tile_set.ladder {
-            if player.key_event == KeyCode::Down {
-                player.chat.process_chat_message(&format!("{}", new_row_coord));
-
-                if new_row_coord == down {
-                    player.map.current_floor -= 1;
-
-                    player.map.load_previous_map();
-                    player.map.update_player_position();
-                    player.map.set_map_tile_set(DEFAULT_TILE_SET);
-                    exit_ladder_scene = true;
-                    process_move = false;
-                } else {
-                    process_move = true;
-                }
-            }
         }
 
         // set the new player position
         if process_move {
+            player.map.map[previous_row_coord][previous_col_coord] = self.update_tile(player, tmp_tile, new_row_coord, new_col_coord);
             player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.player;
 
-            if !exit_ladder_scene {
-                player.map.map[previous_row_coord][previous_col_coord] = self.update_tile(player, tmp_tile, new_row_coord, new_col_coord);
-            } else {
-                player.map.map[previous_row_coord][previous_col_coord] = player.map.tile_below_player;
-            }
+            player.map.update_player_position();
+            player.map.update_tile_below_player(tmp_tile, new_row_coord, new_col_coord);
+        }
+    }
 
-            if player.map.tile_set.name == DEFAULT_TILE_SET.name {
-                player.map.update_tile_below_player(tmp_tile, new_row_coord, new_col_coord);
+    fn process_move_ladder(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
+        let mut process_move = true;
+        let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
+        let res = self.check_for_multi_tile(player, tmp_tile, new_row_coord, new_col_coord);
+        if res == player.map.tile_set.ladder && player.map.tile_set.name == LADDER_TILE_SET.name {
+            if player.key_event == KeyCode::Down && new_row_coord == 3 {
+                player.map.current_floor -= 1;
+
+                player.map.load_previous_map();
+                player.map.update_player_position();
+                player.map.set_map_tile_set(DEFAULT_TILE_SET);
+                process_move = false;
+            } else if player.key_event == KeyCode::Up && new_row_coord == 0 {
+
+                player.map.load_map_set_player_position("map1", 3, 3);
+                player.map.set_map_tile_set(DEFAULT_TILE_SET);
+                process_move = false;
+            } else {
+                process_move = true;
             }
+        }
+
+        if process_move {
+            player.map.map[previous_row_coord][previous_col_coord] = self.update_tile(player, tmp_tile, new_row_coord, new_col_coord);
+            player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.player;
             player.map.update_player_position();
         }
     }

@@ -5,6 +5,7 @@ mod inventory;
 mod status;
 mod collision;
 mod tile_set;
+mod map_manager;
 
 use crossterm::{cursor, event, QueueableCommand, terminal};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
