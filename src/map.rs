@@ -165,7 +165,15 @@ impl Map {
 
     pub(crate) fn set_previous_map_data(&mut self, map_name: &str) {
         self.previous_map_name = map_name.parse().unwrap();
+        self.previous_map = self.map.clone();
         self.previous_map_player_position = self.player_position;
+    }
+
+    pub(crate) fn get_tile_at_position(&self, position: Option<(usize, usize)>) -> char {
+        if let Some((row, col)) = position {
+            return self.map[row][col];
+        }
+        ' '
     }
 
     /* TODO place inside of a helper class */

@@ -8,6 +8,7 @@ pub struct TileSet {
     pub floor: char,
     pub ladder: &'static str,
     pub previous_tile: char,
+    pub name: &'static str
 }
 
 impl TileSet {
@@ -25,6 +26,7 @@ impl TileSet {
         self.floor = other.floor;
         self.ladder = other.ladder;
         self.previous_tile = other.previous_tile;
+        self.name = other.name;
     }
 }
 
@@ -38,16 +40,18 @@ pub const DEFAULT_TILE_SET: TileSet = TileSet {
     floor: '.',
     ladder: &"|-|",
     previous_tile: '.',
+    name: &"Default Tile Set"
 };
 
 pub const LADDER_TILE_SET: TileSet = TileSet {
     player: '@',
     wall: '#',
-    closed_door_side: ' ',
-    closed_door_top: ' ',
-    open_door: ' ',
+    closed_door_side: '#',
+    closed_door_top: '#',
+    open_door: '#',
     key: ' ',
     floor: '-',
     ladder: &"|-|",
     previous_tile: ' ',
+    name: &"Ladder Tile Set"
 };
