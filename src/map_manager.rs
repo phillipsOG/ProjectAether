@@ -44,11 +44,10 @@ impl MapManager {
             }
         }
         let map_lines: Vec<&str> = map.trim().lines().collect();
-
         let mut new_map = MapData::new();
         new_map.map = map_lines.iter().map(|line| line.chars().collect()).collect();
         new_map.set_player_position(pos_x, pos_y);
-        self.add_map(0, new_map);
+        self.add_map(self.current_map_index, new_map);
     }
 
     fn read_lines<P>(&mut self, filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
