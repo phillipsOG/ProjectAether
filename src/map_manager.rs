@@ -7,7 +7,10 @@ use crate::map::{MapData, Vec2};
 
 pub struct MapManager {
     maps: HashMap<usize, MapData>,
-    pub current_map_index: usize
+    pub current_map_index: usize,
+    pub should_transition: bool,
+    pub target_map: String,
+    pub target_position: Vec2
 }
 
 impl MapManager {
@@ -15,6 +18,9 @@ impl MapManager {
         Self {
             maps: HashMap::new(),
             current_map_index: 0,
+            should_transition: false,
+            target_map: String::new(),
+            target_position: Vec2::ZERO
         }
     }
 

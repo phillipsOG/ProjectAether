@@ -23,14 +23,38 @@ impl GameClient {
     }
 
     pub(crate) fn print_terminal(&mut self) {
-        //self.map.print_map_with_module(&self.status.get_status());
+        let mut stdout = stdout();
+        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+        let map = self.map_manager.get_map(self.map_manager.current_map_index);
+
+        if let Some(map_data) = map {
+            let modules = [self.player.status.get_status(), self.player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor))];
+            let mut counter = 0;
+            for tile in &map_data.map {
+                let tile_line: String = tile.iter().collect();
+                if counter <= modules.len() {
+                    println!("{}      {}      {}", tile_line, modules[0][counter], modules[1][counter]);
+                    counter += 1;
+
+                } else {
+                    println!("{}", tile_line);
+                }
+            }
+
+            println!("\n");
+            self.chat.print_chat();
+        }
+    }
+
+    pub(crate) fn print_map(&self) {
+        let mut stdout = stdout();
+        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
         let map = self.map_manager.get_map(self.map_manager.current_map_index);
         if let Some(map_data) = map {
-            let mut stdout = stdout();
-            stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
-            println!("{}", map_data.str_map);
-
-            self.chat.print_chat();
+            for tile in &map_data.map {
+                let tile_line: String = tile.iter().collect();
+                println!("{}", tile_line);
+            }
         }
     }
 }
