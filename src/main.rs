@@ -6,39 +6,37 @@ mod status;
 mod collision;
 mod tile_set;
 mod map_manager;
+mod game_client;
 
 use crossterm::{cursor, event, QueueableCommand, terminal};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use std::io::{self, BufRead};
-use crate::collision::CollisionEngine;
-use crate::player::Player;
+use crate::game_client::GameClient;
 
 fn main() {
-    let mut player = Player::new();
-    let mut collision_engine = CollisionEngine::new();
 
-    player.map_manager.load_map_set_player_position("map2", 1, 5);
+    let mut game_client = GameClient::new();
 
-    let map = player.map_manager.get_map_mut(player.map_manager.current_map_index);
+    game_client.map_manager.load_map_set_player_position("map2", 2, 6);
+    let map = game_client.map_manager.get_map_mut(game_client.map_manager.current_map_index);
 
     // update map
     if let Some(map_data) = map {
-        let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor))];
+        let modules = [game_client.player.status.get_status(), game_client.player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor))];
         map_data.update_str_map_with_modules(&modules);
-        player.print_terminal();
+        game_client.print_terminal();
     }
 
     loop {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
-                    player.key_event = key_input.code;
+                    game_client.player.key_event = key_input.code;
 
-                    collision_engine.process_input(&mut player);
+                    game_client.collision_engine.process_input(&mut game_client.player, &mut game_client.map_manager, &mut game_client.chat);
+                    game_client.print_terminal();
 
-                    player.print_terminal();
-
-                    if player.key_state {
+                    if game_client.player.key_state {
                         break;
                     }
                     else {

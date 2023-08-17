@@ -56,6 +56,27 @@ impl MapData {
         }
     }
 
+    pub(crate) fn set_player_position(&mut self, pos_x: usize, pos_y: usize) {
+
+        let tile_set = &self.tile_set;
+        let mut positions_to_modify = Vec::new();
+
+        for (row_idx, row) in self.map.iter().enumerate() {
+            for (col_idx, &c) in row.iter().enumerate() {
+                if row_idx == pos_x && col_idx == pos_y {
+                    if self.map[row_idx][col_idx] != tile_set.wall && (row_idx == pos_x && col_idx == pos_y) {
+                        positions_to_modify.push((pos_x, pos_y));
+                    } else if self.map[row_idx+1][col_idx+1] != tile_set.wall && self.map[row_idx+1][col_idx+1] != tile_set.closed_door_side {
+                        positions_to_modify.push((pos_x+1, pos_y+1));
+                    }
+                }
+            }
+        }
+
+        self.player_position = Vec2::new(pos_x, pos_y);
+        self.map[pos_x][pos_y] = tile_set.player;
+    }
+
     pub(crate) fn set_map_tile_set(&mut self, tile_set: TileSet) {
         self.tile_set = tile_set;
     }
