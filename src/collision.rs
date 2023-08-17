@@ -2,7 +2,7 @@ use crossterm::event::KeyCode;
 use crossterm::event::KeyCode::F;
 use crate::player::Player;
 use crate::{player, tile_set};
-use crate::map::Map;
+use crate::map::MapData;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, TileSet};
 //use crate::tile_set::TILE_SET;
 
@@ -38,112 +38,112 @@ impl CollisionEngine {
         }
     }
 
-    pub(crate) fn move_player(&mut self, mut player: &mut Player) {
-        if let Some((row_idx, col_idx)) = player.map.player_position {
+    pub(crate) fn move_player(&mut self, player: &mut Player) {
+        let map = player.map_manager.get_map_mut(player.map_manager.current_map_index);
+
+        if let Some(map_data) = map {
             let (new_row_idx, new_col_idx) = match player.key_event {
                 KeyCode::Up => {
                     // Move up
                     player.chat.process_chat_message("You walk up.");
-                    (row_idx - 1, col_idx)
+                    (map_data.player_position.x - 1, map_data.player_position.y)
                 },
                 KeyCode::Down => {
                     // Move down
                     player.chat.process_chat_message("You walk down.");
-                    (row_idx + 1, col_idx)
+                    (map_data.player_position.x + 1, map_data.player_position.y)
                 },
                 KeyCode::Left => {
                     // Move left
                     player.chat.process_chat_message("You walk left.");
-                    (row_idx, col_idx - 1)
+                    (map_data.player_position.x, map_data.player_position.y - 1)
                 },
                 KeyCode::Right => {
                     // Move right
                     player.chat.process_chat_message("You walk right.");
-                    (row_idx, col_idx + 1)
+                    (map_data.player_position.x, map_data.player_position.y + 1)
                 },
-                _ => (row_idx, col_idx), // invalid direction, stay in place
+                _ => (map_data.player_position.x, map_data.player_position.y), // invalid direction, stay in place
             };
 
-            // basic collision
-            if player.map.tile_set.name == DEFAULT_TILE_SET.name {
-                self.process_move(player, row_idx, col_idx, new_row_idx, new_col_idx);
-            } else if player.map.tile_set.name == LADDER_TILE_SET.name {
+            if map_data.tile_set.name == DEFAULT_TILE_SET.name {
+                self.process_move(map_data, map_data.player_position.x, map_data.player_position.y, new_row_idx, new_col_idx);
+            } else if map_data.tile_set.name == LADDER_TILE_SET.name {
                 // we're in a ladder scene
-                self.process_move_ladder(player, row_idx, col_idx, new_row_idx, new_col_idx);
+                //self.process_move_ladder(player, map_data.player_position.x, map_data.player_position.y, new_row_idx, new_col_idx);
             }
 
             // update map
-            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", player.map.current_floor))];
-            player.map.update_str_map_with_modules(&modules);
+            let modules = [player.status.get_status(), player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor))];
+            map_data.update_str_map_with_modules(&modules);
             //println!("Moved player from row: {}, column: {} to row: {}, column: {}", row_idx, col_idx, new_row_idx, new_col_idx);
-        } else {
-            println!("No '@' symbol found in the map.");
         }
     }
 
-    pub(crate) fn process_move(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
+    pub(crate) fn process_move(&mut self, map_data: &MapData, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
         let mut process_move = false;
-        let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
+        let mut tmp_tile = map_data.map[new_row_coord][new_col_coord];
 
-        if tmp_tile == player.map.tile_set.floor
+        if tmp_tile == map_data.tile_set.floor
         {
             process_move = true;
         }
-        else if tmp_tile == player.map.tile_set.wall
+        else if tmp_tile == map_data.tile_set.wall
         {
             process_move = false;
         }
-        else if tmp_tile == player.map.tile_set.key
+        else if tmp_tile == map_data.tile_set.key
         {
             player.chat.process_chat_message("You pick up a rusty key.");
             player.inventory.add_key(1);
-            player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.floor;
+            map_data.map[new_row_coord][new_col_coord] = map_data.tile_set.floor;
             process_move = false;
-        }
-        else if tmp_tile == player.map.tile_set.closed_door_side || tmp_tile == player.map.tile_set.closed_door_top
+        } else if tmp_tile == map_data.tile_set.closed_door_side || tmp_tile == map_data.tile_set.closed_door_top
         {
             if player.inventory.keys >= 1
             {
                 player.inventory.remove_key(1);
                 player.chat.process_chat_message("You unlock the door using a rusty key.");
-                player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.open_door;
+                map_data.map[new_row_coord][new_col_coord] = map_data.tile_set.open_door;
                 process_move = false;
             } else {
                 player.chat.process_chat_message("You need a rusty key to open this door.");
                 process_move = false;
             }
-        } else if tmp_tile == player.map.tile_set.open_door
+        } else if tmp_tile == map_data.tile_set.open_door
         {
             process_move = true;
         }
 
         // @TODO logic for changing scene
-        let res = self.check_for_multi_tile(player, tmp_tile, new_row_coord, new_col_coord);
-        if res == player.map.tile_set.ladder && player.map.tile_set.name == DEFAULT_TILE_SET.name {
+        let res = self.check_for_multi_tile(map_data, tmp_tile, new_row_coord, new_col_coord);
+        if res == map_data.tile_set.ladder && map_data.tile_set.name == DEFAULT_TILE_SET.name {
             let mut enter_scene_direction = 0;
 
             if player.key_event == KeyCode::Up {
                 enter_scene_direction = 2;
-                player.map.set_previous_map_data("map2");
-                player.map.current_floor += 1;
+                // @TODO change to use map manager
+                //player.map.set_previous_map_data("map2");
+                map_data.current_floor += 1;
 
-                player.map.load_map_set_player_position("scene_ladder", enter_scene_direction, 3);
-                player.map.set_map_tile_set(LADDER_TILE_SET);
+                // @TODO map_manager handles this now
+                //map_data.load_map_set_player_position("scene_ladder", enter_scene_direction, 3);
+                map_data.set_map_tile_set(LADDER_TILE_SET);
                 process_move = false;
             }
         }
 
         // set the new player position
         if process_move {
-            player.map.map[previous_row_coord][previous_col_coord] = self.update_tile(player, tmp_tile, new_row_coord, new_col_coord);
-            player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.player;
+            map_data.map[previous_row_coord][previous_col_coord] = self.update_tile(map_data, tmp_tile, new_row_coord, new_col_coord);
+            map_data.map[new_row_coord][new_col_coord] = map_data.tile_set.player;
 
-            player.map.update_player_position();
-            player.map.update_tile_below_player(tmp_tile, new_row_coord, new_col_coord);
+            map_data.update_player_position();
+            map_data.update_tile_below_player(tmp_tile, new_row_coord, new_col_coord);
         }
     }
 
-    fn process_move_ladder(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
+    /*fn process_move_ladder(&mut self, mut player: &mut Player, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
         let mut process_move = true;
         let mut tmp_tile = player.map.map[new_row_coord][new_col_coord];
         let res = self.check_for_multi_tile(player, tmp_tile, new_row_coord, new_col_coord);
@@ -164,20 +164,20 @@ impl CollisionEngine {
                 process_move = true;
             }
         }
-
         if process_move {
             player.map.map[previous_row_coord][previous_col_coord] = self.update_tile(player, tmp_tile, new_row_coord, new_col_coord);
             player.map.map[new_row_coord][new_col_coord] = player.map.tile_set.player;
             player.map.update_player_position();
         }
-    }
+    }*/
 
-    fn check_for_multi_tile(&mut self, mut player: &mut Player, tmp_tile: char, current_x: usize, current_y: usize) -> String {
-        for (row_idx, row) in player.map.map.iter().enumerate() {
+    fn check_for_multi_tile(&mut self, map_data: &MapData, tmp_tile: char, current_x: usize, current_y: usize) -> String {
+
+        for (row_idx, row) in map_data.map.iter().enumerate() {
             for (col_idx, &c) in row.iter().enumerate() {
                 if c == '@' {
-                    let mut tile_left = player.map.map[current_x][current_y - 1];
-                    let mut tile_right = player.map.map[current_x][current_y + 1];
+                    let mut tile_left = map_data.map[current_x][current_y - 1];
+                    let mut tile_right = map_data.map[current_x][current_y + 1];
                     let mut next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right );
 
                     //player.chat.process_chat_message(&next_tile);
@@ -191,17 +191,18 @@ impl CollisionEngine {
         return "".to_string() // Return value as needed
     }
 
-    fn update_tile(&mut self, mut player: &mut Player, mut tmp_tile: char, new_row_coord: usize, new_col_coord: usize) -> char {
-        let tile_set = &player.map.tile_set;
+    fn update_tile(&mut self, map_data: &MapData, mut tmp_tile: char, new_row_coord: usize, new_col_coord: usize) -> char {
+        let tile_set = &map_data.tile_set;
+
         if tmp_tile == tile_set.open_door {
             tmp_tile = tile_set.floor;
         }
 
-        if player.map.tile_below_player == tile_set.open_door {
+        if map_data.tile_below_player == tile_set.open_door {
             tmp_tile = tile_set.open_door;
         }
 
-        if player.map.tile_below_player == tile_set.closed_door_top {
+        if map_data.tile_below_player == tile_set.closed_door_top {
             tmp_tile = tile_set.closed_door_top;
         }
         tmp_tile
