@@ -7,6 +7,7 @@ use crate::tile_set::{DEFAULT_TILE_SET, TileSet};
 
 type Map = Vec<Vec<char>>;
 
+#[derive(Clone, Copy)]
 pub struct Vec2 {
     pub x: usize,
     pub y: usize

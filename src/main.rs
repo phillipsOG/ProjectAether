@@ -7,6 +7,7 @@ mod collision;
 mod tile_set;
 mod map_manager;
 mod game_client;
+mod player_movement_data;
 
 use crossterm::{cursor, event, QueueableCommand, terminal};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
@@ -25,30 +26,16 @@ fn main() {
                 if key_input.kind == KeyEventKind::Press {
                     game_client.player.key_event = key_input.code;
 
-                    game_client.collision_engine.process_input(
-                        &mut game_client.player,
-                        &mut game_client.map_manager,
-                        &mut game_client.chat
-                    );
+                    let new_player_pos = game_client.collision_engine.move_player(&mut game_client.map_manager, &mut game_client.player, &mut game_client.chat);
+                    let can_player_proceed = game_client.collision_engine.process_move(&mut game_client.player, &mut game_client.map_manager, &mut game_client.chat, new_player_pos);
 
-                    // check if the scene transition flag is set
-                    if game_client.map_manager.should_transition {
-                        game_client.map_manager.load_map_set_player_position(
-                            &game_client.target_map,
-                            game_client.target_position.0,
-                            game_client.target_position.1,
-                        );
-
-                        // reset the scene transition flags
-                        game_client.should_transition = false;
+                    if can_player_proceed {
+                        game_client.collision_engine.update_player_position(&mut game_client.map_manager, new_player_pos);
                     }
 
                     game_client.print_terminal();
-
                     if game_client.player.key_state {
                         break;
-                    }
-                    else {
                     }
                 }
             }
