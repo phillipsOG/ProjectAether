@@ -122,6 +122,15 @@ impl CollisionEngine {
             map_data.map[map_data.player_position.x][map_data.player_position.y].tile = self.update_tile(map_data, tmp_tile);
             map_data.map[new_player_position.x][new_player_position.y].tile = map_data.tile_set.player;
 
+            map_data.map[new_player_position.x+1][new_player_position.y].is_visible = true;
+            map_data.map[new_player_position.x-1][new_player_position.y].is_visible = true;
+            map_data.map[new_player_position.x][new_player_position.y+1].is_visible = true;
+            map_data.map[new_player_position.x][new_player_position.y-1].is_visible = true;
+            map_data.map[new_player_position.x+1][new_player_position.y+1].is_visible = true;
+            map_data.map[new_player_position.x-1][new_player_position.y+1].is_visible = true;
+            map_data.map[new_player_position.x+1][new_player_position.y-1].is_visible = true;
+            map_data.map[new_player_position.x-1][new_player_position.y-1].is_visible = true;
+
             map_data.update_player_position();
             map_data.update_tile_below_player(tmp_tile, new_player_position.x, new_player_position.y);
         }

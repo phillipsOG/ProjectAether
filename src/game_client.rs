@@ -4,6 +4,7 @@ use crate::chat::Chat;
 use crate::collision::CollisionEngine;
 use crate::map_manager::MapManager;
 use crate::player::Player;
+use crate::tile_set::DEFAULT_TILE_SET;
 
 pub struct GameClient {
     pub map_manager: MapManager,
@@ -28,14 +29,27 @@ impl GameClient {
         let map = self.map_manager.get_map(self.map_manager.current_map_index);
 
         if let Some(map_data) = map {
-            let modules = [self.player.status.get_status(), self.player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor))];
+            let modules = [
+                self.player.status.get_status(),
+                self.player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor)),
+            ];
             let mut counter = 0;
             for tile in &map_data.map {
-                let tile_line: String = tile.iter().map(|space| space.tile).collect();
+                let tile_line: String = tile.iter().map(|space| {
+                    if space.is_visible {
+                        space.tile
+                    } else if space.tile == DEFAULT_TILE_SET.player {
+                        '@'
+                    } else {
+                        ' ' // Print a space or any other placeholder character
+                    }
+
+
+                }).collect();
+
                 if counter <= modules.len() {
                     println!("{}      {}      {}", tile_line, modules[0][counter], modules[1][counter]);
                     counter += 1;
-
                 } else {
                     println!("{}", tile_line);
                 }
@@ -45,6 +59,7 @@ impl GameClient {
             self.chat.print_chat();
         }
     }
+
 
     pub(crate) fn print_map(&self) {
         let mut stdout = stdout();
