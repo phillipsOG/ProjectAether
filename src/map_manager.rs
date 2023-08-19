@@ -5,6 +5,7 @@ use std::io::BufRead;
 use std::path::Path;
 use crate::map::{MapData, Vec2};
 use crate::PlayerMove;
+use crate::space::Space;
 use crate::tile_set::LADDER_TILE_SET;
 
 pub struct MapManager {
@@ -53,14 +54,19 @@ impl MapManager {
         }
         let map_lines: Vec<&str> = map.trim().lines().collect();
         let mut new_map = MapData::new();
-        new_map.map = map_lines.iter().map(|line| line.chars().collect()).collect();
+        new_map.map = map_lines
+            .iter()
+            .map(|line| line.chars().map(Space::from_char).collect())
+            .collect();
         new_map.set_player_position(pos_x, pos_y);
         if map_name == "scene_ladder" {
             new_map.tile_set = LADDER_TILE_SET;
         }
+
         self.add_map(self.current_map_index, new_map);
         self.current_map_index += 1;
     }
+
 
     pub(crate) fn load_map(&mut self, map_name: &str, player_move: PlayerMove) {
         if map_name == "scene_ladder" {

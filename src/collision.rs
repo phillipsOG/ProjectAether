@@ -55,7 +55,7 @@ impl CollisionEngine {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
 
         if let Some(map_data) = map {
-            let mut tmp_tile = map_data.map[new_player_pos.x][new_player_pos.y];
+            let mut tmp_tile = map_data.map[new_player_pos.x][new_player_pos.y].tile;
 
             let res = self.check_for_multi_tile(map_data, tmp_tile, new_player_pos.x, new_player_pos.y);
             if res == map_data.tile_set.ladder && map_data.tile_set.name == DEFAULT_TILE_SET.name {
@@ -90,7 +90,7 @@ impl CollisionEngine {
             {
                 chat.process_chat_message("You pick up a rusty key.");
                 player.inventory.add_key(1);
-                map_data.map[new_player_pos.x][new_player_pos.y] = map_data.tile_set.floor;
+                map_data.map[new_player_pos.x][new_player_pos.y].tile = map_data.tile_set.floor;
                 return PlayerMove::Unable
             }
             else if tmp_tile == map_data.tile_set.closed_door_side || tmp_tile == map_data.tile_set.closed_door_top
@@ -99,7 +99,7 @@ impl CollisionEngine {
                 {
                     player.inventory.remove_key(1);
                     chat.process_chat_message("You unlock the door using a rusty key.");
-                    map_data.map[new_player_pos.x][new_player_pos.y] = map_data.tile_set.open_door;
+                    map_data.map[new_player_pos.x][new_player_pos.y].tile = map_data.tile_set.open_door;
                     PlayerMove::Unable
                 } else {
                     chat.process_chat_message("You need a rusty key to open this door.");
@@ -118,9 +118,9 @@ impl CollisionEngine {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
         // set the new player position
         if let Some(map_data) = map {
-            let tmp_tile = map_data.map[new_player_position.x][new_player_position.y];
-            map_data.map[map_data.player_position.x][map_data.player_position.y] = self.update_tile(map_data, tmp_tile);
-            map_data.map[new_player_position.x][new_player_position.y] = map_data.tile_set.player;
+            let tmp_tile = map_data.map[new_player_position.x][new_player_position.y].tile;
+            map_data.map[map_data.player_position.x][map_data.player_position.y].tile = self.update_tile(map_data, tmp_tile);
+            map_data.map[new_player_position.x][new_player_position.y].tile = map_data.tile_set.player;
 
             map_data.update_player_position();
             map_data.update_tile_below_player(tmp_tile, new_player_position.x, new_player_position.y);
@@ -131,7 +131,7 @@ impl CollisionEngine {
         let mut process_move = true;
         let map = map_manager.get_map_mut(map_manager.current_map_index);
         if let Some(map_data) = map {
-            let mut tmp_tile = map_data.map[new_row_coord][new_col_coord];
+            let mut tmp_tile = map_data.map[new_row_coord][new_col_coord].tile;
             let res = self.check_for_multi_tile(map_data, tmp_tile, new_row_coord, new_col_coord);
 
             if res == map_data.tile_set.ladder && map_data.tile_set.name == LADDER_TILE_SET.name {
@@ -151,8 +151,8 @@ impl CollisionEngine {
             }
 
             if process_move {
-                map_data.map[previous_row_coord][previous_col_coord] = self.update_tile(map_data, tmp_tile);
-                map_data.map[new_row_coord][new_col_coord] = map_data.tile_set.player;
+                map_data.map[previous_row_coord][previous_col_coord].tile = self.update_tile(map_data, tmp_tile);
+                map_data.map[new_row_coord][new_col_coord].tile = map_data.tile_set.player;
                 map_data.update_player_position();
             }
         }
@@ -160,10 +160,10 @@ impl CollisionEngine {
 
     fn check_for_multi_tile(&mut self, map_data: &MapData, tmp_tile: char, current_x: usize, current_y: usize) -> String {
         for (row_idx, row) in map_data.map.iter().enumerate() {
-            for (col_idx, &c) in row.iter().enumerate() {
-                if c == '@' {
-                    let mut tile_left = map_data.map[current_x][current_y - 1];
-                    let mut tile_right = map_data.map[current_x][current_y + 1];
+            for (col_idx, c) in row.iter().enumerate() {
+                if c.tile == '@' {
+                    let mut tile_left = map_data.map[current_x][current_y - 1].tile;
+                    let mut tile_right = map_data.map[current_x][current_y + 1].tile;
                     let mut next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right );
 
                     //player.chat.process_chat_message(&next_tile);

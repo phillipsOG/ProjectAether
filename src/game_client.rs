@@ -31,7 +31,7 @@ impl GameClient {
             let modules = [self.player.status.get_status(), self.player.inventory.get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor))];
             let mut counter = 0;
             for tile in &map_data.map {
-                let tile_line: String = tile.iter().collect();
+                let tile_line: String = tile.iter().map(|space| space.tile).collect();
                 if counter <= modules.len() {
                     println!("{}      {}      {}", tile_line, modules[0][counter], modules[1][counter]);
                     counter += 1;
@@ -52,7 +52,7 @@ impl GameClient {
         let map = self.map_manager.get_map(self.map_manager.current_map_index);
         if let Some(map_data) = map {
             for tile in &map_data.map {
-                let tile_line: String = tile.iter().collect();
+                let tile_line: String = tile.iter().map(|space| space.tile).collect();
                 println!("{}", tile_line);
             }
         }

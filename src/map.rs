@@ -3,9 +3,10 @@ use std::io;
 use std::io::{BufRead, stdout};
 use std::path::Path;
 use crossterm::{QueueableCommand, terminal};
+use crate::space::Space;
 use crate::tile_set::{DEFAULT_TILE_SET, TileSet};
 
-type Map = Vec<Vec<char>>;
+type Map = Vec<Vec<Space>>;
 
 #[derive(Clone, Copy)]
 pub struct Vec2 {
@@ -48,8 +49,8 @@ impl MapData {
 
     pub(crate) fn update_player_position(&mut self) {
         for (row_idx, row) in self.map.iter().enumerate() {
-            for (col_idx, &c) in row.iter().enumerate() {
-                if c == '@' {
+            for (col_idx, c) in row.iter().enumerate() {
+                if c.tile == '@' {
                     self.player_position = Vec2::new(row_idx, col_idx);
                     break;
                 }
@@ -63,11 +64,11 @@ impl MapData {
         let mut positions_to_modify = Vec::new();
 
         for (row_idx, row) in self.map.iter().enumerate() {
-            for (col_idx, &c) in row.iter().enumerate() {
+            for (col_idx, c) in row.iter().enumerate() {
                 if row_idx == pos_x && col_idx == pos_y {
-                    if self.map[row_idx][col_idx] != tile_set.wall && (row_idx == pos_x && col_idx == pos_y) {
+                    if self.map[row_idx][col_idx].tile != tile_set.wall && (row_idx == pos_x && col_idx == pos_y) {
                         positions_to_modify.push((pos_x, pos_y));
-                    } else if self.map[row_idx+1][col_idx+1] != tile_set.wall && self.map[row_idx+1][col_idx+1] != tile_set.closed_door_side {
+                    } else if self.map[row_idx+1][col_idx+1].tile != tile_set.wall && self.map[row_idx+1][col_idx+1].tile != tile_set.closed_door_side {
                         positions_to_modify.push((pos_x+1, pos_y+1));
                     }
                 }
@@ -75,7 +76,7 @@ impl MapData {
         }
 
         self.player_position = Vec2::new(pos_x, pos_y);
-        self.map[pos_x][pos_y] = tile_set.player;
+        self.map[pos_x][pos_y].tile = tile_set.player;
     }
 
     pub(crate) fn set_map_tile_set(&mut self, tile_set: TileSet) {
@@ -91,7 +92,7 @@ impl MapData {
         stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
 
         for tile in &self.map {
-            let tile_line : String = tile.iter().collect();
+            let tile_line : String = tile.iter().map(|space| space.tile).collect();
             println!("{}", tile_line);
         }
     }
@@ -101,7 +102,7 @@ impl MapData {
         stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
         let mut counter = 0;
         for tile in &self.map {
-            let tile_line : String = tile.iter().collect();
+            let tile_line : String = tile.iter().map(|space| space.tile).collect();
             if counter <= module.len()-1 {
                 println!("{}          {}", tile_line, module[counter]);
                 counter += 1;
@@ -116,7 +117,7 @@ impl MapData {
         let mut counter = 0;
         self.str_map = String::new();
         for tile in &self.map {
-            let tile_line : String = tile.iter().collect();
+            let tile_line : String = tile.iter().map(|space| space.tile).collect();
             if counter <= module.len() {
                 self.str_map += &*format!("{}      {}      {}", tile_line, module[0][counter], module[1][counter]);
                 counter += 1;
@@ -139,7 +140,7 @@ impl MapData {
 
     pub(crate) fn get_tile_at_position(&self, position: Option<(usize, usize)>) -> char {
         if let Some((row, col)) = position {
-            return self.map[row][col];
+            return self.map[row][col].tile;
         }
         ' '
     }

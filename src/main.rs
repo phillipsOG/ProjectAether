@@ -8,6 +8,7 @@ mod tile_set;
 mod map_manager;
 mod game_client;
 mod player_movement_data;
+mod space;
 
 use crossterm::{cursor, event, QueueableCommand, terminal};
 use crossterm::event::{Event, KeyCode, KeyEventKind};
