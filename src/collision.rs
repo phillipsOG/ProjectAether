@@ -67,6 +67,15 @@ impl CollisionEngine {
                 {
                     return PlayerMove::LadderDown;
                 }
+            } else if res == map_data.tile_set.ladder && map_data.tile_set.name == LADDER_TILE_SET.name {
+                if player.key_event == KeyCode::Up && map_data.player_position.x == 1
+                {
+                    return PlayerMove::LadderEnter;
+                }
+                else if player.key_event == KeyCode::Down && map_data.player_position.x == 2
+                {
+                    return PlayerMove::LadderExit;
+                }
             }
 
             if tmp_tile == map_data.tile_set.floor

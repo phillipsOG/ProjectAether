@@ -18,7 +18,9 @@ enum PlayerMove {
     Unable,
     Normal,
     LadderUp,
-    LadderDown
+    LadderDown,
+    LadderEnter,
+    LadderExit
 }
 
 fn main() {
@@ -26,6 +28,7 @@ fn main() {
 
     game_client.map_manager.add_map_set_player_position("scene_ladder", 2, 3);
     game_client.map_manager.add_map_set_player_position("map2", 2, 6);
+    game_client.map_manager.add_map_set_player_position("map1", 2, 5);
     game_client.map_manager.load_map("map2", PlayerMove::Normal);
     game_client.print_terminal();
 
@@ -47,7 +50,13 @@ fn main() {
                         },
                         PlayerMove::LadderDown => {
                             game_client.map_manager.load_map("scene_ladder", PlayerMove::LadderDown);
-                        }
+                        },
+                        PlayerMove::LadderExit => {
+                            game_client.map_manager.load_map("map2", PlayerMove::Normal);
+                        },
+                        PlayerMove::LadderEnter => {
+                            game_client.map_manager.load_map("map1", PlayerMove::Normal);
+                        },
                         _ => {}
                     }
 

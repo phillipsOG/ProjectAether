@@ -71,11 +71,11 @@ impl MapManager {
                 match player_move {
                     PlayerMove::LadderUp => {
                         // entering from the bottom
-                        map_data.set_player_position(2, 3);
+                        //map_data.set_player_position(2, 3);
                     },
                     PlayerMove::LadderDown => {
                         // enter from the top
-                        map_data.set_player_position(2, 3);
+                        //map_data.set_player_position(1, 3);
                     }
                     _ => {}
                 }
@@ -83,6 +83,8 @@ impl MapManager {
             }
         } else if map_name == "map2" {
             self.current_map_index = 1;
+        } else if map_name == "map1" {
+            self.current_map_index = 2;
         }
     }
 
