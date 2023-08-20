@@ -1,6 +1,6 @@
 mod player;
 mod chat;
-mod map;
+mod map_data;
 mod inventory;
 mod status;
 mod collision;
@@ -60,7 +60,7 @@ fn main() {
                         },
                         _ => {}
                     }
-
+                    game_client.collision_engine.update_player_vision(&mut game_client.map_manager, new_player_pos);
                     game_client.print_terminal();
 
                     if game_client.player.key_state {

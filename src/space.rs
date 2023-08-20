@@ -1,18 +1,32 @@
 use std::ops::Deref;
 use std::fmt;
+use crate::tile_set::DEFAULT_TILE_SET;
 
 pub struct Space {
     pub tile: char,
     pub is_visible: bool,
+    pub is_solid: bool
 }
 
 impl Space {
     pub(crate) fn new(tile: char) -> Self {
-        Space { tile, is_visible: false }
+        Space {
+            tile,
+            is_visible: false,
+            is_solid: tile == DEFAULT_TILE_SET.wall
+                || tile == DEFAULT_TILE_SET.closed_door_side
+                || tile == DEFAULT_TILE_SET.closed_door_top
+        }
     }
 
     pub(crate) fn from_char(tile: char) -> Self {
-        Space { tile, is_visible: false }
+        Space {
+            tile,
+            is_visible: false,
+            is_solid: tile == DEFAULT_TILE_SET.wall
+                || tile == DEFAULT_TILE_SET.closed_door_side
+                || tile == DEFAULT_TILE_SET.closed_door_top
+        }
     }
 }
 

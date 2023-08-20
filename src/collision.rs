@@ -3,7 +3,7 @@ use std::iter::Map;
 use crossterm::event::KeyCode;
 use crate::player::Player;
 use crate::chat::Chat;
-use crate::map::{MapData, Vec2};
+use crate::map_data::{MapData, Vec2};
 use crate::map_manager::MapManager;
 use crate::PlayerMove;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
@@ -12,13 +12,15 @@ pub struct CollisionEngine { }
 
 impl CollisionEngine {
     pub(crate) fn new() -> Self {
-        CollisionEngine {}
+        CollisionEngine {
+
+        }
     }
 
     pub(crate) fn move_player(&mut self, map_manager: &mut MapManager, mut player: &mut Player, chat: &mut Chat) -> Vec2 {
         let map = map_manager.get_map(map_manager.current_map_index);
-
         if let Some(map_data) = map {
+
             match player.key_event {
                 KeyCode::Up => {
                     // Move up
@@ -55,7 +57,12 @@ impl CollisionEngine {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
 
         if let Some(map_data) = map {
-            let mut tmp_tile = map_data.map[new_player_pos.x][new_player_pos.y].tile;
+            let tmp_tile = map_data.map[new_player_pos.x][new_player_pos.y].tile;
+            let is_tile_solid = map_data.map[new_player_pos.x][new_player_pos.y].is_solid;
+
+            if is_tile_solid && !(tmp_tile == DEFAULT_TILE_SET.closed_door_side || tmp_tile == DEFAULT_TILE_SET.closed_door_top || tmp_tile == DEFAULT_TILE_SET.open_door) {
+                return PlayerMove::Unable
+            }
 
             let res = self.check_for_multi_tile(map_data, tmp_tile, new_player_pos.x, new_player_pos.y);
             if res == map_data.tile_set.ladder && map_data.tile_set.name == DEFAULT_TILE_SET.name {
@@ -78,15 +85,7 @@ impl CollisionEngine {
                 }
             }
 
-            if tmp_tile == map_data.tile_set.floor
-            {
-                return PlayerMove::Normal
-            }
-            else if tmp_tile == map_data.tile_set.wall
-            {
-                return PlayerMove::Unable
-            }
-            else if tmp_tile == map_data.tile_set.key
+            if tmp_tile == map_data.tile_set.key
             {
                 chat.process_chat_message("You pick up a rusty key.");
                 player.inventory.add_key(1);
@@ -106,12 +105,8 @@ impl CollisionEngine {
                     PlayerMove::Unable
                 }
             }
-            else if tmp_tile == map_data.tile_set.open_door
-            {
-                return PlayerMove::Normal
-            }
         }
-        return PlayerMove::Unable;
+        return PlayerMove::Normal;
     }
 
     pub(crate) fn update_player_position(&mut self, mut map_manager: &mut MapManager, new_player_position: Vec2) {
@@ -122,17 +117,16 @@ impl CollisionEngine {
             map_data.map[map_data.player_position.x][map_data.player_position.y].tile = self.update_tile(map_data, tmp_tile);
             map_data.map[new_player_position.x][new_player_position.y].tile = map_data.tile_set.player;
 
-            map_data.map[new_player_position.x+1][new_player_position.y].is_visible = true;
-            map_data.map[new_player_position.x-1][new_player_position.y].is_visible = true;
-            map_data.map[new_player_position.x][new_player_position.y+1].is_visible = true;
-            map_data.map[new_player_position.x][new_player_position.y-1].is_visible = true;
-            map_data.map[new_player_position.x+1][new_player_position.y+1].is_visible = true;
-            map_data.map[new_player_position.x-1][new_player_position.y+1].is_visible = true;
-            map_data.map[new_player_position.x+1][new_player_position.y-1].is_visible = true;
-            map_data.map[new_player_position.x-1][new_player_position.y-1].is_visible = true;
-
             map_data.update_player_position();
             map_data.update_tile_below_player(tmp_tile, new_player_position.x, new_player_position.y);
+        }
+    }
+
+    pub(crate) fn update_player_vision(&mut self, mut map_manager: &mut MapManager, new_player_position: Vec2) {
+        let map = map_manager.get_map_mut(map_manager.current_map_index);
+        // set the new player position
+        if let Some(map_data) = map {
+            map_data.set_player_vision(Vec2::new(map_data.player_position.x, map_data.player_position.y));
         }
     }
 
@@ -200,6 +194,7 @@ impl CollisionEngine {
         if map_data.tile_below_player == tile_set.closed_door_top {
             tmp_tile = tile_set.closed_door_top;
         }
+
         tmp_tile
     }
 }

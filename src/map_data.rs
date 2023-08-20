@@ -30,7 +30,9 @@ pub struct MapData {
     pub previous_player_position: Vec2,
     pub tile_below_player: char,
     pub multi_tile_below_player: bool,
-    pub current_floor: usize
+    pub current_floor: usize,
+    pub map_width: usize, 
+    pub map_height: usize
 }
 
 impl MapData {
@@ -43,7 +45,9 @@ impl MapData {
             previous_player_position: Vec2::ZERO,
             tile_below_player: '.',
             multi_tile_below_player: false,
-            current_floor: 0
+            current_floor: 0,
+            map_width: 0,
+            map_height: 0,
         }
     }
 
@@ -77,6 +81,50 @@ impl MapData {
 
         self.player_position = Vec2::new(pos_x, pos_y);
         self.map[pos_x][pos_y].tile = tile_set.player;
+        self.set_player_vision(Vec2::new(pos_x, pos_y));
+    }
+
+    pub(crate) fn set_player_vision(&mut self, player_pos: Vec2) {
+        let vision_radius: isize = 2;
+
+        for x in 0..self.map_width {
+            for y in 0..self.map_height {
+                self.map[x][y].is_visible = false;
+
+                if self.map[x][y].is_solid || self.map[x][y].tile == DEFAULT_TILE_SET.open_door {
+
+                } else {
+
+                }
+            }
+        }
+
+        macro_rules! calc_dir {
+        ($x_offset:literal, $y_offset:literal) => {
+            for i in 1..vision_radius+1 {
+                let x = player_pos.x.wrapping_add((i * $x_offset) as usize);
+                let y = player_pos.y.wrapping_add((i * $y_offset) as usize);
+                if x < 0 || x > self.map_width || y < 0 || y > self.map_height {
+                    break;
+                }
+                let tile = &mut self.map[x][y];
+                tile.is_visible = true;
+
+                if tile.is_solid && tile.tile != DEFAULT_TILE_SET.open_door {
+                    break;
+                }
+            }
+        };
+    }
+        calc_dir!(1, 0);  // Right
+        calc_dir!(-1, 0); // Left
+        calc_dir!(0, 1);  // Down
+        calc_dir!(0, -1); // Up
+
+        calc_dir!(1, 1);   // Right-Down
+        calc_dir!(1, -1);  // Right-Up
+        calc_dir!(-1, 1);  // Left-Down
+        calc_dir!(-1, -1); // Left-Up
     }
 
     pub(crate) fn set_map_tile_set(&mut self, tile_set: TileSet) {

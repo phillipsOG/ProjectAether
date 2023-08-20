@@ -23,10 +23,13 @@ impl GameClient {
         }
     }
 
+
+
     pub(crate) fn print_terminal(&mut self) {
         let mut stdout = stdout();
         stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
         let map = self.map_manager.get_map(self.map_manager.current_map_index);
+        let mut str_map = String::new();
 
         if let Some(map_data) = map {
             let modules = [
@@ -41,25 +44,23 @@ impl GameClient {
                     } else if space.tile == DEFAULT_TILE_SET.player {
                         '@'
                     } else {
-                        ' ' // Print a space or any other placeholder character
+                        ' ' // space character
                     }
-
-
                 }).collect();
 
                 if counter <= modules.len() {
-                    println!("{}      {}      {}", tile_line, modules[0][counter], modules[1][counter]);
+                    str_map += &*format!("{}      {}      {}\n", tile_line, modules[0][counter], modules[1][counter]);
                     counter += 1;
                 } else {
-                    println!("{}", tile_line);
+                    //println!("{}", tile_line);
+                    str_map += &*format!("{}\n", tile_line);
                 }
             }
 
-            println!("\n");
+            println!("{}", str_map);
             self.chat.print_chat();
         }
     }
-
 
     pub(crate) fn print_map(&self) {
         let mut stdout = stdout();

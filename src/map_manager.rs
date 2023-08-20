@@ -3,10 +3,10 @@ use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
-use crate::map::{MapData, Vec2};
+use crate::map_data::{MapData, Vec2};
 use crate::PlayerMove;
 use crate::space::Space;
-use crate::tile_set::LADDER_TILE_SET;
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
 pub struct MapManager {
     maps: HashMap<usize, MapData>,
@@ -59,6 +59,10 @@ impl MapManager {
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
         new_map.set_player_position(pos_x, pos_y);
+        new_map.tile_below_player = DEFAULT_TILE_SET.floor;
+        new_map.map_width = new_map.map.len();
+        new_map.map_height = if new_map.map_width > 0 { new_map.map[0].len() } else { 0 };
+        new_map.set_player_vision(Vec2::new(pos_x, pos_y));
         if map_name == "scene_ladder" {
             new_map.tile_set = LADDER_TILE_SET;
         }
@@ -66,7 +70,6 @@ impl MapManager {
         self.add_map(self.current_map_index, new_map);
         self.current_map_index += 1;
     }
-
 
     pub(crate) fn load_map(&mut self, map_name: &str, player_move: PlayerMove) {
         if map_name == "scene_ladder" {
