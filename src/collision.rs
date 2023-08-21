@@ -1,5 +1,5 @@
-use std::fmt::format;
-use std::iter::Map;
+
+
 use crossterm::event::KeyCode;
 use crate::player::Player;
 use crate::chat::Chat;
@@ -17,7 +17,7 @@ impl CollisionEngine {
         }
     }
 
-    pub(crate) fn move_player(&mut self, map_manager: &mut MapManager, mut player: &mut Player, chat: &mut Chat) -> Vec2 {
+    pub(crate) fn move_player(&mut self, map_manager: &mut MapManager, player: &mut Player, chat: &mut Chat) -> Vec2 {
         let map = map_manager.get_map(map_manager.current_map_index);
         if let Some(map_data) = map {
 
@@ -25,22 +25,22 @@ impl CollisionEngine {
                 KeyCode::Up => {
                     // Move up
                     chat.process_chat_message("You walk up.");
-                    return Vec2::new(map_data.player_position.x -1, map_data.player_position.y)
+                    return Vec2::new(map_data.player_position.y-1, map_data.player_position.x)
                 },
                 KeyCode::Down => {
                     // Move down
                     chat.process_chat_message("You walk down.");
-                    return Vec2::new(map_data.player_position.x +1, map_data.player_position.y)
+                    return Vec2::new(map_data.player_position.y+1, map_data.player_position.x)
                 },
                 KeyCode::Left => {
                     // Move left
                     chat.process_chat_message("You walk left.");
-                    return Vec2::new(map_data.player_position.x, map_data.player_position.y -1)
+                    return Vec2::new(map_data.player_position.y, map_data.player_position.x-1)
                 },
                 KeyCode::Right => {
                     // Move right
                     chat.process_chat_message("You walk right.");
-                    return Vec2::new(map_data.player_position.x, map_data.player_position.y +1)
+                    return Vec2::new(map_data.player_position.y, map_data.player_position.x+1)
                 },
                 KeyCode::Esc => {
                     player.previous_key_event = KeyCode::Esc;
@@ -57,10 +57,15 @@ impl CollisionEngine {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
 
         if let Some(map_data) = map {
-            let tmp_tile = map_data.map[new_player_pos.x][new_player_pos.y].tile;
-            let is_tile_solid = map_data.map[new_player_pos.x][new_player_pos.y].is_solid;
+            let tmp_tile = map_data.map[new_player_pos.y][new_player_pos.x].tile;
+            let is_tile_solid = map_data.map[new_player_pos.y][new_player_pos.x].is_solid;
 
-            if is_tile_solid && !(tmp_tile == DEFAULT_TILE_SET.closed_door_side || tmp_tile == DEFAULT_TILE_SET.closed_door_top || tmp_tile == DEFAULT_TILE_SET.open_door) {
+            if map_data.tile_set.name == LADDER_TILE_SET.name {
+                if tmp_tile == LADDER_TILE_SET.closed_door_side {
+                    return  PlayerMove::Unable;
+                }
+            }
+            else if is_tile_solid && !(tmp_tile == DEFAULT_TILE_SET.closed_door_side || tmp_tile == DEFAULT_TILE_SET.closed_door_top || tmp_tile == DEFAULT_TILE_SET.open_door) {
                 return PlayerMove::Unable
             }
 
@@ -89,7 +94,7 @@ impl CollisionEngine {
             {
                 chat.process_chat_message("You pick up a rusty key.");
                 player.inventory.add_key(1);
-                map_data.map[new_player_pos.x][new_player_pos.y].tile = map_data.tile_set.floor;
+                map_data.map[new_player_pos.y][new_player_pos.x].tile = map_data.tile_set.floor;
                 return PlayerMove::Unable
             }
             else if tmp_tile == map_data.tile_set.closed_door_side || tmp_tile == map_data.tile_set.closed_door_top
@@ -98,7 +103,7 @@ impl CollisionEngine {
                 {
                     player.inventory.remove_key(1);
                     chat.process_chat_message("You unlock the door using a rusty key.");
-                    map_data.map[new_player_pos.x][new_player_pos.y].tile = map_data.tile_set.open_door;
+                    map_data.map[new_player_pos.y][new_player_pos.x].tile = map_data.tile_set.open_door;
                     PlayerMove::Unable
                 } else {
                     chat.process_chat_message("You need a rusty key to open this door.");
@@ -109,33 +114,31 @@ impl CollisionEngine {
         return PlayerMove::Normal;
     }
 
-    pub(crate) fn update_player_position(&mut self, mut map_manager: &mut MapManager, new_player_position: Vec2) {
+    pub(crate) fn update_player_position(&mut self, map_manager: &mut MapManager, new_player_position: Vec2) {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
         // set the new player position
         if let Some(map_data) = map {
-            let tmp_tile = map_data.map[new_player_position.x][new_player_position.y].tile;
-            map_data.map[map_data.player_position.x][map_data.player_position.y].tile = self.update_tile(map_data, tmp_tile);
-            map_data.map[new_player_position.x][new_player_position.y].tile = map_data.tile_set.player;
-
+            let tmp_tile = map_data.map[new_player_position.y][new_player_position.x].tile;
+            map_data.map[map_data.player_position.y][map_data.player_position.x].tile = self.update_tile(map_data, tmp_tile);
+            map_data.map[new_player_position.y][new_player_position.x].tile = map_data.tile_set.player;
             map_data.update_player_position();
-            map_data.update_tile_below_player(tmp_tile, new_player_position.x, new_player_position.y);
+            map_data.update_tile_below_player(tmp_tile, new_player_position.y, new_player_position.x);
         }
     }
 
-    pub(crate) fn update_player_vision(&mut self, mut map_manager: &mut MapManager, new_player_position: Vec2) {
+    pub(crate) fn update_player_vision(&mut self, map_manager: &mut MapManager, _new_player_position: Vec2) {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
-        // set the new player position
         if let Some(map_data) = map {
-            map_data.set_player_vision(Vec2::new(map_data.player_position.x, map_data.player_position.y));
+            map_data.set_player_vision(Vec2::new(map_data.player_position.y, map_data.player_position.x));
         }
     }
 
-    pub(crate) fn process_move_ladder(&mut self, mut player: &mut Player, map_manager: &mut MapManager, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
+    pub(crate) fn process_move_ladder(&mut self, player: &mut Player, map_manager: &mut MapManager, previous_row_coord: usize, previous_col_coord: usize, new_row_coord: usize, new_col_coord: usize) {
         let mut process_move = true;
         let map = map_manager.get_map_mut(map_manager.current_map_index);
         if let Some(map_data) = map {
-            let mut tmp_tile = map_data.map[new_row_coord][new_col_coord].tile;
-            let res = self.check_for_multi_tile(map_data, tmp_tile, new_row_coord, new_col_coord);
+            let tmp_tile = map_data.map[new_col_coord][new_row_coord].tile;
+            let res = self.check_for_multi_tile(map_data, tmp_tile, new_col_coord, new_row_coord);
 
             if res == map_data.tile_set.ladder && map_data.tile_set.name == LADDER_TILE_SET.name {
                 if player.key_event == KeyCode::Down && new_row_coord == 3 {
@@ -154,20 +157,20 @@ impl CollisionEngine {
             }
 
             if process_move {
-                map_data.map[previous_row_coord][previous_col_coord].tile = self.update_tile(map_data, tmp_tile);
-                map_data.map[new_row_coord][new_col_coord].tile = map_data.tile_set.player;
+                map_data.map[previous_col_coord][previous_row_coord].tile = self.update_tile(map_data, tmp_tile);
+                map_data.map[new_col_coord][new_row_coord].tile = map_data.tile_set.player;
                 map_data.update_player_position();
             }
         }
     }
 
-    fn check_for_multi_tile(&mut self, map_data: &MapData, tmp_tile: char, current_x: usize, current_y: usize) -> String {
-        for (row_idx, row) in map_data.map.iter().enumerate() {
-            for (col_idx, c) in row.iter().enumerate() {
+    fn check_for_multi_tile(&mut self, map_data: &MapData, tmp_tile: char, current_y: usize, current_x: usize) -> String {
+        for (_col_idx, row) in map_data.map.iter().enumerate() {
+            for (_row_idx, c) in row.iter().enumerate() {
                 if c.tile == '@' {
-                    let mut tile_left = map_data.map[current_x][current_y - 1].tile;
-                    let mut tile_right = map_data.map[current_x][current_y + 1].tile;
-                    let mut next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right );
+                    let tile_left = map_data.map[current_y -1][current_x].tile;
+                    let tile_right = map_data.map[current_y +1][current_x].tile;
+                    let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right );
 
                     //player.chat.process_chat_message(&next_tile);
                     if next_tile == DEFAULT_TILE_SET.ladder && map_data.tile_set.name != DEFAULT_TILE_SET.ladder {

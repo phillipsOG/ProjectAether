@@ -4,7 +4,7 @@ use std::io;
 use std::io::BufRead;
 use std::path::Path;
 use crate::map_data::{MapData, Vec2};
-use crate::PlayerMove;
+use crate::{Map, PlayerMove};
 use crate::space::Space;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
@@ -39,7 +39,17 @@ impl MapManager {
         self.maps.get(&map_index)
     }
 
-    pub(crate) fn add_map_set_player_position(&mut self, map_name: &str, pos_x: usize, pos_y: usize) {
+    pub(crate) fn update_current_map(&mut self, map: Map) {
+        let mut current_map = self.get_map_mut(self.current_map_index);
+        if let Some(map_data) = current_map {
+            map_data.map = map;
+
+            /*map_data.map_width += 10;
+            map_data.map_height += 10;*/
+        }
+    }
+
+    pub(crate) fn add_map_set_player_position(&mut self, map_name: &str, pos_y: usize, pos_x: usize) {
         let mut map = "".to_owned();
         let map_name = format!("src/maps/{}.txt", map_name);
 
@@ -58,11 +68,11 @@ impl MapManager {
             .iter()
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
-        new_map.set_player_position(pos_x, pos_y);
+        new_map.set_player_position(pos_y, pos_x);
         new_map.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.map_width = new_map.map.len();
         new_map.map_height = if new_map.map_width > 0 { new_map.map[0].len() } else { 0 };
-        new_map.set_player_vision(Vec2::new(pos_x, pos_y));
+        new_map.set_player_vision(Vec2::new(pos_y, pos_x));
         if map_name == "scene_ladder" {
             new_map.tile_set = LADDER_TILE_SET;
         }
@@ -71,29 +81,24 @@ impl MapManager {
         self.current_map_index += 1;
     }
 
-    pub(crate) fn load_map(&mut self, map_name: &str, player_move: PlayerMove) {
+    pub(crate) fn add_generated_map(&mut self, generated_map: MapData) {
+        self.add_map(self.current_map_index, generated_map);
+        self.current_map_index += 1;
+    }
+
+    pub(crate) fn load_map(&mut self, map_name: &str, _player_move: PlayerMove) {
         if map_name == "scene_ladder" {
             self.current_map_index = 0;
             let map = self.get_map_mut(self.current_map_index);
-
             if let Some(map_data) = map {
-                match player_move {
-                    PlayerMove::LadderUp => {
-                        // entering from the bottom
-                        //map_data.set_player_position(2, 3);
-                    },
-                    PlayerMove::LadderDown => {
-                        // enter from the top
-                        //map_data.set_player_position(1, 3);
-                    }
-                    _ => {}
-                }
                 map_data.tile_set = LADDER_TILE_SET;
             }
         } else if map_name == "map2" {
             self.current_map_index = 1;
         } else if map_name == "map1" {
             self.current_map_index = 2;
+        } else if map_name == "test" {
+            self.current_map_index = 3;
         }
     }
 

@@ -2,6 +2,8 @@ use std::io::stdout;
 use crossterm::{QueueableCommand, terminal};
 use crate::chat::Chat;
 use crate::collision::CollisionEngine;
+use crate::Map;
+use crate::map_factory::MapFactory;
 use crate::map_manager::MapManager;
 use crate::player::Player;
 use crate::tile_set::DEFAULT_TILE_SET;
@@ -10,7 +12,8 @@ pub struct GameClient {
     pub map_manager: MapManager,
     pub player: Player,
     pub collision_engine: CollisionEngine,
-    pub chat: Chat
+    pub chat: Chat,
+    pub map_factory: MapFactory 
 }
 
 impl GameClient {
@@ -19,11 +22,10 @@ impl GameClient {
             map_manager: MapManager::new(),
             player: Player::new(),
             collision_engine: CollisionEngine::new(),
-            chat: Chat::new()
+            chat: Chat::new(),
+            map_factory: MapFactory {},
         }
     }
-
-
 
     pub(crate) fn print_terminal(&mut self) {
         let mut stdout = stdout();
@@ -60,6 +62,29 @@ impl GameClient {
             println!("{}", str_map);
             self.chat.print_chat();
         }
+    }
+
+    pub(crate) fn print_terminal_with_map(&mut self, updated_map: &mut Map) {
+        let mut stdout = stdout();
+        stdout.queue(terminal::Clear(terminal::ClearType::All)).unwrap();
+        let mut str_map = String::new();
+
+        let mut counter = 0;
+        for tile in updated_map {
+            let tile_line: String = tile.iter().map(|space| {
+                if space.is_visible {
+                    space.tile
+                } else if space.tile == DEFAULT_TILE_SET.player {
+                    '@'
+                } else {
+                    ' ' // space character
+                }
+            }).collect();
+            str_map += &*format!("{}\n", tile_line);
+        }
+
+        println!("{}", str_map);
+        self.chat.print_chat();
     }
 
     pub(crate) fn print_map(&self) {

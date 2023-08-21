@@ -1,24 +1,18 @@
-use std::fs::File;
-use std::io;
-use std::io::{BufRead, stdout};
-use std::path::Path;
+use std::io::{stdout};
 use crossterm::{QueueableCommand, terminal};
-use crate::space::Space;
+use crate::Map;
 use crate::tile_set::{DEFAULT_TILE_SET, TileSet};
-
-type Map = Vec<Vec<Space>>;
 
 #[derive(Clone, Copy)]
 pub struct Vec2 {
-    pub x: usize,
-    pub y: usize
+    pub y: usize,
+    pub x: usize
 }
-
 impl Vec2 {
     pub const ZERO: Self = Self::new(0, 0);
 
-    pub const fn new(x: usize, y: usize) -> Self {
-        Self {x, y}
+    pub const fn new(y: usize, x: usize) -> Self {
+        Self {y, x}
     }
 }
 
@@ -52,86 +46,85 @@ impl MapData {
     }
 
     pub(crate) fn update_player_position(&mut self) {
-        for (row_idx, row) in self.map.iter().enumerate() {
-            for (col_idx, c) in row.iter().enumerate() {
+        for (col_idx, row) in self.map.iter().enumerate() {
+            for (row_idx, c) in row.iter().enumerate() {
                 if c.tile == '@' {
-                    self.player_position = Vec2::new(row_idx, col_idx);
+                    self.player_position = Vec2::new(col_idx, row_idx);
                     break;
                 }
             }
         }
     }
 
-    pub(crate) fn set_player_position(&mut self, pos_x: usize, pos_y: usize) {
+    pub(crate) fn set_player_position(&mut self, pos_y: usize, pos_x: usize) {
 
         let tile_set = &self.tile_set;
         let mut positions_to_modify = Vec::new();
 
-        for (row_idx, row) in self.map.iter().enumerate() {
-            for (col_idx, c) in row.iter().enumerate() {
+        for (col_idx, row) in self.map.iter().enumerate() {
+            for (row_idx, _c) in row.iter().enumerate() {
                 if row_idx == pos_x && col_idx == pos_y {
-                    if self.map[row_idx][col_idx].tile != tile_set.wall && (row_idx == pos_x && col_idx == pos_y) {
-                        positions_to_modify.push((pos_x, pos_y));
-                    } else if self.map[row_idx+1][col_idx+1].tile != tile_set.wall && self.map[row_idx+1][col_idx+1].tile != tile_set.closed_door_side {
-                        positions_to_modify.push((pos_x+1, pos_y+1));
+                    if self.map[col_idx][row_idx].tile != tile_set.wall && (row_idx == pos_x && col_idx == pos_y) {
+                        positions_to_modify.push((pos_y, pos_x));
+                    } else if self.map[col_idx+1][row_idx+1].tile != tile_set.wall && self.map[col_idx+1][row_idx+1].tile != tile_set.closed_door_side {
+                        positions_to_modify.push((pos_y+1, pos_x+1));
                     }
                 }
             }
         }
-
-        self.player_position = Vec2::new(pos_x, pos_y);
-        self.map[pos_x][pos_y].tile = tile_set.player;
-        self.set_player_vision(Vec2::new(pos_x, pos_y));
+        self.player_position = Vec2::new(pos_y, pos_x);
+        self.map[pos_y][pos_x].tile = tile_set.player;
+        self.set_player_vision(Vec2::new(pos_y, pos_x));
     }
 
-    pub(crate) fn set_player_vision(&mut self, player_pos: Vec2) {
-        let vision_radius: isize = 2;
+    pub(crate) fn set_player_vision(&mut self, _player_pos: Vec2) {
 
-        for x in 0..self.map_width {
-            for y in 0..self.map_height {
-                self.map[x][y].is_visible = false;
+        for y in 0..self.map_width {
+            for x in 0..self.map_height {
+                self.map[y][x].is_visible = true;
 
-                if self.map[x][y].is_solid || self.map[x][y].tile == DEFAULT_TILE_SET.open_door {
-
+                /*if self.map[x][y].is_solid || self.map[x][y].tile == DEFAULT_TILE_SET.open_door {
                 } else {
-
-                }
+                }*/
             }
         }
+        /*self.calculate_vision_at_position(1, 0);  // Right
+        self.calculate_vision_at_position(-1, 0); // Left
+        self.calculate_vision_at_position(0, 1);  // Down
+        self.calculate_vision_at_position(0, -1); // Up
 
-        macro_rules! calc_dir {
-        ($x_offset:literal, $y_offset:literal) => {
-            for i in 1..vision_radius+1 {
-                let x = player_pos.x.wrapping_add((i * $x_offset) as usize);
-                let y = player_pos.y.wrapping_add((i * $y_offset) as usize);
-                if x < 0 || x > self.map_width || y < 0 || y > self.map_height {
-                    break;
-                }
-                let tile = &mut self.map[x][y];
-                tile.is_visible = true;
-
-                if tile.is_solid && tile.tile != DEFAULT_TILE_SET.open_door {
-                    break;
-                }
-            }
-        };
+        self.calculate_vision_at_position(1, 1);   // Right-Down
+        self.calculate_vision_at_position(1, -1);  // Right-Up
+        self.calculate_vision_at_position(-1, 1);  // Left-Down
+        self.calculate_vision_at_position(-1, -1); // Left-Up*/
     }
-        calc_dir!(1, 0);  // Right
-        calc_dir!(-1, 0); // Left
-        calc_dir!(0, 1);  // Down
-        calc_dir!(0, -1); // Up
 
-        calc_dir!(1, 1);   // Right-Down
-        calc_dir!(1, -1);  // Right-Up
-        calc_dir!(-1, 1);  // Left-Down
-        calc_dir!(-1, -1); // Left-Up
+    fn calculate_vision_at_position(&mut self, pos_y: i32, pos_x: i32) {
+        let vision_radius: isize = 2;
+
+        for i in 1..vision_radius+1 {
+
+            let y = self.player_position.y.wrapping_add((pos_x * i as i32) as usize);
+            let x = self.player_position.x.wrapping_add((pos_y * i as i32) as usize);
+
+            if x < 0 || x > self.map_width || y < 0 || y > self.map_height {
+                break;
+            }
+
+            let tile = &mut self.map[y][x];
+            tile.is_visible = true;
+
+            if tile.is_solid && tile.tile != DEFAULT_TILE_SET.open_door {
+                break;
+            }
+        }
     }
 
     pub(crate) fn set_map_tile_set(&mut self, tile_set: TileSet) {
         self.tile_set = tile_set;
     }
 
-    pub(crate) fn update_tile_below_player(&mut self, tile: char, x_coord: usize, y_coord: usize) {
+    pub(crate) fn update_tile_below_player(&mut self, tile: char, _x_coord: usize, _y_coord: usize) {
         self.tile_below_player = tile;
     }
 

@@ -34,6 +34,12 @@ impl Chat {
         }
     }
 
+    pub(crate) fn clear_chat(&mut self) {
+        for i in 0..self.chat.len() {
+            self.chat[i] = "".parse().unwrap();
+        }
+    }
+
     pub(crate) fn process_chat_message(&mut self, message: &str) {
         if self.input_counter == self.chat.len() {
             self.input_counter = 0;

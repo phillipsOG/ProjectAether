@@ -1,7 +1,7 @@
-use std::io::{stdout, Write};
+
 use crossterm::event::KeyCode;
-use crossterm::{QueueableCommand, terminal};
-use crate::chat::Chat;
+
+
 use crate::inventory::Inventory;
 use crate::status::Status;
 

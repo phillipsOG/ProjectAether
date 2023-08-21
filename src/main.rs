@@ -9,11 +9,16 @@ mod map_manager;
 mod game_client;
 mod player_movement_data;
 mod space;
+mod map_factory;
 
-use crossterm::{cursor, event, QueueableCommand, terminal};
-use crossterm::event::{Event, KeyCode, KeyEventKind};
-use std::io::{self, BufRead};
+use crossterm::{event};
+use crossterm::event::{Event, KeyEventKind};
+use crossterm::event::MediaKeyCode::Play;
+
 use crate::game_client::GameClient;
+use crate::space::Space;
+
+type Map = Vec<Vec<Space>>;
 
 enum PlayerMove {
     Unable,
@@ -30,8 +35,12 @@ fn main() {
     game_client.map_manager.add_map_set_player_position("scene_ladder", 2, 3);
     game_client.map_manager.add_map_set_player_position("map2", 2, 6);
     game_client.map_manager.add_map_set_player_position("map1", 2, 5);
-    game_client.map_manager.load_map("map2", PlayerMove::Normal);
-    game_client.print_terminal();
+    let new_map = game_client.map_factory.generate_map(10, 10, 5, 5);
+
+    game_client.map_manager.add_generated_map(new_map);
+    game_client.map_manager.load_map("test", PlayerMove::Normal);
+
+   game_client.print_terminal();
 
     loop {
         match event::read().unwrap() {
@@ -60,8 +69,10 @@ fn main() {
                         },
                         _ => {}
                     }
+                    let updated_map = game_client.map_factory.generate_terrain(&mut game_client.map_manager, new_player_pos, &mut game_client.chat);
+                    game_client.map_manager.update_current_map(updated_map);
                     game_client.collision_engine.update_player_vision(&mut game_client.map_manager, new_player_pos);
-                    game_client.print_terminal();
+                    game_client.print_terminal();/*.print_terminal_with_map(&mut updated_map);*/
 
                     if game_client.player.key_state {
                         break;

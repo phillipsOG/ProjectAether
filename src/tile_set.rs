@@ -46,7 +46,7 @@ pub const DEFAULT_TILE_SET: TileSet = TileSet {
 pub const LADDER_TILE_SET: TileSet = TileSet {
     player: '@',
     wall: '#',
-    closed_door_side: '#',
+    closed_door_side: '|',
     closed_door_top: '#',
     open_door: '#',
     key: ' ',

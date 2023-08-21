@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::fmt;
 use crate::tile_set::DEFAULT_TILE_SET;
 
+#[derive(Clone, Copy)]
 pub struct Space {
     pub tile: char,
     pub is_visible: bool,
