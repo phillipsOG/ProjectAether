@@ -4,7 +4,8 @@ use std::io;
 use std::io::BufRead;
 use std::path::Path;
 use crate::map_data::{MapData, Vec2};
-use crate::{Map, PlayerMove};
+use crate::{Map, PlayerMove, TerrainData};
+use crate::chat::Chat;
 use crate::space::Space;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
@@ -39,13 +40,14 @@ impl MapManager {
         self.maps.get(&map_index)
     }
 
-    pub(crate) fn update_current_map(&mut self, map: Map) {
+    pub(crate) fn update_current_map(&mut self, terrain_data: TerrainData, mut chat: &mut Chat) {
         let mut current_map = self.get_map_mut(self.current_map_index);
         if let Some(map_data) = current_map {
-            map_data.map = map;
+            map_data.map = terrain_data.map;
+            map_data.map_height += terrain_data.height_increase;
+            map_data.map_width += terrain_data.width_increase;
 
-            /*map_data.map_width += 10;
-            map_data.map_height += 10;*/
+            chat.process_chat_message(&format!("{}", map_data.map_height));
         }
     }
 

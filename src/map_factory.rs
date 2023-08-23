@@ -1,6 +1,6 @@
 use std::io::BufRead;
 use crate::chat::Chat;
-use crate::Map;
+use crate::{Map, TerrainData};
 use crate::tile_set::{DEFAULT_TILE_SET};
 use crate::map_data::{MapData, Vec2};
 use crate::map_manager::MapManager;
@@ -49,13 +49,13 @@ impl MapFactory {
         return new_map;
     }
 
-    pub(crate) fn generate_terrain(&mut self, map_manager: &mut MapManager, new_player_position: Vec2, chat: &mut Chat) -> Map {
+    pub(crate) fn generate_terrain(&mut self, map_manager: &mut MapManager, new_player_position: Vec2, chat: &mut Chat) -> TerrainData {
         let mut map = map_manager.get_map_mut(map_manager.current_map_index);
-        let mut u_m_d = Map::new();
+        let mut terrain_data = TerrainData::new();
 
         if let Some (map_data) = map {
 
-            let mut updated_map_data = vec![vec![Space::new('.'); map_data.map_width+30]; map_data.map_height+30];
+            let mut updated_map_data = vec![vec![Space::new('.'); map_data.map_width+10]; map_data.map_height+10];
 
             chat.clear_chat();
             chat.process_chat_message(&format!("y: {}, x: {}", map_data.player_position.y, map_data.player_position.x));
@@ -71,19 +71,33 @@ impl MapFactory {
             new_tile.is_solid = false;
             new_tile.is_visible = true;
 
-            updated_map_data[new_player_position.y+1][new_player_position.x] = new_tile;
-            updated_map_data[new_player_position.y][new_player_position.x+1] = new_tile;
+            /*if new_player_position.y > map_data.map_height {
+                chat.process_chat_message("new land bound y");
+                terrain_data.height_increase += 1;
+                let pos_change_dir_y = map_data.map_height + terrain_data.height_increase;
+                if pos_change_dir_y > map_data.map_height {
+                    terrain_data.width_increase += 1;
+                }
 
-            if new_player_position.x < map_data.map_width {
-                //chat.clear_chat();
-                chat.process_chat_message("new land bound");
-            } /*else if new_player_position.y <= map_data.map_height {
-                chat.process_chat_message("new land bound");
-                updated_map_data[new_player_position.y][new_player_position.x+1] = new_tile;
-                updated_map_data[new_player_position.y][new_player_position.x-2] = new_tile;
+                updated_map_data[new_player_position.y+1][new_player_position.x] = new_tile;
+            }
+            else*/
+
+            if new_player_position.y + 1 > map_data.map_height {
+                chat.process_chat_message("new land bound y");
+                updated_map_data[new_player_position.y + 1][new_player_position.x] = new_tile;
+                terrain_data.height_increase += 1;
+            } /*else if new_player_position.x + 1 >= map_data.map_width {
+                chat.process_chat_message("new land bound x");
+                updated_map_data[new_player_position.y][new_player_position.x + 1] = new_tile;
             }*/
-            u_m_d = updated_map_data;
+
+            /*terrain_data.height_increase += 1;
+            terrain_data.width_increase += 1;*/
+
+
+            terrain_data.map = updated_map_data;
         }
-        return u_m_d;
+        return terrain_data;
     }
 }

@@ -26,7 +26,8 @@ pub struct MapData {
     pub multi_tile_below_player: bool,
     pub current_floor: usize,
     pub map_width: usize, 
-    pub map_height: usize
+    pub map_height: usize,
+    pub fog_of_war: bool
 }
 
 impl MapData {
@@ -42,12 +43,13 @@ impl MapData {
             current_floor: 0,
             map_width: 0,
             map_height: 0,
+            fog_of_war: true
         }
     }
 
     pub(crate) fn update_player_position(&mut self) {
-        for (col_idx, row) in self.map.iter().enumerate() {
-            for (row_idx, c) in row.iter().enumerate() {
+        for (col_idx, col) in self.map.iter().enumerate() {
+            for (row_idx, c) in col.iter().enumerate() {
                 if c.tile == '@' {
                     self.player_position = Vec2::new(col_idx, row_idx);
                     break;
@@ -57,7 +59,6 @@ impl MapData {
     }
 
     pub(crate) fn set_player_position(&mut self, pos_y: usize, pos_x: usize) {
-
         let tile_set = &self.tile_set;
         let mut positions_to_modify = Vec::new();
 
@@ -81,22 +82,22 @@ impl MapData {
 
         for y in 0..self.map_width {
             for x in 0..self.map_height {
-                self.map[y][x].is_visible = true;
+                self.map[y][x].is_visible = !self.fog_of_war;
 
                 /*if self.map[x][y].is_solid || self.map[x][y].tile == DEFAULT_TILE_SET.open_door {
                 } else {
                 }*/
             }
         }
-        /*self.calculate_vision_at_position(1, 0);  // Right
-        self.calculate_vision_at_position(-1, 0); // Left
+        self.calculate_vision_at_position(1, 0);  // Right
+        self.calculate_vision_at_position(-1, 0); //  
         self.calculate_vision_at_position(0, 1);  // Down
         self.calculate_vision_at_position(0, -1); // Up
 
         self.calculate_vision_at_position(1, 1);   // Right-Down
         self.calculate_vision_at_position(1, -1);  // Right-Up
         self.calculate_vision_at_position(-1, 1);  // Left-Down
-        self.calculate_vision_at_position(-1, -1); // Left-Up*/
+        self.calculate_vision_at_position(-1, -1); // Left-Up
     }
 
     fn calculate_vision_at_position(&mut self, pos_y: i32, pos_x: i32) {
@@ -104,10 +105,10 @@ impl MapData {
 
         for i in 1..vision_radius+1 {
 
-            let y = self.player_position.y.wrapping_add((pos_x * i as i32) as usize);
-            let x = self.player_position.x.wrapping_add((pos_y * i as i32) as usize);
+            let y = self.player_position.y.wrapping_add((pos_y * i as i32) as usize);
+            let x = self.player_position.x.wrapping_add((pos_x * i as i32) as usize);
 
-            if x < 0 || x > self.map_width || y < 0 || y > self.map_height {
+            if x < 0 || x > self.map_height || y < 0 || y > self.map_width {
                 break;
             }
 
@@ -124,7 +125,7 @@ impl MapData {
         self.tile_set = tile_set;
     }
 
-    pub(crate) fn update_tile_below_player(&mut self, tile: char, _x_coord: usize, _y_coord: usize) {
+    pub(crate) fn update_tile_below_player(&mut self, tile: char) {
         self.tile_below_player = tile;
     }
 
@@ -180,8 +181,8 @@ impl MapData {
     }
 
     pub(crate) fn get_tile_at_position(&self, position: Option<(usize, usize)>) -> char {
-        if let Some((row, col)) = position {
-            return self.map[row][col].tile;
+        if let Some((col, row)) = position {
+            return self.map[col][row].tile;
         }
         ' '
     }

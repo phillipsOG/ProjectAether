@@ -13,10 +13,24 @@ mod map_factory;
 
 use crossterm::{event};
 use crossterm::event::{Event, KeyEventKind};
-use crossterm::event::MediaKeyCode::Play;
-
 use crate::game_client::GameClient;
 use crate::space::Space;
+
+pub struct TerrainData {
+    map: Map,
+    height_increase: usize,
+    width_increase: usize
+}
+
+impl TerrainData {
+    pub(crate) fn new() -> Self {
+        TerrainData {
+            map: vec![vec![]],
+            height_increase: 0,
+            width_increase: 0,
+        }
+    }
+}
 
 type Map = Vec<Vec<Space>>;
 
@@ -35,10 +49,9 @@ fn main() {
     game_client.map_manager.add_map_set_player_position("scene_ladder", 2, 3);
     game_client.map_manager.add_map_set_player_position("map2", 2, 6);
     game_client.map_manager.add_map_set_player_position("map1", 2, 5);
-    let new_map = game_client.map_factory.generate_map(10, 10, 5, 5);
-
+    let new_map = game_client.map_factory.generate_map(7, 8, 1, 2);
     game_client.map_manager.add_generated_map(new_map);
-    game_client.map_manager.load_map("test", PlayerMove::Normal);
+    game_client.map_manager.load_map("map2", PlayerMove::Normal);
 
    game_client.print_terminal();
 
@@ -69,9 +82,11 @@ fn main() {
                         },
                         _ => {}
                     }
-                    let updated_map = game_client.map_factory.generate_terrain(&mut game_client.map_manager, new_player_pos, &mut game_client.chat);
-                    game_client.map_manager.update_current_map(updated_map);
+
+                    //let terrain_data = game_client.map_factory.generate_terrain(&mut game_client.map_manager, new_player_pos, &mut game_client.chat);
+                    //game_client.map_manager.update_current_map(terrain_data, &mut game_client.chat);
                     game_client.collision_engine.update_player_vision(&mut game_client.map_manager, new_player_pos);
+
                     game_client.print_terminal();/*.print_terminal_with_map(&mut updated_map);*/
 
                     if game_client.player.key_state {
