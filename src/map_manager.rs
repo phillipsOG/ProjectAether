@@ -51,7 +51,7 @@ impl MapManager {
         }
     }
 
-    pub(crate) fn add_map_set_player_position(&mut self, map_name: &str, pos_y: usize, pos_x: usize) {
+    pub(crate) fn add_map_set_player_position(&mut self, map_name: &str, pos: Vec2) {
         let mut map = "".to_owned();
         let map_name = format!("src/maps/{}.txt", map_name);
 
@@ -70,11 +70,11 @@ impl MapManager {
             .iter()
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
-        new_map.set_player_position(pos_y, pos_x);
+        new_map.set_player_position(pos);
         new_map.tile_below_player = DEFAULT_TILE_SET.floor;
-        new_map.map_width = new_map.map.len();
-        new_map.map_height = if new_map.map_width > 0 { new_map.map[0].len() } else { 0 };
-        new_map.set_player_vision(Vec2::new(pos_y, pos_x));
+        new_map.map_height = new_map.map.len();
+        new_map.map_width = if new_map.map_height > 0 { new_map.map[0].len() } else { 0 };
+        new_map.set_player_vision(pos);
         if map_name == "scene_ladder" {
             new_map.tile_set = LADDER_TILE_SET;
         }
