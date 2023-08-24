@@ -83,7 +83,7 @@ impl CollisionEngine {
         chat: &mut Chat,
         new_player_pos: Vec2,
     ) -> PlayerMove {
-        let map = map_manager.get_map(map_manager.current_map_index);
+        let map = map_manager.get_map_mut(map_manager.current_map_index);
 
         if let Some(map_data) = map {
             let tmp_tile = map_data.map[new_player_pos.y][new_player_pos.x].tile;
@@ -92,7 +92,7 @@ impl CollisionEngine {
             if map_data.tile_set.name == LADDER_TILE_SET.name {
                 if tmp_tile == LADDER_TILE_SET.closed_door_side {
                     return PlayerMove::Unable;
-                } 
+                }
             } else if is_tile_solid
                 && !(tmp_tile == DEFAULT_TILE_SET.closed_door_side
                     || tmp_tile == DEFAULT_TILE_SET.closed_door_top
@@ -181,7 +181,7 @@ impl CollisionEngine {
                     let y = map_data.player_position.y;
                     let x = map_data.player_position.x;
 
-                    if y > map_data.map_height || x > map_data.map_width || x < 0 || y < 0 {
+                    if y > map_data.map_height || x > map_data.map_width {
                         let tile_left =
                             map_data.map[new_player_position.y][new_player_position.x - 1].tile;
                         let tile_right =

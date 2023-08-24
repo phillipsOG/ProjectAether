@@ -99,7 +99,7 @@ impl MapData {
     fn calculate_vision_at_position(&mut self, pos_x: i32, pos_y: i32) {
         let vision_radius: isize = 2; //set to 2
 
-        for i in 1..vision_radius+1 {
+        for i in 1..vision_radius + 1 {
             let y = self
                 .player_position
                 .y
