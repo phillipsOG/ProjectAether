@@ -8,7 +8,7 @@ pub struct TileSet {
     pub floor: char,
     pub ladder: &'static str,
     pub previous_tile: char,
-    pub name: &'static str
+    pub name: &'static str,
 }
 
 impl TileSet {
@@ -40,7 +40,7 @@ pub const DEFAULT_TILE_SET: TileSet = TileSet {
     floor: '.',
     ladder: &"|-|",
     previous_tile: '.',
-    name: &"Default Tile Set"
+    name: &"Default Tile Set",
 };
 
 pub const LADDER_TILE_SET: TileSet = TileSet {
@@ -53,5 +53,5 @@ pub const LADDER_TILE_SET: TileSet = TileSet {
     floor: '-',
     ladder: &"|-|",
     previous_tile: ' ',
-    name: &"Ladder Tile Set"
+    name: &"Ladder Tile Set",
 };

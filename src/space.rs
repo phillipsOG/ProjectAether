@@ -1,12 +1,12 @@
-use std::ops::Deref;
-use std::fmt;
 use crate::tile_set::DEFAULT_TILE_SET;
+use std::fmt;
+use std::ops::Deref;
 
 #[derive(Clone, Copy)]
 pub struct Space {
     pub tile: char,
     pub is_visible: bool,
-    pub is_solid: bool
+    pub is_solid: bool,
 }
 
 impl Space {
@@ -16,7 +16,7 @@ impl Space {
             is_visible: false,
             is_solid: tile == DEFAULT_TILE_SET.wall
                 || tile == DEFAULT_TILE_SET.closed_door_side
-                || tile == DEFAULT_TILE_SET.closed_door_top
+                || tile == DEFAULT_TILE_SET.closed_door_top,
         }
     }
 
@@ -26,7 +26,7 @@ impl Space {
             is_visible: false,
             is_solid: tile == DEFAULT_TILE_SET.wall
                 || tile == DEFAULT_TILE_SET.closed_door_side
-                || tile == DEFAULT_TILE_SET.closed_door_top
+                || tile == DEFAULT_TILE_SET.closed_door_top,
         }
     }
 }

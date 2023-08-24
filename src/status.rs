@@ -1,8 +1,7 @@
-pub struct Status
-{
+pub struct Status {
     pub health: i32,
     pub str: i32,
-    pub def: i32
+    pub def: i32,
 }
 
 impl Status {

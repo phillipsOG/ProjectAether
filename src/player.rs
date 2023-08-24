@@ -1,17 +1,14 @@
-
 use crossterm::event::KeyCode;
-
 
 use crate::inventory::Inventory;
 use crate::status::Status;
 
-pub struct Player
-{
+pub struct Player {
     pub key_event: KeyCode,
     pub previous_key_event: KeyCode,
     pub key_state: bool,
     pub inventory: Inventory,
-    pub status: Status
+    pub status: Status,
 }
 
 impl Player {
@@ -21,7 +18,7 @@ impl Player {
             previous_key_event: KeyCode::Null,
             key_state: false,
             inventory: Inventory::new(),
-            status: Status::new()
+            status: Status::new(),
         }
     }
 }

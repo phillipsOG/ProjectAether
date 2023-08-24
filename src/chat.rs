@@ -3,7 +3,7 @@ pub struct Chat {
     pub input_counter: usize,
     pub is_repeat_message: bool,
     pub repeat_message_counter: i32,
-    pub previous_message: String
+    pub previous_message: String,
 }
 
 impl Chat {
@@ -19,12 +19,12 @@ impl Chat {
                 "".to_string(),
                 "".to_string(),
                 "".to_string(),
-                "".to_string()
+                "".to_string(),
             ],
             input_counter: 0,
             is_repeat_message: false,
             repeat_message_counter: 1,
-            previous_message: "".parse().unwrap()
+            previous_message: "".parse().unwrap(),
         }
     }
 
@@ -54,7 +54,7 @@ impl Chat {
             if self.input_counter > 0 {
                 tmp = 1;
             }
-            self.chat[self.input_counter-tmp] = repeated_message;
+            self.chat[self.input_counter - tmp] = repeated_message;
             self.is_repeat_message = true;
         } else {
             self.chat[self.input_counter] = message.parse().unwrap();
@@ -71,7 +71,10 @@ impl Chat {
 
     fn print_processed_input(&mut self) {
         if self.is_repeat_message {
-            println!("{} x{}", self.chat[self.input_counter], self.repeat_message_counter);
+            println!(
+                "{} x{}",
+                self.chat[self.input_counter], self.repeat_message_counter
+            );
         } else {
             println!("{}", self.chat[self.input_counter]);
         }

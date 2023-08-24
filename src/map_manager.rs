@@ -1,20 +1,20 @@
+use crate::chat::Chat;
+use crate::map_data::{MapData, Vec2};
+use crate::space::Space;
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
+use crate::{Map, PlayerMove, TerrainData};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
-use crate::map_data::{MapData, Vec2};
-use crate::{Map, PlayerMove, TerrainData};
-use crate::chat::Chat;
-use crate::space::Space;
-use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
 pub struct MapManager {
     maps: HashMap<usize, MapData>,
     pub current_map_index: usize,
     pub should_transition: bool,
     pub target_map: String,
-    pub target_position: Vec2
+    pub target_position: Vec2,
 }
 
 impl MapManager {
@@ -24,7 +24,7 @@ impl MapManager {
             current_map_index: 0,
             should_transition: false,
             target_map: String::new(),
-            target_position: Vec2::ZERO
+            target_position: Vec2::ZERO,
         }
     }
 
@@ -73,7 +73,11 @@ impl MapManager {
         new_map.set_player_position(pos);
         new_map.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.map_height = new_map.map.len();
-        new_map.map_width = if new_map.map_height > 0 { new_map.map[0].len() } else { 0 };
+        new_map.map_width = if new_map.map_height > 0 {
+            new_map.map[0].len()
+        } else {
+            0
+        };
         new_map.set_player_vision(pos);
         if map_name == "scene_ladder" {
             new_map.tile_set = LADDER_TILE_SET;
@@ -105,7 +109,9 @@ impl MapManager {
     }
 
     fn read_lines<P>(&mut self, filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-        where P: AsRef<Path>, {
+    where
+        P: AsRef<Path>,
+    {
         let file = File::open(filename)?;
         Ok(io::BufReader::new(file).lines())
     }
