@@ -76,7 +76,7 @@ impl MapFactory {
 
         for (pos_y, row) in map.map.iter().enumerate() {
             for (pos_x, _space) in row.iter().enumerate() {
-                if pos_y >= map.map_height - 1 {
+                if pos_y >= map.map_height {
                     let mut new_tile = Space::new('.');
                     new_tile.is_visible = false;
                     updated_map_data[pos_y][pos_x] = new_tile;

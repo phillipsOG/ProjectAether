@@ -109,7 +109,7 @@ impl MapData {
                 .x
                 .wrapping_add((pos_x * i as i32) as usize);
 
-            if x < 0 || x > self.map_width || y < 0 || y > self.map_height {
+            if x >= self.map_width || y >= self.map_height {
                 break;
             }
 

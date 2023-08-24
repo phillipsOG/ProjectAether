@@ -102,6 +102,7 @@ impl CollisionEngine {
             }
 
             let res = self.check_for_multi_tile(map_data, tmp_tile, new_player_pos);
+
             if res == map_data.tile_set.ladder && map_data.tile_set.name == DEFAULT_TILE_SET.name {
                 if player.key_event == KeyCode::Up {
                     return PlayerMove::LadderUp;
@@ -181,17 +182,15 @@ impl CollisionEngine {
                     let y = map_data.player_position.y;
                     let x = map_data.player_position.x;
 
-                    if y > map_data.map_height || x > map_data.map_width {
-                        let tile_left =
-                            map_data.map[new_player_position.y][new_player_position.x - 1].tile;
-                        let tile_right =
-                            map_data.map[new_player_position.y][new_player_position.x + 1].tile;
-                        let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right);
-                        if next_tile == DEFAULT_TILE_SET.ladder
-                            && map_data.tile_set.name != DEFAULT_TILE_SET.ladder
-                        {
-                            return format!("{}", DEFAULT_TILE_SET.ladder);
-                        }
+                    let tile_left =
+                        map_data.map[new_player_position.y][new_player_position.x - 1].tile;
+                    let tile_right =
+                        map_data.map[new_player_position.y][new_player_position.x + 1].tile;
+                    let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right);
+                    if next_tile == DEFAULT_TILE_SET.ladder
+                        && map_data.tile_set.name != DEFAULT_TILE_SET.ladder
+                    {
+                        return format!("{}", DEFAULT_TILE_SET.ladder);
                     }
                 }
             }
