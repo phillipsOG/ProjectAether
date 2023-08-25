@@ -6,7 +6,6 @@ use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 use crate::PlayerMove;
 use crossterm::event::KeyCode;
 use std::io;
-use std::io::stdin;
 
 pub struct CollisionEngine {}
 
@@ -22,6 +21,7 @@ impl CollisionEngine {
         chat: &mut Chat,
     ) -> Vec2 {
         let map = map_manager.get_map_mut(map_manager.current_map_index);
+        let mut current_position = Vec2::ZERO;
         if let Some(map_data) = map {
             match player.key_event {
                 KeyCode::Up => {
@@ -67,13 +67,16 @@ impl CollisionEngine {
                 }
                 KeyCode::Esc => {
                     player.previous_key_event = KeyCode::Esc;
-                    player.key_state = true
+                    player.key_state = true;
+                    chat.process_chat_message("You exit the game.");
                 }
                 _ => {}
             }
+            current_position = map_data.player_position;
         }
+
         // Don't move
-        return Vec2::new(0, 0);
+        return current_position;
     }
 
     pub(crate) fn process_move(
@@ -182,15 +185,17 @@ impl CollisionEngine {
                     let y = map_data.player_position.y;
                     let x = map_data.player_position.x;
 
-                    let tile_left =
-                        map_data.map[new_player_position.y][new_player_position.x - 1].tile;
-                    let tile_right =
-                        map_data.map[new_player_position.y][new_player_position.x + 1].tile;
-                    let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right);
-                    if next_tile == DEFAULT_TILE_SET.ladder
-                        && map_data.tile_set.name != DEFAULT_TILE_SET.ladder
-                    {
-                        return format!("{}", DEFAULT_TILE_SET.ladder);
+                    if y > map_data.map_height || x > map_data.map_width {
+                        let tile_left =
+                            map_data.map[new_player_position.y][new_player_position.x - 1].tile;
+                        let tile_right =
+                            map_data.map[new_player_position.y][new_player_position.x + 1].tile;
+                        let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right);
+                        if next_tile == DEFAULT_TILE_SET.ladder
+                            && map_data.tile_set.name != DEFAULT_TILE_SET.ladder
+                        {
+                            return format!("{}", DEFAULT_TILE_SET.ladder);
+                        }
                     }
                 }
             }

@@ -46,8 +46,6 @@ impl MapManager {
             map_data.map = terrain_data.map;
             map_data.map_height += terrain_data.height_increase;
             map_data.map_width += terrain_data.width_increase;
-
-            chat.process_chat_message(&format!("{}", map_data.map_height));
         }
     }
 

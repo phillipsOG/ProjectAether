@@ -3,13 +3,13 @@ mod collision;
 mod game_client;
 mod inventory;
 mod map_data;
-mod map_factory;
 mod map_manager;
 mod player;
 mod player_movement_data;
 mod space;
 mod status;
 mod tile_set;
+mod map_factory;
 
 use crate::game_client::GameClient;
 use crate::map_data::Vec2;

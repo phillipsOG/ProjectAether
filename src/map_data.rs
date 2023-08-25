@@ -70,13 +70,12 @@ impl MapData {
     pub(crate) fn set_player_vision(&mut self, _player_pos: Vec2) {
         for y in 0..self.map_height {
             for x in 0..self.map_width {
-                //
-                println!(
+                /*println!(
                     "height: {}, width: {}, map_height: {}",
                     self.map_height,
                     self.map_width,
                     self.map.len()
-                );
+                );*/
                 self.map[y][x].is_visible = !self.fog_of_war;
 
                 /*if self.map[x][y].is_solid || self.map[x][y].tile == DEFAULT_TILE_SET.open_door {

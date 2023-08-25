@@ -76,25 +76,23 @@ impl MapFactory {
 
         for (pos_y, row) in map.map.iter().enumerate() {
             for (pos_x, _space) in row.iter().enumerate() {
-                if pos_y >= map.map_height {
-                    let mut new_tile = Space::new('.');
-                    new_tile.is_visible = false;
-                    updated_map_data[pos_y][pos_x] = new_tile;
+                if pos_y < map.map_width && pos_x == 0 || pos_x > map.map_height && pos_y == 0 {
+                    updated_map_data[pos_y][pos_x] = Space::new(DEFAULT_TILE_SET.wall);
                 } else {
                     updated_map_data[pos_y][pos_x] = _space.clone();
                 }
             }
         }
 
-        chat.clear_chat();
+        /*chat.clear_chat();
         chat.process_chat_message(&format!(
             "y: {}, x: {}",
             map.player_position.y, map.player_position.x
-        ));
-        chat.process_chat_message(&format!(
+        ));*/
+        /*chat.process_chat_message(&format!(
             "map_width: {}, map_height: {}",
             map.map_width, map.map_height
-        ));
+        ));*/
         chat.process_chat_message("new land bound x");
 
         terrain_data.map = updated_map_data;
