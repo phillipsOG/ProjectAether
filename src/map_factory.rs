@@ -1,4 +1,6 @@
+use std::collections::hash_map::DefaultHasher;
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io;
 use crate::chat::Chat;
 use crate::map_data::{MapData, Vec2};
@@ -8,6 +10,9 @@ use crate::tile_set::DEFAULT_TILE_SET;
 use crate::{Map, TerrainData};
 use std::io::BufRead;
 use std::path::Path;
+use rand::Rng;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 pub struct MapFactory {}
 
@@ -16,24 +21,34 @@ impl MapFactory {
         MapFactory {}
     }
 
-    pub(crate) fn generate_map(&mut self, height: usize, width: usize, pos: Vec2) -> MapData {
+    pub(crate) fn generate_map(&mut self, height: usize, width: usize, pos: Vec2, seed_phrase: &str) -> MapData {
         let mut map = "".to_owned();
 
-        // small bug with the way
-        for pos_y in 1..height + 1 {
-            for pos_x in 1..width + 1 {
-                if pos_y == 0 && pos_x > 0
+        let mut hasher = DefaultHasher::new();
+        seed_phrase.hash(&mut hasher);
+        let seed = hasher.finish();
+
+        // create a seeded RNG using the generated seed
+        let mut rng = StdRng::seed_from_u64(seed);
+
+        for pos_y in 0..height {
+            for pos_x in 0..width {
+                let tile = if pos_y == 0 && pos_x > 0
                     || pos_y > 0 && pos_x == 0
-                    /*|| pos_x == width*/
-                    || pos_y == height
+                    || pos_y == height - 1
                 {
-
-                    //map += &*format!("{}", DEFAULT_TILE_SET.wall);
+                    DEFAULT_TILE_SET.wall
                 } else {
-                }
-                map += &*format!("{}", DEFAULT_TILE_SET.floor);
+                    // generate a random value based on the seeded RNG
+                    // for example, generating floor tiles with a certain probability
+                    if rng.gen::<f32>() < 0.8 {
+                        DEFAULT_TILE_SET.floor
+                    } else {
+                        DEFAULT_TILE_SET.wall
+                    }
+                };
+                map += &*format!("{}", tile);
             }
-
             map += &*format!("\n");
         }
 
@@ -66,12 +81,13 @@ impl MapFactory {
         let mut map = map_manager.get_map_mut(map_manager.current_map_index)?;
         let mut terrain_data = TerrainData::new();
 
+        /*let mut hasher = DefaultHasher::new();
+        "seedphrase".hash(&mut hasher);
+        let seed = hasher.finish();
+        let mut rng = StdRng::seed_from_u64(seed);*/
+
         if new_player_position.x >= map.map_width - 1 {
             if new_player_position.x >= 20 && new_player_position.y >= 10 {
-                chat.process_chat_message(&format!(
-                    "y: {}, x: {}",
-                    map.player_position.y, map.player_position.x
-                ));
                 terrain_data.width_increase = 10;
                 terrain_data.height_increase = 10;
             } else {
@@ -98,20 +114,21 @@ impl MapFactory {
                     updated_map_data[pos_y][pos_x] = _space.clone();
                 }
 
+                if new_player_position.x >=  map.map_width -terrain_data.width_increase {
+                    chat.process_chat_message("spawn building here");
+                    updated_map_data[pos_y+terrain_data.height_increase][pos_x+terrain_data.width_increase] = self.generate_terrain_building(pos_y, pos_x);
+                }
                 if terrain_data.width_increase == 10 {
-                    if new_player_position.x >=  map.map_width -terrain_data.width_increase {
-                        chat.process_chat_message("spawn building here");
 
-                        updated_map_data[pos_y+terrain_data.height_increase][pos_x+terrain_data.width_increase] = self.generate_terrain_building(pos_y, pos_x);
-                    }
                 }
             }
         }
+        /*
         chat.process_chat_message(&format!(
             "y: {}, x: {}",
             map.player_position.y, map.player_position.x
         ));
-        /*chat.clear_chat();
+        chat.clear_chat();
         chat.process_chat_message(&format!(
             "y: {}, x: {}",
             map.player_position.y, map.player_position.x

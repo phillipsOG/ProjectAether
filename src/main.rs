@@ -56,7 +56,7 @@ fn main() {
     game_client
         .map_manager
         .add_map_set_player_position("map1", Vec2::new(5, 2));
-    let new_map = game_client.map_factory.generate_map(8, 8, Vec2::new(2, 1));
+    let new_map = game_client.map_factory.generate_map(10, 10, Vec2::new(2, 1), "seedphrase");
     game_client.map_manager.add_generated_map(new_map);
     game_client.map_manager.load_map("test", PlayerMove::Normal);
 
