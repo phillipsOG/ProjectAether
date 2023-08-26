@@ -71,9 +71,13 @@ fn main() {
         .monster_manager
         .spawn_monsters(
             &mut game_client.map_manager,
-            &mut game_client.monster_generator
+            &mut game_client.monster_factory
         );
-
+    //update player vision so we can see newly spawned in enemies
+    game_client
+        .collision_engine
+        .update_player_vision(&mut game_client.map_manager, Vec2::ZERO);
+    
     game_client.print_terminal();
 
     loop {

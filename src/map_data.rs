@@ -1,4 +1,4 @@
-use crate::tile_set::{TileSet, DEFAULT_TILE_SET};
+use crate::tile_set::{TileSet, DEFAULT_TILE_SET, MONSTER_TILE_SET};
 use crate::Map;
 use crossterm::{terminal, QueueableCommand};
 use std::io::stdout;
@@ -113,7 +113,7 @@ impl MapData {
             }
 
             let tile = &mut self.map[y][x];
-            tile.is_visible = true;
+            tile.is_visible = true;//if tile.tile == MONSTER_TILE_SET.snake { false } else { true};
 
             if tile.is_solid && tile.tile != DEFAULT_TILE_SET.open_door {
                 break;

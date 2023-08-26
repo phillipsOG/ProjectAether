@@ -17,7 +17,7 @@ pub struct GameClient {
     pub chat: Chat,
     pub map_factory: MapFactory,
     pub monster_manager: MonsterManager,
-    pub monster_generator: MonsterFactory,
+    pub monster_factory: MonsterFactory,
 }
 
 impl GameClient {
@@ -29,7 +29,7 @@ impl GameClient {
             chat: Chat::new(),
             map_factory: MapFactory {},
             monster_manager: MonsterManager::new(),
-            monster_generator: MonsterFactory::new(),
+            monster_factory: MonsterFactory::new(),
         }
     }
 
@@ -53,15 +53,11 @@ impl GameClient {
                 let tile_line: String = tile
                     .iter()
                     .map(|space| {
-                        if space.is_visible {
+                        if space.is_visible || space.tile == DEFAULT_TILE_SET.player {
                             space.tile
-                        } else if space.tile == DEFAULT_TILE_SET.player {
-                            DEFAULT_TILE_SET.player
-                        } else if space.tile == MONSTER_TILE_SET.snake {
-                            MONSTER_TILE_SET.snake
                         } else {
-                            ' ' // space character (default char)
-                        }
+                             ' ' //show no map tile at iteration if not visible or player
+                         }
                     })
                     .collect();
 
