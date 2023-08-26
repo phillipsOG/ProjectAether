@@ -7,8 +7,8 @@ impl MonsterGenerator {
         MonsterGenerator {}
     }
 
-    pub fn generate_monster(&mut self) -> char {
-        MONSTER_TILE_SET.snake
+    pub fn generate_monster(&mut self) -> Monster {
+        Monster::new(MONSTER_TILE_SET.snake)
     }
 }
 

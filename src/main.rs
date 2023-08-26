@@ -12,6 +12,7 @@ mod status;
 mod tile_set;
 mod monster_manager;
 mod monster_generator;
+mod monster;
 
 use crate::game_client::GameClient;
 use crate::map_data::Vec2;
