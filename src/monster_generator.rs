@@ -1,10 +1,10 @@
 use crate::tile_set::MONSTER_TILE_SET;
 
-pub struct MonsterGenerator {}
+pub struct MonsterFactory {}
 
-impl MonsterGenerator {
+impl MonsterFactory {
     pub(crate) fn new() -> Self {
-        MonsterGenerator {}
+        MonsterFactory {}
     }
 
     pub fn generate_monster(&mut self) -> Monster {

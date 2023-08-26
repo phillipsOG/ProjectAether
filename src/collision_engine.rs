@@ -2,7 +2,7 @@ use crate::chat::Chat;
 use crate::map_data::{MapData, Vec2};
 use crate::map_manager::MapManager;
 use crate::player::Player;
-use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
 use crate::PlayerMove;
 use crossterm::event::KeyCode;
 use std::io;

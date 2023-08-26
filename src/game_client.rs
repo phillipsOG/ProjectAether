@@ -3,11 +3,11 @@ use crate::collision_engine::CollisionEngine;
 use crate::map_factory::MapFactory;
 use crate::map_manager::MapManager;
 use crate::player::Player;
-use crate::tile_set::DEFAULT_TILE_SET;
+use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
 use crate::Map;
 use crossterm::{terminal, QueueableCommand};
 use std::io::stdout;
-use crate::monster_generator::MonsterGenerator;
+use crate::monster_generator::MonsterFactory;
 use crate::monster_manager::MonsterManager;
 
 pub struct GameClient {
@@ -17,7 +17,7 @@ pub struct GameClient {
     pub chat: Chat,
     pub map_factory: MapFactory,
     pub monster_manager: MonsterManager,
-    pub monster_generator: MonsterGenerator,
+    pub monster_generator: MonsterFactory,
 }
 
 impl GameClient {
@@ -29,7 +29,7 @@ impl GameClient {
             chat: Chat::new(),
             map_factory: MapFactory {},
             monster_manager: MonsterManager::new(),
-            monster_generator: MonsterGenerator::new(),
+            monster_generator: MonsterFactory::new(),
         }
     }
 
@@ -56,9 +56,11 @@ impl GameClient {
                         if space.is_visible {
                             space.tile
                         } else if space.tile == DEFAULT_TILE_SET.player {
-                            '@'
+                            DEFAULT_TILE_SET.player
+                        } else if space.tile == MONSTER_TILE_SET.snake {
+                            MONSTER_TILE_SET.snake
                         } else {
-                            ' ' // space character
+                            ' ' // space character (default char)
                         }
                     })
                     .collect();

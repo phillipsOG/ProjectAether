@@ -6,6 +6,7 @@ pub struct Monster {
 }
 
 impl Monster {
+
     pub(crate) fn new(monster_tile: char) -> Self {
         Monster {
             monster: monster_tile,

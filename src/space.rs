@@ -1,4 +1,4 @@
-use crate::tile_set::DEFAULT_TILE_SET;
+use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
 use std::fmt;
 use std::ops::Deref;
 
@@ -16,7 +16,8 @@ impl Space {
             is_visible: false,
             is_solid: tile == DEFAULT_TILE_SET.wall
                 || tile == DEFAULT_TILE_SET.closed_door_side
-                || tile == DEFAULT_TILE_SET.closed_door_top,
+                || tile == DEFAULT_TILE_SET.closed_door_top
+                || tile == MONSTER_TILE_SET.snake
         }
     }
 
@@ -26,7 +27,8 @@ impl Space {
             is_visible: false,
             is_solid: tile == DEFAULT_TILE_SET.wall
                 || tile == DEFAULT_TILE_SET.closed_door_side
-                || tile == DEFAULT_TILE_SET.closed_door_top,
+                || tile == DEFAULT_TILE_SET.closed_door_top
+                || tile == MONSTER_TILE_SET.snake
         }
     }
 }
