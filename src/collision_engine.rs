@@ -227,21 +227,29 @@ impl CollisionEngine {
                     let map_height = map_data.map_height;
 
                     if player_pos.y > monster.position.y && monster.position.y < map_width {
-                        map_data.map[monster.position.y +1][monster.position.x] = Space::new(monster.tile);
-                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                        monster.position.y += 1;  // Update x position
+                        if !map_data.map[monster.position.y +1][monster.position.x].is_solid {
+                            map_data.map[monster.position.y +1][monster.position.x] = Space::new(monster.tile);
+                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                            monster.position.y += 1;  // Update x position
+                        }
                     } else if player_pos.y < monster.position.y && monster.position.y < map_width {
-                        map_data.map[monster.position.y -1][monster.position.x] = Space::new(monster.tile);
-                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                        monster.position.y -= 1;
+                        if !map_data.map[monster.position.y -1][monster.position.x].is_solid {
+                            map_data.map[monster.position.y -1][monster.position.x] = Space::new(monster.tile);
+                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                            monster.position.y -= 1;
+                        }
                     } else if player_pos.x > monster.position.x && monster.position.x < map_height {
-                        map_data.map[monster.position.y][monster.position.x +1] = Space::new(monster.tile);
-                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                        monster.position.x += 1;
+                        if !map_data.map[monster.position.y][monster.position.x+1].is_solid {
+                            map_data.map[monster.position.y][monster.position.x +1] = Space::new(monster.tile);
+                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                            monster.position.x += 1;
+                        }
                     } else if player_pos.x < monster.position.y && monster.position.y < map_width {
-                        map_data.map[monster.position.y][monster.position.x -1] = Space::new(monster.tile);
-                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                        monster.position.x -= 1;
+                        if !map_data.map[monster.position.y][monster.position.x -1].is_solid {
+                            map_data.map[monster.position.y][monster.position.x -1] = Space::new(monster.tile);
+                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                            monster.position.x -= 1;
+                        }
                     }
 
                     /*for pos_x in 0..map_height  {
