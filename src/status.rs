@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub struct Status {
     pub health: i32,
     pub str: i32,
@@ -10,6 +11,14 @@ impl Status {
             health: 100,
             str: 3,
             def: 1,
+        }
+    }
+
+    pub(crate) fn new_monster(health: i32, str: i32, def: i32) -> Self {
+        Status {
+            health,
+            str,
+            def,
         }
     }
 

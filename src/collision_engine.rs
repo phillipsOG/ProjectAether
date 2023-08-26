@@ -3,9 +3,11 @@ use crate::map_data::{MapData, Vec2};
 use crate::map_manager::MapManager;
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::PlayerMove;
+use crate::{Map, PlayerMove};
 use crossterm::event::KeyCode;
 use std::io;
+use crate::monster_manager::MonsterManager;
+use crate::space::Space;
 
 pub struct CollisionEngine {}
 
@@ -210,8 +212,58 @@ impl CollisionEngine {
         return "".to_string();
     }
 
-    pub(crate) fn process_enemy_move(&mut self, player: &mut Player, map_manager: &mut MapManager, chat: &mut Chat) {
+    pub(crate) fn process_enemy_move(&mut self, player: &mut Player, map_manager: &mut MapManager, chat: &mut Chat, monster_manager: &mut MonsterManager) {
+        let monsters = monster_manager.get_monsters_mut();
+        let map = map_manager.get_map_mut(map_manager.current_map_index);
 
+        if let Some(map_data) = map {
+            let player_pos = map_data.player_position;
+
+            for index in 0..monsters.len() {
+                let mut monster = monsters.get_mut(index).unwrap();
+
+                if monster.tile == MONSTER_TILE_SET.snake {
+                    let map_width = map_data.map_width;
+                    let map_height = map_data.map_height;
+
+                    if player_pos.y > monster.position.y && monster.position.y < map_width {
+                        map_data.map[monster.position.y +1][monster.position.x] = Space::new(monster.tile);
+                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                        monster.position.y += 1;  // Update x position
+                    } else if player_pos.y < monster.position.y && monster.position.y < map_width {
+                        map_data.map[monster.position.y -1][monster.position.x] = Space::new(monster.tile);
+                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                        monster.position.y -= 1;
+                    } else if player_pos.x > monster.position.x && monster.position.x < map_height {
+                        map_data.map[monster.position.y][monster.position.x +1] = Space::new(monster.tile);
+                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                        monster.position.x += 1;
+                    } else if player_pos.x < monster.position.y && monster.position.y < map_width {
+                        map_data.map[monster.position.y][monster.position.x -1] = Space::new(monster.tile);
+                        map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
+                        monster.position.x -= 1;
+                    }
+
+                    /*for pos_x in 0..map_height  {
+                        for pos_y in 0..map_width {
+                            let tile = &mut map_data.map[pos_x][pos_y];
+
+                            if tile.tile == monster.tile {
+
+                                if player_pos.x > monster.position.x {
+                                    map_data.map[pos_x+1][pos_y] = *tile;
+                                } else if player_pos.x < monster.position.x {
+                                    map_data.map[pos_x-1][pos_y] = *tile;
+                                }
+
+                                *tile = Space::new(DEFAULT_TILE_SET.floor);
+                            }
+                        }
+                    }
+                    */
+                }
+            }
+        }
     }
 
     fn update_tile(&mut self, map_data: &MapData, mut tmp_tile: char) -> char {

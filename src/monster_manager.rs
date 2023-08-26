@@ -1,6 +1,8 @@
 use rand::Rng;
+use crate::map_data::Vec2;
 use crate::map_manager::MapManager;
-use crate::monster_generator::{Monster, MonsterFactory};
+use crate::monster::Monster;
+use crate::monster_generator::{MonsterFactory};
 use crate::space::Space;
 use crate::tile_set::DEFAULT_TILE_SET;
 
@@ -31,11 +33,28 @@ impl MonsterManager {
                     let mut current_tile = &mut map_data.map[pos_x][pos_y];
 
                     if !current_tile.is_solid && current_tile.tile == DEFAULT_TILE_SET.floor && rng.gen_range(0..10) > 8 {
-                        self.monsters.push(monster_factory.generate_monster());
-                        *current_tile = Space::new(self.monsters[self.monsters.len()-1].monster);
+
+                        self.monsters.push(monster_factory.generate_monster(Vec2::new(pos_x, pos_y)));
+                        *current_tile = Space::new(self.monsters[self.monsters.len()-1].tile);
                     }
                 }
             }
         }
+    }
+
+    pub(crate) fn get_monsters(self) -> Monsters {
+        self.monsters
+    }
+
+    pub(crate) fn get_monsters_mut(&mut self) -> &mut Monsters {
+        self.monsters.as_mut()
+    }
+
+    pub(crate) fn get_monster(&mut self, index: usize) -> Option<&Monster> {
+        self.monsters.get(index)
+    }
+
+    pub(crate) fn get_monster_mut(&mut self, index: usize) -> Option<&mut Monster> {
+        self.monsters.get_mut(index)
     }
 }

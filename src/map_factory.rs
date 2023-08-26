@@ -60,8 +60,8 @@ impl MapFactory {
             .collect();
         new_map.set_player_position(pos);
         new_map.tile_below_player = DEFAULT_TILE_SET.floor;
-        new_map.map_height = new_map.map.len();
-        new_map.map_width = if new_map.map_height > 0 {
+        new_map.map_width = new_map.map.len();
+        new_map.map_height = if new_map.map_width > 0 {
             new_map.map[0].len()
         } else {
             0

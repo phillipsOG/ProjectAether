@@ -66,18 +66,20 @@ fn main() {
     game_client
         .map_manager
         .load_map("map2", PlayerMove::Normal);
-    //must run spawn monsters after loading map
+
+    // must run spawn monsters after loading map not before
     game_client
         .monster_manager
         .spawn_monsters(
             &mut game_client.map_manager,
             &mut game_client.monster_factory
         );
-    //update player vision so we can see newly spawned in enemies
+
+    // update player vision so we can see newly spawned in enemies
     game_client
         .collision_engine
         .update_player_vision(&mut game_client.map_manager, Vec2::ZERO);
-    
+
     game_client.print_terminal();
 
     loop {
@@ -127,7 +129,8 @@ fn main() {
                     let enemy_move = game_client.collision_engine.process_enemy_move(
                       &mut game_client.player,
                         &mut game_client.map_manager,
-                        &mut game_client.chat
+                        &mut game_client.chat,
+                        &mut game_client.monster_manager
                     );
 
                     let terrain_data = game_client.map_factory.generate_terrain(

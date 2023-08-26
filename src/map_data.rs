@@ -5,8 +5,8 @@ use std::io::stdout;
 
 #[derive(Clone, Copy)]
 pub struct Vec2 {
-    pub y: usize,
     pub x: usize,
+    pub y: usize,
 }
 
 impl Vec2 {
