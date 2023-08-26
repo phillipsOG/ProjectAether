@@ -55,3 +55,24 @@ pub const LADDER_TILE_SET: TileSet = TileSet {
     previous_tile: ' ',
     name: &"Ladder Tile Set",
 };
+
+pub struct MonsterTileSet {
+    pub player: char,
+    pub snake: char,
+}
+
+impl MonsterTileSet {
+    pub(crate) fn new(&mut self) {
+        self.update_with(MONSTER_TILE_SET)
+    }
+
+    pub fn update_with(&mut self, other: MonsterTileSet) {
+        self.player = other.player;
+        self.snake = other.snake;
+    }
+}
+
+pub const MONSTER_TILE_SET: MonsterTileSet = MonsterTileSet {
+    player: '@',
+    snake: 'S',
+};

@@ -7,6 +7,8 @@ use crate::tile_set::DEFAULT_TILE_SET;
 use crate::Map;
 use crossterm::{terminal, QueueableCommand};
 use std::io::stdout;
+use crate::monster_generator::MonsterGenerator;
+use crate::monster_manager::MonsterManager;
 
 pub struct GameClient {
     pub map_manager: MapManager,
@@ -14,6 +16,8 @@ pub struct GameClient {
     pub collision_engine: CollisionEngine,
     pub chat: Chat,
     pub map_factory: MapFactory,
+    pub monster_manager: MonsterManager,
+    pub monster_generator: MonsterGenerator,
 }
 
 impl GameClient {
@@ -24,6 +28,8 @@ impl GameClient {
             collision_engine: CollisionEngine::new(),
             chat: Chat::new(),
             map_factory: MapFactory {},
+            monster_manager: MonsterManager::new(),
+            monster_generator: MonsterGenerator::new(),
         }
     }
 

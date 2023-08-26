@@ -210,6 +210,10 @@ impl CollisionEngine {
         return "".to_string();
     }
 
+    pub(crate) fn process_enemy_move(&mut self, player: &mut Player, map_manager: &mut MapManager, chat: &mut Chat) {
+
+    }
+
     fn update_tile(&mut self, map_data: &MapData, mut tmp_tile: char) -> char {
         let tile_set = &map_data.tile_set;
 

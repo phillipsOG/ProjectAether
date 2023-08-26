@@ -10,6 +10,8 @@ mod player_movement_data;
 mod space;
 mod status;
 mod tile_set;
+mod monster_manager;
+mod monster_generator;
 
 use crate::game_client::GameClient;
 use crate::map_data::Vec2;
@@ -57,8 +59,19 @@ fn main() {
         .map_manager
         .add_map_set_player_position("map1", Vec2::new(5, 2));
     let new_map = game_client.map_factory.generate_map(10, 10, Vec2::new(2, 1), "seedphrase");
-    game_client.map_manager.add_generated_map(new_map);
-    game_client.map_manager.load_map("test", PlayerMove::Normal);
+    game_client
+        .map_manager
+        .add_generated_map(new_map);
+    game_client
+        .map_manager
+        .load_map("map2", PlayerMove::Normal);
+    //must run spawn monsters after loading map
+    game_client
+        .monster_manager
+        .spawn_monsters(
+            &mut game_client.map_manager,
+            &mut game_client.monster_generator
+        );
 
     game_client.print_terminal();
 
@@ -105,6 +118,12 @@ fn main() {
                         }
                         _ => {}
                     }
+
+                    let enemy_move = game_client.collision_engine.process_enemy_move(
+                      &mut game_client.player,
+                        &mut game_client.map_manager,
+                        &mut game_client.chat
+                    );
 
                     let terrain_data = game_client.map_factory.generate_terrain(
                         &mut game_client.map_manager,
