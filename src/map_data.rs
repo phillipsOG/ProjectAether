@@ -76,7 +76,7 @@ impl MapData {
                     self.map_width,
                     self.map.len()
                 );*/
-                self.map[y][x].is_visible = !self.fog_of_war;
+                self.map[y][x].is_visible = self.fog_of_war;
 
                 /*if self.map[x][y].is_solid || self.map[x][y].tile == DEFAULT_TILE_SET.open_door {
                 } else {

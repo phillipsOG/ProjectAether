@@ -68,6 +68,7 @@ impl CollisionEngine {
                 KeyCode::Esc => {
                     player.previous_key_event = KeyCode::Esc;
                     player.key_state = true;
+                    chat.clear_chat();
                     chat.process_chat_message("You exit the game.");
                 }
                 _ => {}
@@ -182,14 +183,19 @@ impl CollisionEngine {
         for (_col_idx, col) in map_data.map.iter().enumerate() {
             for (_row_idx, c) in col.iter().enumerate() {
                 if c.tile == '@' {
-                    let y = map_data.player_position.y;
-                    let x = map_data.player_position.x;
+                    let pos_y = map_data.player_position.y;
+                    let pos_x = map_data.player_position.x;
 
-                    if y > map_data.map_height || x > map_data.map_width {
-                        let tile_left =
-                            map_data.map[new_player_position.y][new_player_position.x - 1].tile;
-                        let tile_right =
-                            map_data.map[new_player_position.y][new_player_position.x + 1].tile;
+                    // if the players position x is greater than available x pos then don't check code
+                    if pos_x > 0 {
+                        let tile_left = map_data.map[new_player_position.y]
+                            .get(new_player_position.x - 1)
+                            .map(|space| space.tile)
+                            .unwrap_or_default();
+                        let tile_right = map_data.map[new_player_position.y]
+                            .get(new_player_position.x + 1)
+                            .map(|space| space.tile)
+                            .unwrap_or_default();
                         let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right);
                         if next_tile == DEFAULT_TILE_SET.ladder
                             && map_data.tile_set.name != DEFAULT_TILE_SET.ladder

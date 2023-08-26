@@ -1,15 +1,15 @@
 mod chat;
-mod collision;
+mod collision_engine;
 mod game_client;
 mod inventory;
 mod map_data;
+mod map_factory;
 mod map_manager;
 mod player;
 mod player_movement_data;
 mod space;
 mod status;
 mod tile_set;
-mod map_factory;
 
 use crate::game_client::GameClient;
 use crate::map_data::Vec2;
@@ -58,7 +58,7 @@ fn main() {
         .add_map_set_player_position("map1", Vec2::new(5, 2));
     let new_map = game_client.map_factory.generate_map(8, 8, Vec2::new(2, 1));
     game_client.map_manager.add_generated_map(new_map);
-    game_client.map_manager.load_map("map2", PlayerMove::Normal);
+    game_client.map_manager.load_map("test", PlayerMove::Normal);
 
     game_client.print_terminal();
 

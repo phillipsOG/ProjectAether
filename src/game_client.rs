@@ -1,5 +1,5 @@
 use crate::chat::Chat;
-use crate::collision::CollisionEngine;
+use crate::collision_engine::CollisionEngine;
 use crate::map_factory::MapFactory;
 use crate::map_manager::MapManager;
 use crate::player::Player;
