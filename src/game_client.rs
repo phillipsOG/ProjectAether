@@ -1,16 +1,14 @@
 use crate::chat::Chat;
 
-
-
 use crate::player::Player;
 use crate::tile_set::DEFAULT_TILE_SET;
 
 use crossterm::{terminal, QueueableCommand};
 
+use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
 use std::io::stdout;
 use std::sync::Arc;
-use crate::map_manager::MapManager;
 
 #[derive(Clone)]
 pub struct GameClient {
@@ -51,7 +49,9 @@ impl GameClient {
         let mut tmp_plr = player.clone();
         let mut tmp_chat = chat.lock().await;
         //let map_manager_guard = map_manager_clone.lock().await;
-        let map_guard = map_manager_clone.get_map(map_manager_clone.current_map_index).expect("map data");
+        let map_guard = map_manager_clone
+            .get_map(map_manager_clone.current_map_index)
+            .expect("map data");
         let modules = [
             tmp_plr.status.get_status(),
             tmp_plr

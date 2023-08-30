@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use futures::lock::{Mutex, MutexGuard};
+use futures::lock::{MutexGuard};
 
 
 use crate::monster::Monster;
@@ -8,8 +7,8 @@ use crate::monster_generator::MonsterFactory;
 use crate::tile_set::DEFAULT_TILE_SET;
 use crate::Vec2;
 
-use rand::Rng;
 use crate::map_manager::MapManager;
+use rand::Rng;
 
 use crate::space::Space;
 

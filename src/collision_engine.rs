@@ -8,10 +8,10 @@ use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
 use crate::MovementType;
 use crossterm::event::KeyCode;
 
+use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
 use std::io;
 use std::sync::Arc;
-use crate::map_manager::MapManager;
 
 use crate::monster_manager::MonsterManager;
 use crate::space::Space;
@@ -90,7 +90,9 @@ impl CollisionEngine {
     ) -> MovementType {
         /*if let Some(map_data) = map_data_option {*/
         //let map_manager_guard = map_manager_clone.lock().await;
-        let map = map_manager_clone.get_map(map_manager_clone.current_map_index).expect("map data");
+        let map = map_manager_clone
+            .get_map(map_manager_clone.current_map_index)
+            .expect("map data");
         let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
         let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
         let is_tile_traversable = map.map[new_player_pos.y][new_player_pos.x].is_traversable;
@@ -126,7 +128,6 @@ impl CollisionEngine {
                 chat_guard.process_chat_message("You need a rusty key to open this door.");
             };
         }
-        drop(chat_guard);
         //drop(map_manager_guard);
         if tile_set.name == DEFAULT_TILE_SET.name {
             if !is_tile_traversable {
@@ -141,10 +142,11 @@ impl CollisionEngine {
             }
             /*}*/
         }
+        drop(chat_guard);
         return MovementType::Unable;
     }
 
-    pub(crate) fn update_player_position<'a>(
+    pub(crate) async fn update_player_position<'a>(
         &mut self,
         map_manager_clone: &mut MutexGuard<'a, MapManager>,
         player: &mut Player,
@@ -206,9 +208,9 @@ impl CollisionEngine {
         return "".to_string();
     }
 
-    pub(crate) fn move_monsters(
+    pub(crate) async fn move_monsters<'a>(
         &mut self,
-        player: MutexGuard<Player>,
+        player: MutexGuard<'a, Player>,
         monster_manager: &mut MonsterManager,
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
@@ -233,7 +235,6 @@ impl CollisionEngine {
                 new_monsters_position.insert(m_data.id, new_pos);
             }
         }
-
         new_monsters_position
     }
 
