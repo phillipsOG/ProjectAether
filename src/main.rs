@@ -97,6 +97,8 @@ async fn main() {
 
     terminal.print_terminal(&mut player, &mut map_mut, &mut chat);
 
+    //let map = map_manager_guard.get_map(map_index);
+
     drop(monster_manager_guard);
     drop(collision_engine_guard);
 
@@ -124,7 +126,7 @@ async fn main() {
                     let new_player_pos = collision_engine_guard.move_player(&mut player, &mut chat);
 
                     let player_move_type = collision_engine_guard.process_move(
-                        &mut map_mut,
+                        map_mut,
                         &mut player,
                         &mut chat,
                         new_player_pos,

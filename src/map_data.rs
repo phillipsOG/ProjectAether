@@ -4,7 +4,7 @@ use crate::tile_set::{TileSet, DEFAULT_TILE_SET, MONSTER_TILE_SET};
 use crate::vec2::Vec2;
 use crate::Map;
 use crossterm::{terminal, QueueableCommand};
-
+use std::collections::HashMap;
 use std::io::stdout;
 
 #[derive(Clone)]
