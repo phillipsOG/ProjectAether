@@ -25,31 +25,32 @@ impl CollisionEngine {
         CollisionEngine {}
     }
 
-    pub(crate) fn move_player(
+    pub(crate) async fn move_player(
         &mut self,
         player: &Player,
-        chat: &mut Chat,
+        chat: &mut Arc<Mutex<Chat>>,
     ) -> Vec2 {
         let mut current_position = Vec2::ZERO;
+        let mut chat_guard = chat.lock().await;
         match player.key_event {
             KeyCode::Up => {
                 // Move up
-                chat.process_chat_message("You walk up.");
+                chat_guard.process_chat_message("You walk up.");
                 return Vec2::new(player.player_position.x, player.player_position.y - 1);
             }
             KeyCode::Down => {
                 // Move down
-                chat.process_chat_message("You walk down.");
+                chat_guard.process_chat_message("You walk down.");
                 return Vec2::new(player.player_position.x, player.player_position.y + 1);
             }
             KeyCode::Left => {
                 // Move left
-                chat.process_chat_message("You walk left.");
+                chat_guard.process_chat_message("You walk left.");
                 return Vec2::new(player.player_position.x - 1, player.player_position.y);
             }
             KeyCode::Right => {
                 // Move right
-                chat.process_chat_message("You walk right.");
+                chat_guard.process_chat_message("You walk right.");
                 return Vec2::new(player.player_position.x + 1, player.player_position.y);
             }
             KeyCode::Tab => {
@@ -57,35 +58,35 @@ impl CollisionEngine {
 
                 let mut input = String::new();
                 if let Err(_) = io::stdin().read_line(&mut input) {
-                    chat.process_chat_message("Error reading command.");
+                    chat_guard.process_chat_message("Error reading command.");
                 }
                 // @TODO turn into actual command system
                 if input.trim() == "nofog" {
                     if player.fog_of_war {
-                        chat.process_chat_message("Removed fog of war.");
+                        chat_guard.process_chat_message("Removed fog of war.");
                         //player.fog_of_war = false;
                     } else {
-                        chat.process_chat_message("Added back fog of war.");
+                        chat_guard.process_chat_message("Added back fog of war.");
                         //player.fog_of_war = true;
                     }
                 } else {
-                    chat.process_chat_message("Invalid command.");
+                    chat_guard.process_chat_message("Invalid command.");
                 }
             }
 
             _ => {}
         }
         current_position = player.player_position;
-
+        drop(chat_guard);
         // Don't move
         return current_position;
     }
 
-    pub(crate) fn process_move(
+    pub(crate) async fn process_move(
         &mut self,
         map_data: &MapData,
         player: &mut Player,
-        chat: &mut Chat,
+        chat: &mut Arc<Mutex<Chat>>,
         new_player_pos: Vec2,
     ) -> MovementType {
         /*if let Some(map_data) = map_data_option {*/
@@ -93,7 +94,7 @@ impl CollisionEngine {
             let is_tile_solid = map_data.map[new_player_pos.y][new_player_pos.x].is_solid;
             let is_tile_traversable = map_data.map[new_player_pos.y][new_player_pos.x].is_traversable;
             let tile_set = map_data.tile_set.clone();
-
+            let mut chat_guard = chat.lock().await;
             let res = self.check_for_multi_tile(map_data.clone(), tmp_tile, new_player_pos);
 
             if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
@@ -112,7 +113,7 @@ impl CollisionEngine {
             }
 
             if tmp_tile == tile_set.key {
-                chat.process_chat_message("You pick up a rusty key.");
+                chat_guard.process_chat_message("You pick up a rusty key.");
                 player.inventory.add_key(1);
                 //map_data.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
             } else if tmp_tile == tile_set.closed_door_side
@@ -120,14 +121,14 @@ impl CollisionEngine {
             {
                 if player.inventory.keys >= 1 {
                     player.inventory.remove_key(1);
-                    chat.process_chat_message("You unlock the door using a rusty key.");
+                    chat_guard.process_chat_message("You unlock the door using a rusty key.");
                     /*map_data.map[new_player_pos.y][new_player_pos.x] =
                         Space::new(DEFAULT_TILE_SET.open_door);*/
                 } else {
-                    chat.process_chat_message("You need a rusty key to open this door.");
+                    chat_guard.process_chat_message("You need a rusty key to open this door.");
                 };
             }
-
+            drop(chat_guard);
             if tile_set.name == DEFAULT_TILE_SET.name {
                 if !is_tile_traversable {
                     return MovementType::Unable;
