@@ -48,14 +48,14 @@ enum MovementType {
 #[tokio::main]
 async fn main() {
     // Initialize your game components
-    let mut map_manager = MapManager::new();
+    let map_manager = MapManager::new();
     let mut player = Player::new();
     //let mut collision_engine = CollisionEngine::new();
     let mut chat = Chat::new();
     let mut map_factory = MapFactory::new();
-    let mut monster_manager = MonsterManager::new();
+    let monster_manager = MonsterManager::new();
     let mut monster_factory = MonsterFactory::new();
-    let mut terminal = GameClient::new();
+    let terminal = GameClient::new();
 
     /*;
     let mut map_manager_guard = map_manager.lock().await;*/
@@ -63,21 +63,13 @@ async fn main() {
     let map_manager = Arc::new(Mutex::new(map_manager));
     let mut map_manager_guard = map_manager.lock().await;
 
+    //map_manager_guard.add_map_set_player_position(&mut player, "scene_ladder", Vec2::new(3, 2));
+    map_manager_guard.add_map_set_player_position(&mut player, "map2", Vec2::new(6, 2));
 
+    //map_manager_guard.add_map_set_player_position(&mut player, "map1", Vec2::new(5, 2));
+    //let new_map = map_factory.generate_map(&mut player, 10, 10, Vec2::new(2, 1), "seedphrase");
+    //map_manager_guard.add_generated_map(new_map);
 
-    map_manager_guard.add_map_set_player_position("scene_ladder", Vec2::new(3, 2));
-    map_manager_guard.add_map_set_player_position("map2", Vec2::new(6, 2));
-    map_manager_guard.add_map_set_player_position("map1", Vec2::new(5, 2));
-    let new_map = map_factory.generate_map(10, 10, Vec2::new(2, 1), "seedphrase");
-    map_manager_guard.add_generated_map(new_map);
-    map_manager_guard.load_map("map2", MovementType::Normal);
-
-    let map_index = map_manager_guard.current_map_index;
-    let mut map_mut = map_manager_guard
-        .get_map_mut(map_index)
-        .expect("Invalid map index");
-
-    let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
     /*let map_mut = Arc::new(Mutex::new(
         map_manager.get_map_mut(map_manager.current_map_index),
     ));*/
@@ -88,13 +80,20 @@ async fn main() {
             .get_map_mut(map_index)
             .expect("Invalid map index"),
     ));*/
-
+    let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
     let monster_manager = Arc::new(Mutex::new(monster_manager));
     let mut monster_manager_guard = monster_manager.lock().await;
     let mut collision_engine_guard = collision_engine.lock().await;
 
-    monster_manager_guard.spawn_monsters(&mut map_mut, &mut monster_factory);
-    collision_engine_guard.update_player_vision(&mut map_mut, Vec2::ZERO);
+    map_manager_guard.load_map("map2", MovementType::Normal);
+
+    let map_index = map_manager_guard.current_map_index;
+    let mut map_mut = map_manager_guard
+        .get_map_mut(map_index)
+        .expect("Invalid map index");
+
+    monster_manager_guard.spawn_monsters(&mut chat, &mut map_mut, &mut monster_factory);
+    collision_engine_guard.update_player_vision(&mut map_mut, &mut player, Vec2::ZERO);
 
     terminal.print_terminal(&mut player, &mut map_mut, &mut chat);
 
@@ -122,11 +121,7 @@ async fn main() {
 
                     let mut collision_engine_guard = collision_engine.lock().await;
 
-                    let new_player_pos = collision_engine_guard.move_player(
-                        &mut map_mut,
-                        &mut player,
-                        &mut chat,
-                    );
+                    let new_player_pos = collision_engine_guard.move_player(&mut player, &mut chat);
 
                     let player_move_type = collision_engine_guard.process_move(
                         &mut map_mut,
@@ -137,13 +132,17 @@ async fn main() {
 
                     match player_move_type {
                         MovementType::Normal => {
-                            collision_engine_guard
-                                .update_player_position(&mut map_mut, new_player_pos);
+                            collision_engine_guard.update_player_position(
+                                &mut map_mut,
+                                &mut player,
+                                new_player_pos,
+                            );
                         }
                         MovementType::LadderUp => {
-
                             let mut map_manager_guard = map_manager.lock().await;
-                            let m_data = map_manager_guard.load_map("scene_ladder", MovementType::LadderDown).cloned();
+                            let m_data = map_manager_guard
+                                .load_map("scene_ladder", MovementType::LadderDown)
+                                .cloned();
                             if let Some(map) = m_data {
                                 *map_mut = map;
                             }
@@ -173,8 +172,11 @@ async fn main() {
                         map_mut.map_width += terrain_data.width_increase;
                     }
 
-                    collision_engine_guard.update_player_vision(&mut map_mut, new_player_pos);
-
+                    collision_engine_guard.update_player_vision(
+                        &mut map_mut,
+                        &mut player,
+                        new_player_pos,
+                    );
                     terminal.print_terminal(&mut player, &mut map_mut, &mut chat);
 
                     drop(collision_engine_guard);
@@ -193,10 +195,11 @@ async fn main() {
 async fn update_monsters_async<'a>(
     collision_engine: &mut CollisionEngine,
     map: &'a mut MutexGuard<'a, &mut MapData>,
+    player: &mut Player,
     monster_manager: &mut MonsterManager,
 ) {
     loop {
-        let mut new_monsters_pos = collision_engine.move_monsters(map, monster_manager);
+        let mut new_monsters_pos = collision_engine.move_monsters(player, monster_manager);
 
         let processed_monsters_positions =
             collision_engine.process_monsters_move(&mut new_monsters_pos, map, monster_manager);

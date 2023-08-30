@@ -1,11 +1,12 @@
 use crate::chat::Chat;
 use crate::map_data::MapData;
-use crate::map_manager::MapManager;
+
+use crate::player::Player;
 use crate::space::Space;
 use crate::terrain_data::TerrainData;
 use crate::tile_set::DEFAULT_TILE_SET;
 use crate::Vec2;
-use futures::lock::MutexGuard;
+
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;
@@ -26,6 +27,7 @@ impl MapFactory {
 
     pub(crate) fn generate_map(
         &mut self,
+        player: &mut Player,
         height: usize,
         width: usize,
         pos: Vec2,
@@ -65,16 +67,17 @@ impl MapFactory {
             .iter()
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
+
+        player.player_position = pos;
+        player.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.set_player_position(pos);
-        new_map.tile_below_player = DEFAULT_TILE_SET.floor;
+
         new_map.map_width = new_map.map.len();
         new_map.map_height = if new_map.map_width > 0 {
             new_map.map[0].len()
         } else {
             0
         };
-
-        new_map.set_player_vision(pos);
 
         return new_map;
     }

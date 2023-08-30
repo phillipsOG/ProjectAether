@@ -1,9 +1,10 @@
 use crate::map_data::MapData;
+use crate::player::Player;
 use crate::space::Space;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 use crate::MovementType;
 use crate::Vec2;
-use futures::lock::MutexGuard;
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
@@ -62,7 +63,12 @@ impl MapManager {
         }
     }*/
 
-    pub(crate) fn add_map_set_player_position(&mut self, map_name: &str, pos: Vec2) {
+    pub(crate) fn add_map_set_player_position(
+        &mut self,
+        player: &mut Player,
+        map_name: &str,
+        pos: Vec2,
+    ) {
         let mut map = "".to_owned();
         let full_map_name = format!("src/maps/{}.txt", map_name);
 
@@ -81,15 +87,17 @@ impl MapManager {
             .iter()
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
+
+        player.player_position = pos;
+        player.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.set_player_position(pos);
-        new_map.tile_below_player = DEFAULT_TILE_SET.floor;
+
         new_map.map_height = new_map.map.len();
         new_map.map_width = if new_map.map_height > 0 {
             new_map.map[0].len()
         } else {
             0
         };
-        new_map.set_player_vision(pos);
 
         if map_name == "scene_ladder" {
             new_map.tile_set = LADDER_TILE_SET;
@@ -114,7 +122,7 @@ impl MapManager {
         if map_name == "scene_ladder" {
             self.current_map_index = 0;
         } else if map_name == "map2" {
-            self.current_map_index = 1;
+            self.current_map_index = 0;
         } else if map_name == "map1" {
             self.current_map_index = 2;
         } else if map_name == "test" {

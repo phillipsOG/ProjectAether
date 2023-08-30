@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use crate::chat::Chat;
 use crate::map_data::MapData;
-use crate::map_manager::MapManager;
+
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::{Map, MovementType};
+use crate::{MovementType};
 use crossterm::event::KeyCode;
-use crossterm::event::KeyCode::Delete;
+
 use futures::lock::MutexGuard;
 use std::io;
 
@@ -25,7 +25,6 @@ impl CollisionEngine {
 
     pub(crate) fn move_player(
         &mut self,
-        map_data: &mut MapData,
         player: &mut Player,
         chat: &mut Chat,
     ) -> Vec2 {
@@ -34,22 +33,22 @@ impl CollisionEngine {
             KeyCode::Up => {
                 // Move up
                 chat.process_chat_message("You walk up.");
-                return Vec2::new(map_data.player_position.x, map_data.player_position.y - 1);
+                return Vec2::new(player.player_position.x, player.player_position.y - 1);
             }
             KeyCode::Down => {
                 // Move down
                 chat.process_chat_message("You walk down.");
-                return Vec2::new(map_data.player_position.x, map_data.player_position.y + 1);
+                return Vec2::new(player.player_position.x, player.player_position.y + 1);
             }
             KeyCode::Left => {
                 // Move left
                 chat.process_chat_message("You walk left.");
-                return Vec2::new(map_data.player_position.x - 1, map_data.player_position.y);
+                return Vec2::new(player.player_position.x - 1, player.player_position.y);
             }
             KeyCode::Right => {
                 // Move right
                 chat.process_chat_message("You walk right.");
-                return Vec2::new(map_data.player_position.x + 1, map_data.player_position.y);
+                return Vec2::new(player.player_position.x + 1, player.player_position.y);
             }
             KeyCode::Tab => {
                 println!("Please enter a command: ");
@@ -61,12 +60,12 @@ impl CollisionEngine {
 
                 // @TODO turn into actual command system
                 if input.trim() == "nofog" {
-                    if map_data.fog_of_war {
+                    if player.fog_of_war {
                         chat.process_chat_message("Removed fog of war.");
-                        //map_data.fog_of_war = false;
+                        player.fog_of_war = false;
                     } else {
                         chat.process_chat_message("Added back fog of war.");
-                        //map_data.fog_of_war = true;
+                        player.fog_of_war = true;
                     }
                 } else {
                     chat.process_chat_message("Invalid command.");
@@ -80,7 +79,7 @@ impl CollisionEngine {
             }
             _ => {}
         }
-        current_position = map_data.player_position;
+        current_position = player.player_position;
 
         // Don't move
         return current_position;
@@ -107,9 +106,9 @@ impl CollisionEngine {
             }
         } else if res == map_data.tile_set.ladder && map_data.tile_set.name == LADDER_TILE_SET.name
         {
-            if player.key_event == KeyCode::Up && map_data.player_position.y == 1 {
+            if player.key_event == KeyCode::Up && player.player_position.y == 1 {
                 return MovementType::LadderEnter;
-            } else if player.key_event == KeyCode::Down && map_data.player_position.y == 2 {
+            } else if player.key_event == KeyCode::Down && player.player_position.y == 2 {
                 return MovementType::LadderExit;
             }
         }
@@ -149,23 +148,26 @@ impl CollisionEngine {
     pub(crate) fn update_player_position(
         &mut self,
         map_data: &mut MapData,
+        player: &mut Player,
         new_player_position: Vec2,
     ) {
         let tmp_tile = map_data.map[new_player_position.y][new_player_position.x].tile;
-        let pos = map_data.player_position.clone();
+        let pos = player.player_position.clone();
         map_data.map[pos.y][pos.x] =
-            Space::new(self.update_player_previous_tile(map_data, tmp_tile));
+            Space::new(self.update_player_previous_tile(player, tmp_tile));
+        player.player_position = new_player_position;
+        player.tile_below_player = tmp_tile;
         map_data.set_player_position(new_player_position);
-        map_data.update_tile_below_player(tmp_tile);
+        player.update_tile_below_player(tmp_tile);
     }
 
     pub(crate) fn update_player_vision(
         &mut self,
         map_data: &mut MapData,
+        player: &mut Player,
         _new_player_position: Vec2,
     ) {
-        let pos = map_data.player_position;
-        map_data.set_player_vision(pos);
+        map_data.set_player_vision(player, _new_player_position);
     }
 
     fn check_for_multi_tile(
@@ -203,7 +205,7 @@ impl CollisionEngine {
 
     pub(crate) fn move_monsters(
         &mut self,
-        map_data: &mut MutexGuard<&mut MapData>,
+        player: &mut Player,
         monster_manager: &mut MonsterManager,
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
@@ -212,25 +214,19 @@ impl CollisionEngine {
         for mon_index in 0..monsters.len() {
             let monster = monsters.get_mut(mon_index);
             if let Some(m_data) = monster {
-                for _index in 0..map_data.monster_positions.len() {
-                    let new_monster_pos_option =
-                        map_data.monster_positions.get_mut(&m_data.id).cloned();
+                let cur_monster_pos = m_data.position;
+                let mut new_pos = Vec2::ZERO;
 
-                    if let Some(new_monster_pos) = new_monster_pos_option {
-                        let mut new_pos = Vec2::ZERO;
-
-                        if new_monster_pos.x < map_data.player_position.x {
-                            new_pos = Vec2::new(new_monster_pos.x + 1, new_monster_pos.y);
-                        } else if new_monster_pos.x > map_data.player_position.x {
-                            new_pos = Vec2::new(new_monster_pos.x - 1, new_monster_pos.y);
-                        } else if new_monster_pos.y < map_data.player_position.y {
-                            new_pos = Vec2::new(new_monster_pos.x, new_monster_pos.y + 1);
-                        } else if new_monster_pos.y > map_data.player_position.y {
-                            new_pos = Vec2::new(new_monster_pos.x, new_monster_pos.y - 1);
-                        }
-                        new_monsters_position.insert(m_data.id, new_pos);
-                    }
+                if cur_monster_pos.x < player.player_position.x {
+                    new_pos = Vec2::new(cur_monster_pos.x + 1, cur_monster_pos.y);
+                } else if cur_monster_pos.x > player.player_position.x {
+                    new_pos = Vec2::new(cur_monster_pos.x - 1, cur_monster_pos.y);
+                } else if cur_monster_pos.y < player.player_position.y {
+                    new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y + 1);
+                } else if cur_monster_pos.y > player.player_position.y {
+                    new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y - 1);
                 }
+                new_monsters_position.insert(m_data.id, new_pos);
             }
         }
 
@@ -283,44 +279,38 @@ impl CollisionEngine {
             let monster = monster_manager.get_monster_mut(mon_index);
             if let Some(md) = monster {
                 if let Some(new_mons_pos) = processed_monsters_positions.get(&md.id) {
-                    let cur_enemy_pos = map_data.monster_positions[&md.id];
                     let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x];
 
-                    let tile_below_monster_option = map_data.get_tile_below_monster(md.id);
-                    map_data.map[cur_enemy_pos.y][cur_enemy_pos.x] = Space::new(
-                        self.update_monster_previous_tile(tile_below_monster_option, tmp_tile.tile),
+                    let tile_below_monster = md.get_tile_below_monster();
+                    map_data.map[md.position.y][md.position.x] = Space::new(
+                        self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),
                     );
-
-                    map_data.set_monster_position(md.id, *new_mons_pos);
-                    map_data.update_tile_below_monster(md.id, tmp_tile.tile);
+                    md.tile_below_monster = tmp_tile.tile;
+                    md.position = *new_mons_pos;
                 }
             }
         }
     }
 
-    fn update_player_previous_tile(&mut self, map_data: &mut MapData, mut tmp_tile: char) -> char {
-        let tile_set = &map_data.tile_set;
+    fn update_player_previous_tile(&mut self, player: &mut Player, mut tmp_tile: char) -> char {
+        let tile_set = DEFAULT_TILE_SET;
 
         if tmp_tile == tile_set.open_door {
             tmp_tile = tile_set.floor;
         }
 
-        if map_data.tile_below_player == tile_set.open_door {
+        if player.tile_below_player == tile_set.open_door {
             tmp_tile = tile_set.open_door;
         }
 
-        if map_data.tile_below_player == tile_set.closed_door_top {
+        if player.tile_below_player == tile_set.closed_door_top {
             tmp_tile = tile_set.closed_door_top;
         }
 
         tmp_tile
     }
 
-    fn update_monster_previous_tile(
-        &mut self,
-        tile_below_monster: Option<&mut char>,
-        tmp_tile: char,
-    ) -> char {
+    fn update_monster_previous_tile(&mut self, tile_below_monster: char, tmp_tile: char) -> char {
         let tile_set = DEFAULT_TILE_SET;
 
         let mut updated_tile = tmp_tile;
@@ -329,14 +319,12 @@ impl CollisionEngine {
             updated_tile = tile_set.floor;
         }
 
-        if let Some(tile_below_monster_char) = tile_below_monster {
-            if *tile_below_monster_char == tile_set.open_door {
-                updated_tile = tile_set.open_door;
-            }
+        if tile_below_monster == tile_set.open_door {
+            updated_tile = tile_set.open_door;
+        }
 
-            if *tile_below_monster_char == tile_set.closed_door_top {
-                updated_tile = tile_set.closed_door_top;
-            }
+        if tile_below_monster == tile_set.closed_door_top {
+            updated_tile = tile_set.closed_door_top;
         }
 
         updated_tile

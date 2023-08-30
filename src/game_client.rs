@@ -1,12 +1,12 @@
 use crate::chat::Chat;
 
 use crate::map_data::MapData;
-use crate::map_manager::MapManager;
+
 use crate::player::Player;
 use crate::tile_set::DEFAULT_TILE_SET;
-use crate::Map;
+
 use crossterm::{terminal, QueueableCommand};
-use futures::lock::MutexGuard;
+
 use std::io::stdout;
 
 #[derive(Clone)]
@@ -34,7 +34,7 @@ impl GameClient {
     }
 
     pub(crate) fn print_terminal(
-        &mut self,
+        &self,
         player: &mut Player,
         map_data: &mut MapData,
         chat: &mut Chat,
@@ -49,7 +49,7 @@ impl GameClient {
             player.status.get_status(),
             player
                 .inventory
-                .get_inventory_to_size(2, format!("FLOOR: {}", map_data.current_floor)),
+                .get_inventory_to_size(2, format!("FLOOR: {}", player.current_floor)),
         ];
         let mut counter = 0;
         for tile in &map_data.map {
