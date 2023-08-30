@@ -163,7 +163,7 @@ impl CollisionEngine {
     pub(crate) fn update_player_vision(
         &mut self,
         map_data: &mut MapData,
-        player: &MutexGuard<Player>,
+        player: &Player,
         _new_player_position: Vec2,
     ) {
         map_data.set_player_vision(player, _new_player_position);

@@ -48,9 +48,9 @@ enum MovementType {
 #[tokio::main]
 async fn main() {
     // Initialize your game components
-    let map_manager = MapManager::new();
+    let mut map_manager = MapManager::new();
     let mut player = Player::new();
-    //let mut collision_engine = CollisionEngine::new();
+    let mut collision_engine = CollisionEngine::new();
     let chat = Chat::new();
     let _map_factory = MapFactory::new();
     let monster_manager = MonsterManager::new();
@@ -60,15 +60,12 @@ async fn main() {
     /*;
     let mut map_manager_guard = map_manager.lock().await;*/
     // Acquire the initial map outside of the loop
-    let map_manager = Arc::new(Mutex::new(map_manager));
-    let mut map_manager_clone = Arc::clone(&map_manager);
-    let mut map_manager_guard = map_manager_clone.lock().await;
 
-    let player = Arc::new(Mutex::new(player));
-    let player_clone = Arc::clone(&player);
-    let mut player_guard = player_clone.lock().await;
+    //let player = Arc::new(Mutex::new(player));
+    //let player_clone = Arc::clone(&player);
+    //let mut player_guard = player_clone.lock().await;
     //map_manager_guard.add_map_set_player_position(&mut player, "scene_ladder", Vec2::new(3, 2));
-    map_manager_guard.add_map_set_player_position(&mut player_guard, "map2", Vec2::new(6, 2));
+    map_manager.add_map_set_player_position(&mut player, "map2", Vec2::new(6, 2));
 
     //map_manager_guard.add_map_set_player_position(&mut player, "map1", Vec2::new(5, 2));
     //let new_map = map_factory.generate_map(&mut player, 10, 10, Vec2::new(2, 1), "seedphrase");
@@ -84,35 +81,31 @@ async fn main() {
             .get_map_mut(map_index)
             .expect("Invalid map index"),
     ));*/
-    let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
+    //let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
     let monster_manager = Arc::new(Mutex::new(monster_manager));
     let monster_manager_clone = Arc::clone(&monster_manager);
-    let collision_engine_clone = Arc::clone(&collision_engine);
+    //let collision_engine_clone = Arc::clone(&collision_engine);
 
+    map_manager.load_map("map2", MovementType::Normal);
 
-    map_manager_guard.load_map("map2", MovementType::Normal);
+    let map_index = map_manager.current_map_index;
 
-    let map_index = map_manager_guard.current_map_index;
-
-    let map_mut = map_manager_guard
+    let map_mut = map_manager
         .get_map_mut(map_index)
         .expect("Invalid map index");
 
     let mut monster_manager_guard = monster_manager_clone.lock().await;
-    let mut collision_engine_guard = collision_engine_clone.lock().await;
+    //let mut collision_engine_guard = collision_engine_clone.lock().await;
 
     let chat = Arc::new(Mutex::new(Chat::new()));
     let mut chat_clone = Arc::clone(&chat);
 
     monster_manager_guard.spawn_monsters(map_mut, monster_factory);
-    collision_engine_guard.update_player_vision(map_mut, &player_guard, Vec2::ZERO);
-    terminal.print_terminal(&player_guard, map_mut, &mut chat_clone).await;
+    collision_engine.update_player_vision(map_mut, &player, Vec2::ZERO);
+    terminal.print_terminal(&player, map_mut, &mut chat_clone).await;
     //let map = map_manager_guard.get_map(map_index);
 
-    let mut chat_guard = chat_clone.lock().await;
-    chat_guard.process_chat_message("lol");
-    drop(chat_guard);
-    drop(player_guard);
+    //drop(player_guard);
 
     /*tokio::spawn({
         async move {
@@ -120,65 +113,55 @@ async fn main() {
         }
     });*/
 
+    /*tokio::spawn({
+        async move {
+            update_monsters_async_test(chat).await;
+        }
+    });*/
+
+
     loop {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
-
-                    player_guard = player_clone.lock().await;
-
-                    match player_guard.key_event {
+                    match player.key_event {
                         KeyCode::Esc => {
                             break;
                         }
                         _ => {}
                     }
-                    player_guard.key_event = key_input.code;
+                    player.key_event = key_input.code;
 
-                    let mut collision_engine_guard = collision_engine.lock().await;
                     let mut chat_guard = chat.lock().await;
-                    let new_player_pos = collision_engine_guard.move_player(&player_guard, &mut chat_guard);
+                    let new_player_pos = collision_engine.move_player(&player, &mut chat_guard);
 
-                    let player_move_type = collision_engine_guard.process_move(
+                    let player_move_type = collision_engine.process_move(
                         map_mut,
-                        &mut player_guard,
+                        &mut player,
                         &mut chat_guard,
                         new_player_pos,
                     );
 
                     match player_move_type {
                         MovementType::Normal => {
-                            collision_engine_guard.update_player_position(
+                            collision_engine.update_player_position(
                                 map_mut,
-                                &mut player_guard,
+                                &mut player,
                                 new_player_pos,
                             );
                         }
-                        MovementType::LadderUp => {
-                            let mut map_manager_guard = map_manager.lock().await;
-                            let m_data = map_manager_guard
-                                .load_map("scene_ladder", MovementType::LadderDown)
-                                .cloned();
-                            if let Some(_map) = m_data {
-                                //map_mut = _map;
-                            }
-                            drop(map_manager_guard);
-                        }
-
                         _ => {}
                     }
 
-                    collision_engine_guard.update_player_vision(
+                    collision_engine.update_player_vision(
                         map_mut,
-                        &player_guard,
+                        &player,
                         new_player_pos,
                     );
 
-                    terminal.print_terminal(&player_guard, map_mut, &mut chat_clone).await;
-
-                    drop(collision_engine_guard);
+                    // drop any previous reference in prep of printing updates async
                     drop(chat_guard);
-                    drop(player_guard);
+                    terminal.print_terminal(&player, map_mut, &mut chat_clone).await;
                 }
             }
             _ => {}
