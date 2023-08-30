@@ -38,7 +38,7 @@ impl GameClient {
     pub(crate) async fn print_terminal(
         &self,
         player: &Player,
-        map_data: &MapData,
+        map_data_clone: &mut Arc<Mutex<&mut MapData>>,
         chat: &mut Arc<Mutex<Chat>>,
     ) {
         let mut stdout = stdout();
@@ -49,6 +49,7 @@ impl GameClient {
 
         let mut tmp_plr = player.clone();
         let mut tmp_chat = chat.lock().await;
+        let mut map_guard = map_data_clone.lock().await;
 
         let modules = [
             tmp_plr.status.get_status(),
@@ -56,8 +57,9 @@ impl GameClient {
                 .inventory
                 .get_inventory_to_size(2, format!("FLOOR: {}", player.current_floor)),
         ];
+
         let mut counter = 0;
-        for tile in &map_data.map {
+        for tile in &map_guard.map {
             let tile_line: String = tile
                 .iter()
                 .map(|space| {
@@ -84,5 +86,6 @@ impl GameClient {
         println!("{}", str_map);
         tmp_chat.print_chat();
         drop(tmp_chat);
+        drop(map_guard);
     }
 }
