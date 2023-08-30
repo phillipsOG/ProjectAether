@@ -20,16 +20,18 @@ type Map = Vec<Vec<Space>>;
 
 use crate::game_client::GameClient;
 use crate::space::Space;
-use crossterm::event;
-use crossterm::event::{Event, KeyCode, KeyEventKind};
+
+
 use futures::lock::Mutex;
 use std::sync::Arc;
 use std::time::Duration;
+use crossterm::event;
+use crossterm::event::{Event, KeyCode, KeyEventKind};
 use vec2::Vec2;
 
 use crate::chat::Chat;
 use crate::collision_engine::CollisionEngine;
-use crate::map_data::MapData;
+
 use crate::map_factory::MapFactory;
 use crate::map_manager::MapManager;
 use crate::monster_generator::MonsterFactory;
@@ -48,8 +50,8 @@ enum MovementType {
 #[tokio::main]
 async fn main() {
     // Initialize your game components
-    let mut player = Arc::new(Mutex::new(Player::new()));//Player::new();
-    let mut player_clone = Arc::clone(&player);
+    let player = Arc::new(Mutex::new(Player::new()));//Player::new();
+    let player_clone = Arc::clone(&player);
     let mut player_guard = player_clone.lock().await;
 
     let _map_factory = MapFactory::new();
@@ -64,7 +66,7 @@ async fn main() {
     //let player_clone = Arc::clone(&player);
     //let mut player_guard = player_clone.lock().await;
     //map_manager_guard.add_map_set_player_position(&mut player, "scene_ladder", Vec2::new(3, 2));
-    let mut map_manager = Arc::new(Mutex::new(MapManager::new()));//MapManager::new();
+    let map_manager = Arc::new(Mutex::new(MapManager::new()));//MapManager::new();
     let mut map_manager_clone = Arc::clone(&map_manager);
     let mut map_manager_guard = map_manager_clone.lock().await;
 
@@ -80,50 +82,50 @@ async fn main() {
 
     map_manager_guard.load_map("map2", MovementType::Normal);
 
-    let map_index = map_manager_guard.current_map_index;
-    let mut map_guard = Arc::new(Mutex::new(
+    //let _map_index = map_manager_guard.current_map_index;
+    /*let mut map_guard = Arc::new(Mutex::new(
         map_manager_guard
             .get_map_mut(map_index)
             .expect("Invalid map index")
-    ));
+    ));*/
 
     let monster_manager = Arc::new(Mutex::new(MonsterManager::new()));
     let monster_manager_clone = Arc::clone(&monster_manager);
     let mut monster_manager_guard = monster_manager_clone.lock().await;
 
-    let mut collision_engine = Arc::new(Mutex::new(CollisionEngine::new())); //CollisionEngine::new();
-    let mut collision_engine_clone = Arc::clone(&collision_engine);
+    let collision_engine = Arc::new(Mutex::new(CollisionEngine::new())); //CollisionEngine::new();
+    let collision_engine_clone = Arc::clone(&collision_engine);
     let mut collision_engine_guard = collision_engine_clone.lock().await;
 
-    //let mut collision_engine_guard = collision_engine_clone.lock().await;
-
-    let mut chat = Arc::new(Mutex::new(Chat::new()));
+    let chat = Arc::new(Mutex::new(Chat::new()));
     let mut chat_clone = Arc::clone(&chat);
+    monster_manager_guard.spawn_monsters(&mut map_manager_guard, monster_factory);
+    collision_engine_guard.update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO).await;
 
-    monster_manager_guard.spawn_monsters(&mut map_guard, monster_factory).await;
-    collision_engine_guard.update_player_vision(&mut map_guard, &player_guard, Vec2::ZERO).await;
     terminal
-        .print_terminal(&player_guard, &mut map_guard, &mut chat_clone)
+        .print_terminal(&player_guard, &mut map_manager_guard, &mut chat_clone)
         .await;
+    drop(map_manager_guard);
+
     //let map = map_manager_guard.get_map(map_index);
 
     //drop(player_guard);
 
-    /*tokio::spawn({
+    tokio::spawn({
         async move {
             let collision_engine_clone = Arc::clone(&collision_engine);
             let monster_manager_clone = Arc::clone(&monster_manager);
             let player_clone = Arc::clone(&player);
-            let mut map_guard = Arc::clone(&map_guard);
-            update_monsters_async(collision_engine_clone, map_guard, player_clone, monster_manager_clone).await;
+            let mut map_manager_guard = Arc::clone(&map_manager);
+            update_monsters_async(collision_engine_clone, &mut map_manager_guard, player_clone, monster_manager_clone).await;
         }
-    });*/
-    tokio::spawn({
+    });
+    /*tokio::spawn({
         async move {
             let chat_clone = Arc::clone(&chat);
             update_monsters_async_test(chat_clone).await;
         }
-    });
+    });*/
 
     loop {
         match event::read().unwrap() {
@@ -136,30 +138,31 @@ async fn main() {
                         _ => {}
                     }
                     player_guard.key_event = key_input.code;
-                    //let mut collision_engine_guard = collision_engine_clone.lock().await;
+
+                    let mut map_manager_guard = map_manager_clone.lock().await;
+
                     let new_player_pos = collision_engine_guard
-                        .move_player(&mut player_guard, &mut chat_clone)
-                        .await;
+                        .move_player(&mut player_guard, &mut chat_clone).await;
 
                     let player_move_type = collision_engine_guard
-                        .process_move(&mut map_guard, &mut player_guard, &mut chat_clone, new_player_pos)
+                        .process_move(&mut map_manager_guard, &mut player_guard, &mut chat_clone, new_player_pos)
                         .await;
 
                     match player_move_type {
                         MovementType::Normal => {
                             collision_engine_guard.update_player_position(
-                                &mut map_guard,
+                                &mut map_manager_guard,
                                 &mut player_guard,
                                 new_player_pos,
-                            ).await;
+                            );
                         }
                         _ => {}
                     }
-                    collision_engine_guard.update_player_vision(&mut map_guard, &mut player_guard, new_player_pos).await;
+                    collision_engine_guard.update_player_vision(&mut map_manager_guard, &mut player_guard, new_player_pos).await;
 
                     // drop any previous reference in prep of printing updates async
                     terminal
-                        .print_terminal(&player_guard, &mut map_guard, &mut chat_clone)
+                        .print_terminal(&player_guard, &mut map_manager_guard, &mut chat_clone)
                         .await;
                 }
             }
@@ -168,7 +171,7 @@ async fn main() {
     }
 }
 
-async fn update_monsters_async_test(chat: Arc<Mutex<Chat>>) {
+/*async fn update_monsters_async_test(chat: Arc<Mutex<Chat>>) {
     loop {
         let mut chat_guard = chat.lock().await;
         chat_guard.process_chat_message("test");
@@ -177,12 +180,12 @@ async fn update_monsters_async_test(chat: Arc<Mutex<Chat>>) {
         // sleep for 1 second before the next update
         async_std::task::sleep(Duration::from_secs(1)).await;
     }
-}
+}*/
 
 // asynchronous function to update monsters
-/*async fn update_monsters_async(
+async fn update_monsters_async(
     collision_engine: Arc<Mutex<CollisionEngine>>,
-    map: Arc<Mutex<&mut MapData>>,
+    mut map_manager_clone: &mut Arc<Mutex<MapManager>>,
     player: Arc<Mutex<Player>>,
     monster_manager: Arc<Mutex<MonsterManager>>,
 ) {
@@ -190,28 +193,32 @@ async fn update_monsters_async_test(chat: Arc<Mutex<Chat>>) {
         let mut collision_engine_guard = collision_engine.lock().await;
         let mut monster_manager_guard = monster_manager.lock().await;
         let mut player_guard = player.lock().await;
-        let mut map_guard = map.lock().await;
+        let mut map_manager_guard = map_manager_clone.lock().await;
 
         let mut new_monsters_pos =
-            collision_engine_guard.move_monsters(&mut player_guard, &mut monster_manager_guard)
-                .await;
+            collision_engine_guard.move_monsters(
+                player_guard,
+                &mut monster_manager_guard
+            );
 
         let processed_monsters_positions = collision_engine_guard.process_monsters_move(
             &mut new_monsters_pos,
-            &mut map_guard,
+            &mut map_manager_guard,
             &mut monster_manager_guard,
-        );
+        ).await;
 
         collision_engine_guard.update_monsters_position(
-            &mut map_guard,
+            &mut map_manager_guard,
             &mut monster_manager_guard,
             processed_monsters_positions,
-        );
+        ).await;
 
         drop(collision_engine_guard);
         drop(monster_manager_guard);
+        drop(map_manager_guard);
+        //drop(player_guard);
 
         // sleep for 1 second before the next update
         async_std::task::sleep(Duration::from_secs(1)).await;
     }
-}*/
+}

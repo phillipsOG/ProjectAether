@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use futures::lock::Mutex;
-use crate::map_data::MapData;
+use futures::lock::{Mutex, MutexGuard};
+
 
 use crate::monster::Monster;
 use crate::monster_generator::MonsterFactory;
@@ -9,6 +9,7 @@ use crate::tile_set::DEFAULT_TILE_SET;
 use crate::Vec2;
 
 use rand::Rng;
+use crate::map_manager::MapManager;
 
 use crate::space::Space;
 
@@ -24,22 +25,22 @@ impl MonsterManager {
         MonsterManager { monsters: vec![] }
     }
 
-    pub(crate) async fn spawn_monsters(
+    pub(crate) fn spawn_monsters(
         &mut self,
-        map_data_clone: &mut Arc<Mutex<&mut MapData>>,
+        map_manager_clone: &mut MutexGuard<MapManager>,
         mut monster_factory: MonsterFactory,
     ) {
-        let mut map_guard = map_data_clone.lock().await;
-
-        let map_height = map_guard.map_height;
-        let map_width = map_guard.map_width;
+        //let mut map_manager_guard = map_manager_clone.lock().await;
+        let map_data = map_manager_clone.get_map_mut(0).expect("map data");
+        let map_height = map_data.map_height;
+        let map_width = map_data.map_width;
 
         let mut rng = rand::thread_rng();
         let mut spawn_one = false;
 
         for pos_y in 0..map_height {
             for pos_x in 0..map_width {
-                let current_tile = map_guard.map[pos_y][pos_x];
+                let current_tile = map_data.map[pos_y][pos_x];
 
                 if !current_tile.is_solid && current_tile.tile == DEFAULT_TILE_SET.floor && /*spawn_one*/rng.gen_range(0..10) > 8
                 {
@@ -48,7 +49,7 @@ impl MonsterManager {
                         .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32);
                     new_monster.tile_below_monster = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
-                    map_guard.map[pos_y][pos_x] = Space::new(new_monster.tile);
+                    map_data.map[pos_y][pos_x] = Space::new(new_monster.tile);
                     self.monsters.push(new_monster);
 
                     spawn_one = true;
@@ -56,7 +57,7 @@ impl MonsterManager {
                 }
             }
         }
-        drop(map_guard);
+        //drop(map_manager_guard);
     }
 
     pub(crate) fn get_monsters(self) -> Monsters {
