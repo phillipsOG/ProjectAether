@@ -5,13 +5,12 @@ use crate::map_data::MapData;
 
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::{MovementType};
+use crate::MovementType;
 use crossterm::event::KeyCode;
 
-
+use futures::lock::{Mutex, MutexGuard};
 use std::io;
 use std::sync::Arc;
-use futures::lock::{Mutex, MutexGuard};
 
 use crate::monster_manager::MonsterManager;
 use crate::space::Space;
@@ -90,56 +89,53 @@ impl CollisionEngine {
         new_player_pos: Vec2,
     ) -> MovementType {
         /*if let Some(map_data) = map_data_option {*/
-            let tmp_tile = map_data.map[new_player_pos.y][new_player_pos.x].tile;
-            let is_tile_solid = map_data.map[new_player_pos.y][new_player_pos.x].is_solid;
-            let is_tile_traversable = map_data.map[new_player_pos.y][new_player_pos.x].is_traversable;
-            let tile_set = map_data.tile_set.clone();
-            let mut chat_guard = chat.lock().await;
-            let res = self.check_for_multi_tile(map_data.clone(), tmp_tile, new_player_pos);
+        let tmp_tile = map_data.map[new_player_pos.y][new_player_pos.x].tile;
+        let is_tile_solid = map_data.map[new_player_pos.y][new_player_pos.x].is_solid;
+        let is_tile_traversable = map_data.map[new_player_pos.y][new_player_pos.x].is_traversable;
+        let tile_set = map_data.tile_set.clone();
+        let mut chat_guard = chat.lock().await;
+        let res = self.check_for_multi_tile(map_data.clone(), tmp_tile, new_player_pos);
 
-            if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
-                if player.key_event == KeyCode::Up {
-                    return MovementType::LadderUp;
-                } else if player.key_event == KeyCode::Down {
-                    return MovementType::LadderDown;
-                }
-            } else if res == tile_set.ladder && tile_set.name == LADDER_TILE_SET.name
-            {
-                if player.key_event == KeyCode::Up && player.player_position.y == 1 {
-                    return MovementType::LadderEnter;
-                } else if player.key_event == KeyCode::Down && player.player_position.y == 2 {
-                    return MovementType::LadderExit;
-                }
+        if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
+            if player.key_event == KeyCode::Up {
+                return MovementType::LadderUp;
+            } else if player.key_event == KeyCode::Down {
+                return MovementType::LadderDown;
             }
+        } else if res == tile_set.ladder && tile_set.name == LADDER_TILE_SET.name {
+            if player.key_event == KeyCode::Up && player.player_position.y == 1 {
+                return MovementType::LadderEnter;
+            } else if player.key_event == KeyCode::Down && player.player_position.y == 2 {
+                return MovementType::LadderExit;
+            }
+        }
 
-            if tmp_tile == tile_set.key {
-                chat_guard.process_chat_message("You pick up a rusty key.");
-                player.inventory.add_key(1);
-                //map_data.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
-            } else if tmp_tile == tile_set.closed_door_side
-                || tmp_tile == tile_set.closed_door_top
-            {
-                if player.inventory.keys >= 1 {
-                    player.inventory.remove_key(1);
-                    chat_guard.process_chat_message("You unlock the door using a rusty key.");
-                    /*map_data.map[new_player_pos.y][new_player_pos.x] =
-                        Space::new(DEFAULT_TILE_SET.open_door);*/
-                } else {
-                    chat_guard.process_chat_message("You need a rusty key to open this door.");
-                };
+        if tmp_tile == tile_set.key {
+            chat_guard.process_chat_message("You pick up a rusty key.");
+            player.inventory.add_key(1);
+            //map_data.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
+        } else if tmp_tile == tile_set.closed_door_side || tmp_tile == tile_set.closed_door_top {
+            if player.inventory.keys >= 1 {
+                player.inventory.remove_key(1);
+                chat_guard.process_chat_message("You unlock the door using a rusty key.");
+                /*map_data.map[new_player_pos.y][new_player_pos.x] =
+                Space::new(DEFAULT_TILE_SET.open_door);*/
+            } else {
+                chat_guard.process_chat_message("You need a rusty key to open this door.");
+            };
+        }
+        drop(chat_guard);
+        if tile_set.name == DEFAULT_TILE_SET.name {
+            if !is_tile_traversable {
+                return MovementType::Unable;
             }
-            drop(chat_guard);
-            if tile_set.name == DEFAULT_TILE_SET.name {
-                if !is_tile_traversable {
-                    return MovementType::Unable;
-                }
-                if !is_tile_solid {
-                    return MovementType::Normal;
-                }
-            } else if tile_set.name == LADDER_TILE_SET.name {
-                if is_tile_traversable {
-                    return MovementType::Normal;
-                }
+            if !is_tile_solid {
+                return MovementType::Normal;
+            }
+        } else if tile_set.name == LADDER_TILE_SET.name {
+            if is_tile_traversable {
+                return MovementType::Normal;
+            }
             /*}*/
         }
         return MovementType::Unable;
@@ -153,8 +149,7 @@ impl CollisionEngine {
     ) {
         let tmp_tile = map_data.map[new_player_position.y][new_player_position.x].tile;
         let pos = player.player_position.clone();
-        map_data.map[pos.y][pos.x] =
-            Space::new(self.update_player_previous_tile(player, tmp_tile));
+        map_data.map[pos.y][pos.x] = Space::new(self.update_player_previous_tile(player, tmp_tile));
         player.player_position = new_player_position;
         player.tile_below_player = tmp_tile;
         map_data.set_player_position(new_player_position);

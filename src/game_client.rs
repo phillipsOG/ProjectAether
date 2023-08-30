@@ -7,9 +7,9 @@ use crate::tile_set::DEFAULT_TILE_SET;
 
 use crossterm::{terminal, QueueableCommand};
 
+use futures::lock::Mutex;
 use std::io::stdout;
 use std::sync::Arc;
-use futures::lock::Mutex;
 
 #[derive(Clone)]
 pub struct GameClient {
