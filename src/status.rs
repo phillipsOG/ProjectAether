@@ -15,11 +15,7 @@ impl Status {
     }
 
     pub(crate) fn new_monster(health: i32, str: i32, def: i32) -> Self {
-        Status {
-            health,
-            str,
-            def,
-        }
+        Status { health, str, def }
     }
 
     fn print_status(&mut self) {

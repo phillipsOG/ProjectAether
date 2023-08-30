@@ -1,22 +1,12 @@
+use crate::space::Space;
 use crate::tile_set::{TileSet, DEFAULT_TILE_SET, MONSTER_TILE_SET};
+use crate::vec2::Vec2;
 use crate::Map;
 use crossterm::{terminal, QueueableCommand};
+use std::collections::HashMap;
 use std::io::stdout;
 
-#[derive(Clone, Copy)]
-pub struct Vec2 {
-    pub x: usize,
-    pub y: usize,
-}
-
-impl Vec2 {
-    pub const ZERO: Self = Self::new(0, 0);
-
-    pub const fn new(x: usize, y: usize) -> Self {
-        Self { x, y }
-    }
-}
-
+#[derive(Clone)]
 pub struct MapData {
     pub map: Map,
     pub str_map: String,
@@ -29,6 +19,8 @@ pub struct MapData {
     pub map_width: usize,
     pub map_height: usize,
     pub fog_of_war: bool,
+    pub monster_positions: HashMap<i32, Vec2>,
+    pub tile_below_monsters: HashMap<i32, char>,
 }
 
 impl MapData {
@@ -45,25 +37,15 @@ impl MapData {
             map_width: 0,
             map_height: 0,
             fog_of_war: true,
-        }
-    }
-
-    pub(crate) fn update_player_position(&mut self) {
-        for (col_idx, col) in self.map.iter().enumerate() {
-            for (row_idx, c) in col.iter().enumerate() {
-                if c.tile == '@' {
-                    self.player_position = Vec2::new(row_idx, col_idx);
-                    break;
-                }
-            }
+            monster_positions: Default::default(),
+            tile_below_monsters: Default::default(),
         }
     }
 
     pub(crate) fn set_player_position(&mut self, pos: Vec2) {
         let tile_set = &self.tile_set;
-
+        self.map[pos.y][pos.x] = Space::new(tile_set.player);
         self.player_position = pos;
-        self.map[pos.y][pos.x].tile = tile_set.player;
         self.set_player_vision(pos);
     }
 
@@ -113,12 +95,17 @@ impl MapData {
             }
 
             let tile = &mut self.map[y][x];
-            tile.is_visible = true;//if tile.tile == MONSTER_TILE_SET.snake { false } else { true};
+            tile.is_visible = true; //if tile.tile == MONSTER_TILE_SET.snake { false } else { true};
 
             if tile.is_solid && tile.tile != DEFAULT_TILE_SET.open_door {
                 break;
             }
         }
+    }
+
+    pub(crate) fn set_monster_position(&mut self, monster_id: i32, new_pos: Vec2) {
+        self.map[new_pos.y][new_pos.x] = Space::new(MONSTER_TILE_SET.snake);
+        self.monster_positions.insert(monster_id, new_pos);
     }
 
     pub(crate) fn set_map_tile_set(&mut self, tile_set: TileSet) {
@@ -128,6 +115,16 @@ impl MapData {
     pub(crate) fn update_tile_below_player(&mut self, tile: char) {
         self.tile_below_player = tile;
     }
+
+    pub(crate) fn update_tile_below_monster(&mut self, monster_id: i32, tile: char) {
+        self.tile_below_monsters.insert(monster_id, tile);
+    }
+
+    pub(crate) fn get_tile_below_monster(&mut self, monster_id: i32) -> Option<&mut char> {
+        self.tile_below_monsters.get_mut(&monster_id)
+    }
+
+    pub(crate) fn get_monster() {}
 
     pub(crate) fn print_map(&self) {
         let mut stdout = stdout();

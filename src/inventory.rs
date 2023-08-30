@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Inventory {
     pub(crate) keys: i32,
 }

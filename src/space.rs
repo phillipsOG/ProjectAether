@@ -1,4 +1,4 @@
-use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
 use std::fmt;
 use std::ops::Deref;
 
@@ -7,6 +7,7 @@ pub struct Space {
     pub tile: char,
     pub is_visible: bool,
     pub is_solid: bool,
+    pub is_traversable: bool,
 }
 
 impl Space {
@@ -18,6 +19,10 @@ impl Space {
                 || tile == DEFAULT_TILE_SET.closed_door_side
                 || tile == DEFAULT_TILE_SET.closed_door_top
                 || tile == MONSTER_TILE_SET.snake
+                || tile == DEFAULT_TILE_SET.player,
+            is_traversable: tile == DEFAULT_TILE_SET.floor
+                || tile == DEFAULT_TILE_SET.open_door
+                || tile == LADDER_TILE_SET.floor,
         }
     }
 
@@ -29,6 +34,10 @@ impl Space {
                 || tile == DEFAULT_TILE_SET.closed_door_side
                 || tile == DEFAULT_TILE_SET.closed_door_top
                 || tile == MONSTER_TILE_SET.snake
+                || tile == DEFAULT_TILE_SET.player,
+            is_traversable: tile == DEFAULT_TILE_SET.floor
+                || tile == DEFAULT_TILE_SET.open_door
+                || tile == LADDER_TILE_SET.floor,
         }
     }
 }

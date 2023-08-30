@@ -5,40 +5,38 @@ mod inventory;
 mod map_data;
 mod map_factory;
 mod map_manager;
+mod monster;
+mod monster_generator;
+mod monster_manager;
 mod player;
 mod player_movement_data;
 mod space;
 mod status;
+mod terrain_data;
 mod tile_set;
-mod monster_manager;
-mod monster_generator;
-mod monster;
-
-use crate::game_client::GameClient;
-use crate::map_data::Vec2;
-use crate::space::Space;
-use crossterm::event;
-use crossterm::event::{Event, KeyEventKind};
-
-pub struct TerrainData {
-    map: Map,
-    height_increase: usize,
-    width_increase: usize,
-}
-
-impl TerrainData {
-    pub(crate) fn new() -> Self {
-        TerrainData {
-            map: vec![vec![]],
-            height_increase: 0,
-            width_increase: 0,
-        }
-    }
-}
+mod vec2;
 
 type Map = Vec<Vec<Space>>;
 
-enum PlayerMove {
+use crate::game_client::GameClient;
+use crate::space::Space;
+use crossterm::event;
+use crossterm::event::{Event, KeyEventKind};
+use futures::lock::{Mutex, MutexGuard};
+use std::sync::Arc;
+use std::time::Duration;
+use vec2::Vec2;
+
+use crate::chat::Chat;
+use crate::collision_engine::CollisionEngine;
+use crate::map_data::MapData;
+use crate::map_factory::MapFactory;
+use crate::map_manager::MapManager;
+use crate::monster_generator::MonsterFactory;
+use crate::monster_manager::MonsterManager;
+use crate::player::Player;
+
+enum MovementType {
     Unable,
     Normal,
     LadderUp,
@@ -47,114 +45,169 @@ enum PlayerMove {
     LadderExit,
 }
 
-fn main() {
-    let mut game_client = GameClient::new();
+#[tokio::main]
+async fn main() {
+    // Initialize your game components
+    let mut map_manager = MapManager::new();
+    let mut player = Player::new();
+    //let mut collision_engine = CollisionEngine::new();
+    let mut chat = Chat::new();
+    let mut map_factory = MapFactory::new();
+    let mut monster_manager = MonsterManager::new();
+    let mut monster_factory = MonsterFactory::new();
+    let mut terminal = GameClient::new();
 
-    game_client
-        .map_manager
-        .add_map_set_player_position("scene_ladder", Vec2::new(3, 2));
-    game_client
-        .map_manager
-        .add_map_set_player_position("map2", Vec2::new(6, 2));
-    game_client
-        .map_manager
-        .add_map_set_player_position("map1", Vec2::new(5, 2));
-    let new_map = game_client.map_factory.generate_map(10, 10, Vec2::new(2, 1), "seedphrase");
-    game_client
-        .map_manager
-        .add_generated_map(new_map);
-    game_client
-        .map_manager
-        .load_map("map2", PlayerMove::Normal);
+    /*;
+    let mut map_manager_guard = map_manager.lock().await;*/
+    // Acquire the initial map outside of the loop
+    let map_manager = Arc::new(Mutex::new(map_manager));
+    let mut map_manager_guard = map_manager.lock().await;
 
-    // must run spawn monsters after loading map not before
-    game_client
-        .monster_manager
-        .spawn_monsters(
-            &mut game_client.map_manager,
-            &mut game_client.monster_factory
-        );
 
-    // update player vision so we can see newly spawned in enemies
-    game_client
-        .collision_engine
-        .update_player_vision(&mut game_client.map_manager, Vec2::ZERO);
 
-    game_client.print_terminal();
+    map_manager_guard.add_map_set_player_position("scene_ladder", Vec2::new(3, 2));
+    map_manager_guard.add_map_set_player_position("map2", Vec2::new(6, 2));
+    map_manager_guard.add_map_set_player_position("map1", Vec2::new(5, 2));
+    let new_map = map_factory.generate_map(10, 10, Vec2::new(2, 1), "seedphrase");
+    map_manager_guard.add_generated_map(new_map);
+    map_manager_guard.load_map("map2", MovementType::Normal);
+
+    let map_index = map_manager_guard.current_map_index;
+    let mut map_mut = map_manager_guard
+        .get_map_mut(map_index)
+        .expect("Invalid map index");
+
+    let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
+    /*let map_mut = Arc::new(Mutex::new(
+        map_manager.get_map_mut(map_manager.current_map_index),
+    ));*/
+
+    /*let map_index = map_manager_guard.current_map_index;
+    let map_mut = Arc::new(Mutex::new(
+        map_manager_guard
+            .get_map_mut(map_index)
+            .expect("Invalid map index"),
+    ));*/
+
+    let monster_manager = Arc::new(Mutex::new(monster_manager));
+    let mut monster_manager_guard = monster_manager.lock().await;
+    let mut collision_engine_guard = collision_engine.lock().await;
+
+    monster_manager_guard.spawn_monsters(&mut map_mut, &mut monster_factory);
+    collision_engine_guard.update_player_vision(&mut map_mut, Vec2::ZERO);
+
+    terminal.print_terminal(&mut player, &mut map_mut, &mut chat);
+
+    drop(monster_manager_guard);
+    drop(collision_engine_guard);
+
+    /*tokio::spawn({
+        let collision_engine = Arc::clone(&collision_engine);
+        let map_mut = Arc::clone(&map_mut);
+        let monster_manager = Arc::clone(&monster_manager);
+
+        async move {
+            let mut collision_engine = collision_engine.lock().await;
+            let mut map_mut = map_mut.lock().await;
+            let mut monster_manager = monster_manager.lock().await;
+            update_monsters_async(&mut collision_engine, &mut map_mut, &mut monster_manager).await
+        }
+    });*/
 
     loop {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
-                    game_client.player.key_event = key_input.code;
+                    player.key_event = key_input.code;
 
-                    let new_player_pos = game_client.collision_engine.move_player(
-                        &mut game_client.map_manager,
-                        &mut game_client.player,
-                        &mut game_client.chat,
+                    let mut collision_engine_guard = collision_engine.lock().await;
+
+                    let new_player_pos = collision_engine_guard.move_player(
+                        &mut map_mut,
+                        &mut player,
+                        &mut chat,
                     );
-                    let player_move_type = game_client.collision_engine.process_move(
-                        &mut game_client.player,
-                        &mut game_client.map_manager,
-                        &mut game_client.chat,
+
+                    let player_move_type = collision_engine_guard.process_move(
+                        &mut map_mut,
+                        &mut player,
+                        &mut chat,
                         new_player_pos,
                     );
 
                     match player_move_type {
-                        PlayerMove::Normal => {
-                            game_client.collision_engine.update_player_position(
-                                &mut game_client.map_manager,
-                                new_player_pos,
-                            );
+                        MovementType::Normal => {
+                            collision_engine_guard
+                                .update_player_position(&mut map_mut, new_player_pos);
                         }
-                        PlayerMove::LadderUp => {
-                            game_client
-                                .map_manager
-                                .load_map("scene_ladder", PlayerMove::LadderUp);
+                        MovementType::LadderUp => {
+
+                            let mut map_manager_guard = map_manager.lock().await;
+                            let m_data = map_manager_guard.load_map("scene_ladder", MovementType::LadderDown).cloned();
+                            if let Some(map) = m_data {
+                                *map_mut = map;
+                            }
+                            drop(map_manager_guard);
                         }
-                        PlayerMove::LadderDown => {
-                            game_client
-                                .map_manager
-                                .load_map("scene_ladder", PlayerMove::LadderDown);
+                        /* MovementType::LadderDown => {
+                            map_mut_guard = map_manager_guard
+                                .load_map("scene_ladder", MovementType::LadderDown);
                         }
-                        PlayerMove::LadderExit => {
-                            game_client.map_manager.load_map("map2", PlayerMove::Normal);
+                        MovementType::LadderExit => {
+                            map_mut_guard = map_manager_guard
+                                .load_map("map2", MovementType::Normal);
                         }
-                        PlayerMove::LadderEnter => {
-                            game_client.map_manager.load_map("map1", PlayerMove::Normal);
-                        }
+                        MovementType::LadderEnter => {
+                            map_mut_guard = map_manager_guard
+                                .load_map("map1", MovementType::Normal);
+                        }*/
                         _ => {}
                     }
 
-                    let enemy_move = game_client.collision_engine.process_enemy_move(
-                      &mut game_client.player,
-                        &mut game_client.map_manager,
-                        &mut game_client.chat,
-                        &mut game_client.monster_manager
-                    );
+                    let terrain_data =
+                        map_factory.generate_terrain(&mut map_mut, new_player_pos, &mut chat);
 
-                    let terrain_data = game_client.map_factory.generate_terrain(
-                        &mut game_client.map_manager,
-                        new_player_pos,
-                        &mut game_client.chat,
-                    );
                     if let Some(terrain_data) = terrain_data {
-                        game_client
-                            .map_manager
-                            .update_current_map(terrain_data, &mut game_client.chat);
+                        map_mut.map = terrain_data.map;
+                        map_mut.map_height += terrain_data.height_increase;
+                        map_mut.map_width += terrain_data.width_increase;
                     }
-                    game_client
-                        .collision_engine
-                        .update_player_vision(&mut game_client.map_manager, new_player_pos);
 
-                    game_client.print_terminal(); /*.print_terminal_with_map(&mut updated_map);*/
+                    collision_engine_guard.update_player_vision(&mut map_mut, new_player_pos);
 
-                    if game_client.player.key_state {
+                    terminal.print_terminal(&mut player, &mut map_mut, &mut chat);
+
+                    drop(collision_engine_guard);
+
+                    if player.key_state {
                         break;
                     }
                 }
             }
             _ => {}
         }
+    }
+}
+
+// asynchronous function to update monsters
+async fn update_monsters_async<'a>(
+    collision_engine: &mut CollisionEngine,
+    map: &'a mut MutexGuard<'a, &mut MapData>,
+    monster_manager: &mut MonsterManager,
+) {
+    loop {
+        let mut new_monsters_pos = collision_engine.move_monsters(map, monster_manager);
+
+        let processed_monsters_positions =
+            collision_engine.process_monsters_move(&mut new_monsters_pos, map, monster_manager);
+
+        collision_engine.update_monsters_position(
+            map,
+            monster_manager,
+            processed_monsters_positions,
+        );
+
+        // sleep for 1 second before the next update
+        async_std::task::sleep(Duration::from_secs(1)).await;
     }
 }

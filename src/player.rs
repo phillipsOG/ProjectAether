@@ -3,6 +3,7 @@ use crossterm::event::KeyCode;
 use crate::inventory::Inventory;
 use crate::status::Status;
 
+#[derive(Clone)]
 pub struct Player {
     pub key_event: KeyCode,
     pub previous_key_event: KeyCode,
