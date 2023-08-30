@@ -32,7 +32,7 @@ impl MapData {
         self.map[pos.y][pos.x] = Space::new(tile_set.player);
     }
 
-    pub(crate) fn set_player_vision(&mut self, player: &mut Player, _player_pos: Vec2) {
+    pub(crate) fn set_player_vision(&mut self, player: &Player, _player_pos: Vec2) {
         for y in 0..self.map_height {
             for x in 0..self.map_width {
                 /*println!(
@@ -60,7 +60,7 @@ impl MapData {
         self.calculate_vision_at_position(player, -1, -1);
     }
 
-    fn calculate_vision_at_position(&mut self, player: &mut Player, pos_x: i32, pos_y: i32) {
+    fn calculate_vision_at_position(&mut self, player: &Player, pos_x: i32, pos_y: i32) {
         let vision_radius: isize = 2; //set to 2
 
         for i in 1..vision_radius + 1 {

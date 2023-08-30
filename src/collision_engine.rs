@@ -8,8 +8,10 @@ use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
 use crate::{MovementType};
 use crossterm::event::KeyCode;
 
-use futures::lock::MutexGuard;
+
 use std::io;
+use std::sync::Arc;
+use futures::lock::{Mutex, MutexGuard};
 
 use crate::monster_manager::MonsterManager;
 use crate::space::Space;
@@ -25,7 +27,7 @@ impl CollisionEngine {
 
     pub(crate) fn move_player(
         &mut self,
-        player: &mut Player,
+        player: &Player,
         chat: &mut Chat,
     ) -> Vec2 {
         let mut current_position = Vec2::ZERO;
@@ -57,26 +59,20 @@ impl CollisionEngine {
                 if let Err(_) = io::stdin().read_line(&mut input) {
                     chat.process_chat_message("Error reading command.");
                 }
-
                 // @TODO turn into actual command system
                 if input.trim() == "nofog" {
                     if player.fog_of_war {
                         chat.process_chat_message("Removed fog of war.");
-                        player.fog_of_war = false;
+                        //player.fog_of_war = false;
                     } else {
                         chat.process_chat_message("Added back fog of war.");
-                        player.fog_of_war = true;
+                        //player.fog_of_war = true;
                     }
                 } else {
                     chat.process_chat_message("Invalid command.");
                 }
             }
-            KeyCode::Esc => {
-                player.previous_key_event = KeyCode::Esc;
-                player.key_state = true;
-                chat.clear_chat();
-                chat.process_chat_message("You exit the game.");
-            }
+
             _ => {}
         }
         current_position = player.player_position;
@@ -87,7 +83,7 @@ impl CollisionEngine {
 
     pub(crate) fn process_move(
         &mut self,
-        map_data: &mut MapData,
+        map_data: &MapData,
         player: &mut Player,
         chat: &mut Chat,
         new_player_pos: Vec2,
@@ -118,15 +114,15 @@ impl CollisionEngine {
             if tmp_tile == tile_set.key {
                 chat.process_chat_message("You pick up a rusty key.");
                 player.inventory.add_key(1);
-                map_data.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
+                //map_data.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
             } else if tmp_tile == tile_set.closed_door_side
                 || tmp_tile == tile_set.closed_door_top
             {
                 if player.inventory.keys >= 1 {
                     player.inventory.remove_key(1);
                     chat.process_chat_message("You unlock the door using a rusty key.");
-                    map_data.map[new_player_pos.y][new_player_pos.x] =
-                        Space::new(DEFAULT_TILE_SET.open_door);
+                    /*map_data.map[new_player_pos.y][new_player_pos.x] =
+                        Space::new(DEFAULT_TILE_SET.open_door);*/
                 } else {
                     chat.process_chat_message("You need a rusty key to open this door.");
                 };
@@ -143,8 +139,8 @@ impl CollisionEngine {
                 if is_tile_traversable {
                     return MovementType::Normal;
                 }
-            }
-        /*}*/
+            /*}*/
+        }
         return MovementType::Unable;
     }
 
@@ -167,7 +163,7 @@ impl CollisionEngine {
     pub(crate) fn update_player_vision(
         &mut self,
         map_data: &mut MapData,
-        player: &mut Player,
+        player: &MutexGuard<Player>,
         _new_player_position: Vec2,
     ) {
         map_data.set_player_vision(player, _new_player_position);
@@ -208,7 +204,7 @@ impl CollisionEngine {
 
     pub(crate) fn move_monsters(
         &mut self,
-        player: &mut Player,
+        player: &Player,
         monster_manager: &mut MonsterManager,
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
@@ -239,8 +235,8 @@ impl CollisionEngine {
     pub(crate) fn process_monsters_move(
         &mut self,
         new_monsters_position: &mut HashMap<i32, Vec2>,
-        map_data: &mut MutexGuard<&mut MapData>,
-        monster_manager: &mut MonsterManager,
+        map_data: &MapData,
+        monster_manager: &mut MutexGuard<MonsterManager>,
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
         let mut processed_monsters_move = HashMap::<i32, Vec2>::new();
@@ -272,8 +268,8 @@ impl CollisionEngine {
 
     pub(crate) fn update_monsters_position(
         &mut self,
-        map_data: &mut MutexGuard<&mut MapData>,
-        monster_manager: &mut MonsterManager,
+        map_data: &mut MapData,
+        monster_manager: &mut MutexGuard<MonsterManager>,
         processed_monsters_positions: HashMap<i32, Vec2>,
     ) {
         let monsters = monster_manager.get_monsters_mut();

@@ -7,7 +7,7 @@ use crate::tile_set::DEFAULT_TILE_SET;
 use crate::Vec2;
 
 use rand::Rng;
-use crate::chat::Chat;
+
 use crate::space::Space;
 
 type Monsters = Vec<Monster>;
@@ -24,9 +24,8 @@ impl MonsterManager {
 
     pub(crate) fn spawn_monsters(
         &mut self,
-        chat: &mut Chat,
         map_data: &mut MapData,
-        monster_factory: &mut MonsterFactory,
+        mut monster_factory: MonsterFactory,
     ) {
         let map_height = map_data.map_height;
         let map_width = map_data.map_width;
@@ -36,7 +35,7 @@ impl MonsterManager {
 
         for pos_y in 0..map_height {
             for pos_x in 0..map_width {
-                let mut current_tile = map_data.map[pos_y][pos_x];
+                let current_tile = map_data.map[pos_y][pos_x];
 
                 if !current_tile.is_solid && current_tile.tile == DEFAULT_TILE_SET.floor && /*spawn_one*/rng.gen_range(0..10) > 8
                 {

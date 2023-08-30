@@ -8,6 +8,8 @@ use crate::tile_set::DEFAULT_TILE_SET;
 use crossterm::{terminal, QueueableCommand};
 
 use std::io::stdout;
+use std::sync::Arc;
+use futures::lock::Mutex;
 
 #[derive(Clone)]
 pub struct GameClient {
@@ -33,11 +35,11 @@ impl GameClient {
         }
     }
 
-    pub(crate) fn print_terminal(
+    pub(crate) async fn print_terminal(
         &self,
-        player: &mut Player,
-        map_data: &mut MapData,
-        chat: &mut Chat,
+        player: &Player,
+        map_data: &MapData,
+        chat: &mut Arc<Mutex<Chat>>,
     ) {
         let mut stdout = stdout();
         stdout
@@ -45,9 +47,12 @@ impl GameClient {
             .unwrap();
         let mut str_map = String::new();
 
+        let mut tmp_plr = player.clone();
+        let mut tmp_chat = chat.lock().await;
+
         let modules = [
-            player.status.get_status(),
-            player
+            tmp_plr.status.get_status(),
+            tmp_plr
                 .inventory
                 .get_inventory_to_size(2, format!("FLOOR: {}", player.current_floor)),
         ];
@@ -77,6 +82,7 @@ impl GameClient {
         }
 
         println!("{}", str_map);
-        chat.print_chat();
+        tmp_chat.print_chat();
+        drop(tmp_chat);
     }
 }
