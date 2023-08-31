@@ -1,5 +1,4 @@
-use futures::lock::{MutexGuard};
-
+use futures::lock::MutexGuard;
 
 use crate::monster::Monster;
 use crate::monster_generator::MonsterFactory;
