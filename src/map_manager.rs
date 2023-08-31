@@ -127,6 +127,8 @@ impl MapManager {
             self.current_map_index = 2;
         } else if map_name == "test" {
             self.current_map_index = 3;
+        } else if map_name == "test_map" {
+            self.current_map_index = 0;
         }
 
         self.get_map_mut(self.current_map_index)

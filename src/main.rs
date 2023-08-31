@@ -72,15 +72,13 @@ async fn main() {
     let map_manager_clone = Arc::clone(&map_manager);
     let mut map_manager_guard = map_manager_clone.lock().await;
 
-    map_manager_guard.add_map_set_player_position(&mut player_guard, "map2", Vec2::new(6, 2));
-
+    //map_manager_guard.add_map_set_player_position(&mut player_guard, "map2", Vec2::new(6, 2));
+    map_manager_guard.add_map_set_player_position(&mut player_guard, "test_map", Vec2::new(10, 10));
     //map_manager_guard.add_map_set_player_position(&mut player, "map1", Vec2::new(5, 2));
     //let new_map = map_factory.generate_map(&mut player, 10, 10, Vec2::new(2, 1), "seedphrase");
     //map_manager_guard.add_generated_map(new_map);
 
-    map_manager_guard.load_map("map2", MovementType::Normal);
-
-
+    map_manager_guard.load_map("test_map", MovementType::Normal);
 
     let collision_engine = Arc::new(Mutex::new(CollisionEngine::new())); //CollisionEngine::new();
     let collision_engine_clone = Arc::clone(&collision_engine);
@@ -92,10 +90,6 @@ async fn main() {
 
     monster_manager.lock().await.spawn_monsters(&mut map_manager_guard, monster_factory);
 
-    collision_engine_guard
-        .update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO)
-        .await;
-
     terminal_guard
         .print_terminal(&player_guard, &mut map_manager_guard, &mut chat_clone)
         .await;
@@ -104,7 +98,6 @@ async fn main() {
     drop(map_manager_guard);
     drop(collision_engine_guard);
     drop(player_guard);
-    //drop(monster_manager_guard);
 
     tokio::spawn({
         async move {
@@ -182,25 +175,6 @@ async fn main() {
                         }
                         _ => {}
                     }
-
-                    /*let mut new_monsters_pos =
-                                            collision_engine_guard.move_monsters(&player_guard, &mut monster_manager_guard).await;
-
-                    let processed_monsters_positions = collision_engine_guard
-                        .process_monsters_move(
-                            &mut new_monsters_pos,
-                            &mut map_manager_guard,
-                            &mut monster_manager_guard,
-                        )
-                        .await;
-
-                    collision_engine_guard
-                        .update_monsters_position(
-                            &mut map_manager_guard,
-                            &mut monster_manager_guard,
-                            processed_monsters_positions,
-                        )
-                        .await;*/
 
                     collision_engine_guard
                         .update_player_vision(
@@ -283,6 +257,10 @@ async fn update_monsters_async(
                 &mut monster_manager_guard,
                 processed_monsters_positions,
             )
+            .await;
+
+        collision_engine_guard
+            .update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO)
             .await;
 
         terminal_guard
