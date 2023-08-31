@@ -59,7 +59,7 @@ async fn main() {
 
     let terminal = Arc::new(Mutex::new(GameClient::new()));
     let terminal_clone = Arc::clone(&terminal);
-    let terminal_guard = terminal_clone.lock().await;
+    let mut terminal_guard = terminal_clone.lock().await;
 
     //let player = Arc::new(Mutex::new(player));
     //let player_clone = Arc::clone(&player);
@@ -120,15 +120,18 @@ async fn main() {
             }
         }
     });*/
+    drop(terminal_guard);
+    drop(map_manager_guard);
+    drop(player_guard);
+
     tokio::spawn({
         async move {
             let mut chat_clone = Arc::clone(&chat);
             let mut terminal_clone = Arc::clone(&terminal);
+            let map_manager_clone = Arc::clone(&map_manager);
+            let player_clone = Arc::clone(&player);
 
-            loop {
-                update_monsters_async_test(&chat_clone, &terminal_clone).await;
-                async_std::task::sleep(Duration::from_secs(1)).await;
-            }
+            update_monsters_async_test(&mut chat_clone, terminal_clone, player_clone, map_manager_clone).await;
         }
     });
 
@@ -136,6 +139,7 @@ async fn main() {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
+                    let mut player_guard = player_clone.lock().await;
 
                     match player_guard.key_event {
                         KeyCode::Esc => {
@@ -143,7 +147,10 @@ async fn main() {
                         }
                         _ => {}
                     }
+
                     player_guard.key_event = key_input.code;
+                    let mut terminal_guard = terminal_clone.lock().await;
+                    let mut map_manager_guard = map_manager_clone.lock().await;
 
                     let new_player_pos = collision_engine_guard
                         .move_player(&mut player_guard, &mut chat_clone)
@@ -187,13 +194,25 @@ async fn main() {
     }
 }
 
-async fn update_monsters_async_test(chat: &Arc<Mutex<Chat>>, terminal: &Arc<Mutex<GameClient>>) {
-    let mut chat_guard = chat.lock().await;
-    chat_guard.process_chat_message("test");
-        //drop(chat_guard);
-    let mut terminal_guard = terminal.lock().await;
+async fn update_monsters_async_test(chat_clone: &mut Arc<Mutex<Chat>>, terminal_clone: Arc<Mutex<GameClient>>, player_clone: Arc<Mutex<Player>>, map_manager_clone: Arc<Mutex<MapManager>>) {
+    loop {
+        let mut chat_guard = chat_clone.lock().await;
+        chat_guard.process_chat_message("test");
+        drop(chat_guard);
 
-    //drop(terminal_guard);
+        let mut terminal_guard = terminal_clone.lock().await;
+        let player_guard = player_clone.lock().await;
+        let mut map_manager_guard = map_manager_clone.lock().await;
+
+        terminal_guard
+            .print_terminal(&player_guard, &mut map_manager_guard, chat_clone)
+            .await;
+        drop(terminal_guard);
+        drop(player_guard);
+        drop(map_manager_guard);
+
+        async_std::task::sleep(Duration::from_secs(1)).await;
+    }
 }
 
 
