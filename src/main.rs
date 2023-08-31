@@ -106,7 +106,7 @@ async fn main() {
     drop(player_guard);
     //drop(monster_manager_guard);
 
-    /*tokio::spawn({
+    tokio::spawn({
         async move {
             let mut chat_clone = Arc::clone(&chat);
             let collision_engine_clone = Arc::clone(&collision_engine);
@@ -125,7 +125,7 @@ async fn main() {
             )
             .await;
         }
-    });*/
+    });
 
     /*tokio::spawn({
         async move {
@@ -183,7 +183,7 @@ async fn main() {
                         _ => {}
                     }
 
-                    let mut new_monsters_pos =
+                    /*let mut new_monsters_pos =
                                             collision_engine_guard.move_monsters(&player_guard, &mut monster_manager_guard).await;
 
                     let processed_monsters_positions = collision_engine_guard
@@ -200,7 +200,7 @@ async fn main() {
                             &mut monster_manager_guard,
                             processed_monsters_positions,
                         )
-                        .await;
+                        .await;*/
 
                     collision_engine_guard
                         .update_player_vision(
