@@ -81,7 +81,7 @@ impl CollisionEngine {
         return current_position;
     }
 
-    pub(crate) async fn process_move<'a>(
+    pub(crate) async fn try_process_move<'a>(
         &mut self,
         map_manager_clone: &mut MutexGuard<'a, MapManager>,
         player: &mut Player,
@@ -139,7 +139,6 @@ impl CollisionEngine {
             if is_tile_traversable {
                 return MovementType::Normal;
             }
-            /*}*/
         }
         drop(chat_guard);
         return MovementType::Unable;

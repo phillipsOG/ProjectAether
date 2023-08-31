@@ -37,6 +37,7 @@ use crate::map_manager::MapManager;
 use crate::monster_generator::MonsterFactory;
 use crate::monster_manager::MonsterManager;
 use crate::player::Player;
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
 enum MovementType {
     Unable,
@@ -63,7 +64,7 @@ async fn main() {
     let monster_manager = Arc::new(Mutex::new(MonsterManager::new()));
     let monster_manager_clone = Arc::clone(&monster_manager);
 
-    let map_manager = Arc::new(Mutex::new(MapManager::new())); //MapManager::new();
+    let map_manager = Arc::new(Mutex::new(MapManager::new()));
     let map_manager_clone = Arc::clone(&map_manager);
     let mut map_manager_guard = map_manager_clone.lock().await;
 
@@ -101,7 +102,7 @@ async fn main() {
     drop(collision_engine_guard);
     drop(player_guard);
 
-    /*tokio::spawn({
+    tokio::spawn({
         async move {
             let mut chat_clone = Arc::clone(&chat);
             let collision_engine_clone = Arc::clone(&collision_engine);
@@ -120,7 +121,7 @@ async fn main() {
             )
             .await;
         }
-    });*/
+    });
 
     /*tokio::spawn({
         async move {
@@ -157,13 +158,14 @@ async fn main() {
                         .await;
 
                     let player_move_type = collision_engine_guard
-                        .process_move(
+                        .try_process_move(
                             &mut map_manager_guard,
                             &mut player_guard,
                             &mut chat_clone,
                             new_player_pos,
                         )
                         .await;
+                    player_guard.previous_tile_below_player = player_guard.tile_below_player;
 
                     match player_move_type {
                         MovementType::Normal => {
@@ -178,14 +180,22 @@ async fn main() {
                         MovementType::LadderUp => {
                             map_manager_guard
                                 .load_map("scene_ladder", MovementType::LadderUp);
+                            let ladder_entry_pos = Vec2::new(3, 2);
+                            player_guard.update_tile_below_player(LADDER_TILE_SET.floor);
+                            player_guard.previous_player_position = player_guard.player_position;
+                            player_guard.player_position = ladder_entry_pos;
                         }
                         MovementType::LadderDown => {
                             map_manager_guard
                                 .load_map("scene_ladder", MovementType::LadderDown);
+                            player_guard.player_position = Vec2::new(3, 2);
                         }
                         MovementType::LadderExit => {
                             map_manager_guard
                                 .load_map("map2", MovementType::Normal);
+                            player_guard.update_tile_below_player(LADDER_TILE_SET.floor);
+                            player_guard.player_position = player_guard.previous_player_position;
+                            player_guard.tile_below_player = player_guard.previous_tile_below_player;
                         }
                         MovementType::LadderEnter => {
                             map_manager_guard
