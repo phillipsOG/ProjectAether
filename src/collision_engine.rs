@@ -25,9 +25,9 @@ impl CollisionEngine {
         CollisionEngine {}
     }
 
-    pub(crate) async fn move_player(
+    pub(crate) async fn try_move_player(
         &mut self,
-        player: &Player,
+        player: &mut Player,
         chat: &mut Arc<Mutex<Chat>>,
     ) -> Vec2 {
         let mut current_position = Vec2::ZERO;
@@ -64,10 +64,10 @@ impl CollisionEngine {
                 if input.trim() == "nofog" {
                     if player.fog_of_war {
                         chat_guard.process_chat_message("Removed fog of war.");
-                        //player.fog_of_war = false;
+                        player.fog_of_war = false;
                     } else {
                         chat_guard.process_chat_message("Added back fog of war.");
-                        //player.fog_of_war = true;
+                        player.fog_of_war = true;
                     }
                 } else {
                     chat_guard.process_chat_message("Invalid command.");
@@ -88,10 +88,10 @@ impl CollisionEngine {
         chat: &mut Arc<Mutex<Chat>>,
         new_player_pos: Vec2,
     ) -> MovementType {
-        /*if let Some(map_data) = map_data_option {*/
-        //let map_manager_guard = map_manager_clone.lock().await;
+
+        let map_index = map_manager_clone.current_map_index;
         let map = map_manager_clone
-            .get_map(map_manager_clone.current_map_index)
+            .get_map_mut(map_index)
             .expect("map data");
         let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
         let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
@@ -117,18 +117,17 @@ impl CollisionEngine {
         if tmp_tile == tile_set.key {
             chat_guard.process_chat_message("You pick up a rusty key.");
             player.inventory.add_key(1);
-            //map_data.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
+            map.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
         } else if tmp_tile == tile_set.closed_door_side || tmp_tile == tile_set.closed_door_top {
             if player.inventory.keys >= 1 {
                 player.inventory.remove_key(1);
                 chat_guard.process_chat_message("You unlock the door using a rusty key.");
-                /*map_data.map[new_player_pos.y][new_player_pos.x] =
-                Space::new(DEFAULT_TILE_SET.open_door);*/
+                map.map[new_player_pos.y][new_player_pos.x] =
+                Space::new(DEFAULT_TILE_SET.open_door);
             } else {
                 chat_guard.process_chat_message("You need a rusty key to open this door.");
             };
         }
-        //drop(map_manager_guard);
         if tile_set.name == DEFAULT_TILE_SET.name {
             if !is_tile_traversable {
                 return MovementType::Unable;
@@ -153,7 +152,8 @@ impl CollisionEngine {
         new_player_position: Vec2,
     ) {
         //let mut map_guard = map_manager_clone.lock().await;
-        let map = map_manager_clone.get_map_mut(0).expect("map data");
+        let map_index = map_manager_clone.current_map_index;
+        let map = map_manager_clone.get_map_mut(map_index).expect("map data");
         let tmp_tile = map.map[new_player_position.y][new_player_position.x].tile;
         let pos = player.player_position.clone();
         map.map[pos.y][pos.x] = Space::new(self.update_player_previous_tile(player, tmp_tile));
@@ -171,7 +171,8 @@ impl CollisionEngine {
         _new_player_position: Vec2,
     ) {
         //let mut map_manager_guard = map_manager_clone.lock().await;
-        let map_data = map_manager_clone.get_map_mut(0).expect("map data");
+        let map_index = map_manager_clone.current_map_index;
+        let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
         map_data.set_player_vision(player, _new_player_position);
     }
 
@@ -254,7 +255,8 @@ impl CollisionEngine {
             if monster.tile == MONSTER_TILE_SET.snake {
                 let new_enemy_pos = new_monsters_position[&monster.id];
                 //let mut map_guard = map_manager_clone.lock().await;
-                let map_data = map_manager_clone.get_map_mut(0).expect("map data");
+                let map_index = map_manager_clone.current_map_index;
+                let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
                 let is_tile_solid = map_data.map[new_enemy_pos.y][new_enemy_pos.x].is_solid;
                 let is_tile_traversable =
                     map_data.map[new_enemy_pos.y][new_enemy_pos.x].is_traversable;
@@ -289,7 +291,8 @@ impl CollisionEngine {
             if let Some(md) = monster {
                 if let Some(new_mons_pos) = processed_monsters_positions.get(&md.id) {
                     //let mut map_guard = map_manager_clone.lock().await;
-                    let map_data = map_manager_clone.get_map_mut(0).expect("map data");
+                    let map_index = map_manager_clone.current_map_index;
+                    let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
                     let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x];
 
                     let tile_below_monster = md.get_tile_below_monster();

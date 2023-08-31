@@ -10,6 +10,10 @@ use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
+use std::sync::Arc;
+use futures::lock::Mutex;
+use crate::chat::Chat;
+use crate::terrain_data::TerrainData;
 
 #[derive(Clone)]
 pub struct MapManager {
@@ -51,17 +55,17 @@ impl MapManager {
         self.maps.get(&map_index)
     }
 
-    /*pub(crate) fn update_current_map(
+    pub(crate) fn update_current_map(
         &mut self,
         terrain_data: TerrainData,
-        _chat: &mut Chat
+        chat_clone: &mut Arc<Mutex<Chat>>
     ) {
-        if let Some(map_data) = current_map {
-            map_data.map = terrain_data.map;
-            map_data.map_height += terrain_data.height_increase;
-            map_data.map_width += terrain_data.width_increase;
-        }
-    }*/
+        let map_index = self.current_map_index;
+        let mut map = self.get_map_mut(map_index).expect("map data");
+        map.map = terrain_data.map;
+        map.map_height += terrain_data.height_increase;
+        map.map_width += terrain_data.width_increase;
+    }
 
     pub(crate) fn add_map_set_player_position(
         &mut self,
@@ -121,14 +125,14 @@ impl MapManager {
     ) -> Option<&mut MapData> {
         if map_name == "scene_ladder" {
             self.current_map_index = 0;
-        } else if map_name == "map2" {
-            self.current_map_index = 0;
+        } else if map_name == "test_map" {
+            self.current_map_index = 1;
         } else if map_name == "map1" {
             self.current_map_index = 2;
         } else if map_name == "test" {
             self.current_map_index = 3;
-        } else if map_name == "test_map" {
-            self.current_map_index = 0;
+        } else if map_name == "map2" {
+            self.current_map_index = 4;
         }
 
         self.get_map_mut(self.current_map_index)

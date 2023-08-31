@@ -29,7 +29,8 @@ impl MonsterManager {
         mut monster_factory: MonsterFactory,
     ) {
         //let mut map_manager_guard = map_manager_clone.lock().await;
-        let map_data = map_manager_clone.get_map_mut(0).expect("map data");
+        let map_index = map_manager_clone.current_map_index;
+        let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
         let map_height = map_data.map_height;
         let map_width = map_data.map_width;
 

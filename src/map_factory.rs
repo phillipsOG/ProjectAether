@@ -16,6 +16,9 @@ use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
+use std::sync::Arc;
+use futures::lock::{Mutex, MutexGuard};
+use crate::map_manager::MapManager;
 
 #[derive(Clone)]
 pub struct MapFactory {}
@@ -82,11 +85,11 @@ impl MapFactory {
         return new_map;
     }
 
-    pub(crate) fn generate_terrain(
+    pub(crate) async fn generate_terrain<'a>(
         &mut self,
-        map: &mut MapData,
+        map_manager_guard: &mut MutexGuard<'a, MapManager>,
         new_player_position: Vec2,
-        chat: &mut Chat,
+        chat_clone: &mut Arc<Mutex<Chat>>,
     ) -> Option<TerrainData> {
         let mut terrain_data = TerrainData::new();
 
@@ -94,6 +97,9 @@ impl MapFactory {
         "seedphrase".hash(&mut hasher);
         let seed = hasher.finish();
         let mut rng = StdRng::seed_from_u64(seed);*/
+        let mut chat = chat_clone.lock().await;
+        let map_index = map_manager_guard.current_map_index;
+        let map = map_manager_guard.get_map(map_index).expect("map data");
         if new_player_position.x >= map.map_width - 1 {
             if new_player_position.x >= 20 && new_player_position.y >= 10 {
                 terrain_data.width_increase = 10;
@@ -147,7 +153,6 @@ impl MapFactory {
             "map_width: {}, map_height: {}",
             map.map_width, map.map_height
         ));*/
-
         return Some(terrain_data);
     }
 
