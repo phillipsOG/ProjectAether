@@ -61,6 +61,9 @@ async fn main() {
     let terminal_clone = Arc::clone(&terminal);
     let mut terminal_guard = terminal_clone.lock().await;
 
+    let monster_manager = Arc::new(Mutex::new(MonsterManager::new()));
+    let monster_manager_clone = Arc::clone(&monster_manager);
+    //let mut monster_manager_guard = monster_manager_clone.lock().await;
     //let player = Arc::new(Mutex::new(player));
     //let player_clone = Arc::clone(&player);
     //let mut player_guard = player_clone.lock().await;
@@ -77,9 +80,7 @@ async fn main() {
 
     map_manager_guard.load_map("map2", MovementType::Normal);
 
-    let monster_manager = Arc::new(Mutex::new(MonsterManager::new()));
-    let monster_manager_clone = Arc::clone(&monster_manager);
-    let mut monster_manager_guard = monster_manager_clone.lock().await;
+
 
     let collision_engine = Arc::new(Mutex::new(CollisionEngine::new())); //CollisionEngine::new();
     let collision_engine_clone = Arc::clone(&collision_engine);
@@ -89,7 +90,7 @@ async fn main() {
     let mut chat_clone = Arc::clone(&chat);
     //let mut chat_guard = chat_clone.lock().await;
 
-    monster_manager_guard.spawn_monsters(&mut map_manager_guard, monster_factory);
+    monster_manager.lock().await.spawn_monsters(&mut map_manager_guard, monster_factory);
 
     collision_engine_guard
         .update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO)
@@ -103,9 +104,9 @@ async fn main() {
     drop(map_manager_guard);
     drop(collision_engine_guard);
     drop(player_guard);
-    drop(monster_manager_guard);
+    //drop(monster_manager_guard);
 
-    tokio::spawn({
+    /*tokio::spawn({
         async move {
             let mut chat_clone = Arc::clone(&chat);
             let collision_engine_clone = Arc::clone(&collision_engine);
@@ -124,7 +125,7 @@ async fn main() {
             )
             .await;
         }
-    });
+    });*/
 
     /*tokio::spawn({
         async move {
@@ -154,6 +155,7 @@ async fn main() {
                     let mut terminal_guard = terminal_clone.lock().await;
                     let mut map_manager_guard = map_manager_clone.lock().await;
                     let mut collision_engine_guard = collision_engine_clone.lock().await;
+                    let mut monster_manager_guard = monster_manager_clone.lock().await;
 
                     let new_player_pos = collision_engine_guard
                         .move_player(&mut player_guard, &mut chat_clone)
@@ -181,8 +183,8 @@ async fn main() {
                         _ => {}
                     }
 
-                    /*let mut new_monsters_pos =
-                        collision_engine_guard.move_monsters(&player_guard, &mut monster_manager_guard).await;
+                    let mut new_monsters_pos =
+                                            collision_engine_guard.move_monsters(&player_guard, &mut monster_manager_guard).await;
 
                     let processed_monsters_positions = collision_engine_guard
                         .process_monsters_move(
@@ -199,7 +201,7 @@ async fn main() {
                             processed_monsters_positions,
                         )
                         .await;
-*/
+
                     collision_engine_guard
                         .update_player_vision(
                             &mut map_manager_guard,
@@ -263,8 +265,9 @@ async fn update_monsters_async(
         let mut terminal_guard = terminal_clone.lock().await;
         let mut map_manager_guard = map_manager_clone.lock().await;
 
-        let mut new_monsters_pos =
-        collision_engine_guard.move_monsters(&player_guard, &mut monster_manager_guard).await;
+        let mut new_monsters_pos = collision_engine_guard
+            .move_monsters(&player_guard, &mut monster_manager_guard)
+            .await;
 
         let processed_monsters_positions = collision_engine_guard
             .process_monsters_move(

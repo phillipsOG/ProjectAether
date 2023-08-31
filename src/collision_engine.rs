@@ -298,6 +298,7 @@ impl CollisionEngine {
                     );
                     md.tile_below_monster = tmp_tile.tile;
                     md.position = *new_mons_pos;
+                    map_data.map[new_mons_pos.y][md.position.x] = Space::new('S');
                     //drop(map_guard);
                 }
             }
