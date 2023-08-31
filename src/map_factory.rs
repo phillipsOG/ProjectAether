@@ -53,7 +53,7 @@ impl MapFactory {
                     } else {
                         // generate a random value based on the seeded RNG
                         // for example, generating floor tiles with a certain probability
-                        if rng.gen::<f32>() < 0.8 {
+                        if rng.gen::<f32>() < 0.7 {
                             DEFAULT_TILE_SET.floor
                         } else {
                             DEFAULT_TILE_SET.wall
