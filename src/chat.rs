@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Chat {
     pub chat: [String; 10],
     pub input_counter: usize,

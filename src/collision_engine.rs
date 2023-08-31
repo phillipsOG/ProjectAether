@@ -1,14 +1,23 @@
+use std::collections::HashMap;
+
 use crate::chat::Chat;
-use crate::map_data::{MapData, Vec2};
-use crate::map_manager::MapManager;
+use crate::map_data::MapData;
+
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::{Map, PlayerMove};
+use crate::MovementType;
 use crossterm::event::KeyCode;
+
+use crate::map_manager::MapManager;
+use futures::lock::{Mutex, MutexGuard};
 use std::io;
+use std::sync::Arc;
+
 use crate::monster_manager::MonsterManager;
 use crate::space::Space;
+use crate::Vec2;
 
+#[derive(Clone)]
 pub struct CollisionEngine {}
 
 impl CollisionEngine {
@@ -16,164 +25,154 @@ impl CollisionEngine {
         CollisionEngine {}
     }
 
-    pub(crate) fn move_player(
+    pub(crate) async fn try_move_player(
         &mut self,
-        map_manager: &mut MapManager,
         player: &mut Player,
-        chat: &mut Chat,
+        chat: &mut Arc<Mutex<Chat>>,
     ) -> Vec2 {
-        let map = map_manager.get_map_mut(map_manager.current_map_index);
         let mut current_position = Vec2::ZERO;
-        if let Some(map_data) = map {
-            match player.key_event {
-                KeyCode::Up => {
-                    // Move up
-                    chat.process_chat_message("You walk up.");
-                    return Vec2::new(map_data.player_position.x, map_data.player_position.y - 1);
-                }
-                KeyCode::Down => {
-                    // Move down
-                    chat.process_chat_message("You walk down.");
-                    return Vec2::new(map_data.player_position.x, map_data.player_position.y + 1);
-                }
-                KeyCode::Left => {
-                    // Move left
-                    chat.process_chat_message("You walk left.");
-                    return Vec2::new(map_data.player_position.x - 1, map_data.player_position.y);
-                }
-                KeyCode::Right => {
-                    // Move right
-                    chat.process_chat_message("You walk right.");
-                    return Vec2::new(map_data.player_position.x + 1, map_data.player_position.y);
-                }
-                KeyCode::Tab => {
-                    println!("Please enter a command: ");
-
-                    let mut input = String::new();
-                    if let Err(_) = io::stdin().read_line(&mut input) {
-                        chat.process_chat_message("Error reading command.");
-                    }
-
-                    // @TODO turn into actual command system
-                    if input.trim() == "nofog" {
-                        if map_data.fog_of_war {
-                            chat.process_chat_message("Removed fog of war.");
-                            map_data.fog_of_war = false;
-                        } else {
-                            chat.process_chat_message("Added back fog of war.");
-                            map_data.fog_of_war = true;
-                        }
-                    } else {
-                        chat.process_chat_message("Invalid command.");
-                    }
-                }
-                KeyCode::Esc => {
-                    player.previous_key_event = KeyCode::Esc;
-                    player.key_state = true;
-                    chat.clear_chat();
-                    chat.process_chat_message("You exit the game.");
-                }
-                _ => {}
+        let mut chat_guard = chat.lock().await;
+        match player.key_event {
+            KeyCode::Up => {
+                // Move up
+                chat_guard.process_chat_message("You walk up.");
+                return Vec2::new(player.player_position.x, player.player_position.y - 1);
             }
-            current_position = map_data.player_position;
-        }
+            KeyCode::Down => {
+                // Move down
+                chat_guard.process_chat_message("You walk down.");
+                return Vec2::new(player.player_position.x, player.player_position.y + 1);
+            }
+            KeyCode::Left => {
+                // Move left
+                chat_guard.process_chat_message("You walk left.");
+                return Vec2::new(player.player_position.x - 1, player.player_position.y);
+            }
+            KeyCode::Right => {
+                // Move right
+                chat_guard.process_chat_message("You walk right.");
+                return Vec2::new(player.player_position.x + 1, player.player_position.y);
+            }
+            KeyCode::Tab => {
+                println!("Please enter a command: ");
 
+                let mut input = String::new();
+                if let Err(_) = io::stdin().read_line(&mut input) {
+                    chat_guard.process_chat_message("Error reading command.");
+                }
+                // @TODO turn into actual command system
+                if input.trim() == "nofog" {
+                    if player.fog_of_war {
+                        chat_guard.process_chat_message("Removed fog of war.");
+                        player.fog_of_war = false;
+                    } else {
+                        chat_guard.process_chat_message("Added back fog of war.");
+                        player.fog_of_war = true;
+                    }
+                } else {
+                    chat_guard.process_chat_message("Invalid command.");
+                }
+            }
+
+            _ => {}
+        }
+        current_position = player.player_position;
         // Don't move
         return current_position;
     }
 
-    pub(crate) fn process_move(
+    pub(crate) async fn try_process_move<'a>(
         &mut self,
+        map_manager_clone: &mut MutexGuard<'a, MapManager>,
         player: &mut Player,
-        map_manager: &mut MapManager,
-        chat: &mut Chat,
+        chat: &mut Arc<Mutex<Chat>>,
         new_player_pos: Vec2,
-    ) -> PlayerMove {
-        let map = map_manager.get_map_mut(map_manager.current_map_index);
+    ) -> MovementType {
 
-        if let Some(map_data) = map {
-            let tmp_tile = map_data.map[new_player_pos.y][new_player_pos.x].tile;
-            let is_tile_solid = map_data.map[new_player_pos.y][new_player_pos.x].is_solid;
+        let map_index = map_manager_clone.current_map_index;
+        let map = map_manager_clone
+            .get_map_mut(map_index)
+            .expect("map data");
+        let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
+        let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
+        let is_tile_traversable = map.map[new_player_pos.y][new_player_pos.x].is_traversable;
+        let tile_set = map.tile_set.clone();
+        let mut chat_guard = chat.lock().await;
+        let res = self.check_for_multi_tile(map, tmp_tile, new_player_pos);
 
-            if map_data.tile_set.name == LADDER_TILE_SET.name {
-                if tmp_tile == LADDER_TILE_SET.closed_door_side {
-                    return PlayerMove::Unable;
-                }
-            } else if is_tile_solid
-                && !(tmp_tile == DEFAULT_TILE_SET.closed_door_side
-                    || tmp_tile == DEFAULT_TILE_SET.closed_door_top
-                    || tmp_tile == DEFAULT_TILE_SET.open_door)
-            {
-                return PlayerMove::Unable;
+        if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
+            if player.key_event == KeyCode::Up {
+                return MovementType::LadderUp;
+            } else if player.key_event == KeyCode::Down {
+                return MovementType::LadderDown;
             }
-
-            let res = self.check_for_multi_tile(map_data, tmp_tile, new_player_pos);
-
-            if res == map_data.tile_set.ladder && map_data.tile_set.name == DEFAULT_TILE_SET.name {
-                if player.key_event == KeyCode::Up {
-                    return PlayerMove::LadderUp;
-                } else if player.key_event == KeyCode::Down {
-                    return PlayerMove::LadderDown;
-                }
-            } else if res == map_data.tile_set.ladder
-                && map_data.tile_set.name == LADDER_TILE_SET.name
-            {
-                if player.key_event == KeyCode::Up && map_data.player_position.y == 1 {
-                    return PlayerMove::LadderEnter;
-                } else if player.key_event == KeyCode::Down && map_data.player_position.y == 2 {
-                    return PlayerMove::LadderExit;
-                }
-            }
-
-            if tmp_tile == map_data.tile_set.key {
-                chat.process_chat_message("You pick up a rusty key.");
-                player.inventory.add_key(1);
-                map_data.map[new_player_pos.y][new_player_pos.x].tile = map_data.tile_set.floor;
-                return PlayerMove::Unable;
-            } else if tmp_tile == map_data.tile_set.closed_door_side
-                || tmp_tile == map_data.tile_set.closed_door_top
-            {
-                return if player.inventory.keys >= 1 {
-                    player.inventory.remove_key(1);
-                    chat.process_chat_message("You unlock the door using a rusty key.");
-                    map_data.map[new_player_pos.y][new_player_pos.x].tile =
-                        map_data.tile_set.open_door;
-                    PlayerMove::Unable
-                } else {
-                    chat.process_chat_message("You need a rusty key to open this door.");
-                    PlayerMove::Unable
-                };
+        } else if res == tile_set.ladder && tile_set.name == LADDER_TILE_SET.name {
+            if player.key_event == KeyCode::Up && player.player_position.y == 1 {
+                return MovementType::LadderEnter;
+            } else if player.key_event == KeyCode::Down && player.player_position.y == 2 {
+                return MovementType::LadderExit;
             }
         }
-        return PlayerMove::Normal;
+
+        if tmp_tile == tile_set.key {
+            chat_guard.process_chat_message("You pick up a rusty key.");
+            player.inventory.add_key(1);
+            map.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
+        } else if tmp_tile == tile_set.closed_door_side || tmp_tile == tile_set.closed_door_top {
+            if player.inventory.keys >= 1 {
+                player.inventory.remove_key(1);
+                chat_guard.process_chat_message("You unlock the door using a rusty key.");
+                map.map[new_player_pos.y][new_player_pos.x] =
+                Space::new(DEFAULT_TILE_SET.open_door);
+            } else {
+                chat_guard.process_chat_message("You need a rusty key to open this door.");
+            };
+        }
+        if tile_set.name == DEFAULT_TILE_SET.name {
+            if !is_tile_traversable {
+                return MovementType::Unable;
+            }
+            if !is_tile_solid {
+                return MovementType::Normal;
+            }
+        } else if tile_set.name == LADDER_TILE_SET.name {
+            if is_tile_traversable {
+                return MovementType::Normal;
+            }
+        }
+        drop(chat_guard);
+        return MovementType::Unable;
     }
 
-    pub(crate) fn update_player_position(
+    pub(crate) async fn update_player_position<'a>(
         &mut self,
-        map_manager: &mut MapManager,
+        map_manager_clone: &mut MutexGuard<'a, MapManager>,
+        player: &mut Player,
         new_player_position: Vec2,
     ) {
-        let map = map_manager.get_map_mut(map_manager.current_map_index);
-        if let Some(map_data) = map {
-            let tmp_tile = map_data.map[new_player_position.y][new_player_position.x].tile;
-            map_data.map[map_data.player_position.y][map_data.player_position.x].tile =
-                self.update_tile(map_data, tmp_tile);
-            map_data.map[new_player_position.y][new_player_position.x].tile =
-                map_data.tile_set.player;
-            map_data.update_player_position();
-            map_data.update_tile_below_player(tmp_tile);
-        }
+        //let mut map_guard = map_manager_clone.lock().await;
+        let map_index = map_manager_clone.current_map_index;
+        let map = map_manager_clone.get_map_mut(map_index).expect("map data");
+        let tmp_tile = map.map[new_player_position.y][new_player_position.x].tile;
+        let pos = player.player_position.clone();
+        map.map[pos.y][pos.x] = Space::new(self.update_player_previous_tile(player, tmp_tile));
+        player.player_position = new_player_position;
+        player.tile_below_player = tmp_tile;
+        map.set_player_position(new_player_position);
+        player.update_tile_below_player(tmp_tile);
+        //drop(map_guard);
     }
 
-    pub(crate) fn update_player_vision(
+    pub(crate) async fn update_player_vision<'a>(
         &mut self,
-        map_manager: &mut MapManager,
+        map_manager_clone: &mut MutexGuard<'a, MapManager>,
+        player: &Player,
         _new_player_position: Vec2,
     ) {
-        let map = map_manager.get_map_mut(map_manager.current_map_index);
-        if let Some(map_data) = map {
-            map_data.set_player_vision(map_data.player_position);
-        }
+        //let mut map_manager_guard = map_manager_clone.lock().await;
+        let map_index = map_manager_clone.current_map_index;
+        let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
+        map_data.set_player_vision(player, _new_player_position);
     }
 
     fn check_for_multi_tile(
@@ -184,12 +183,9 @@ impl CollisionEngine {
     ) -> String {
         for (_col_idx, col) in map_data.map.iter().enumerate() {
             for (_row_idx, c) in col.iter().enumerate() {
-                if c.tile == '@' {
-                    let pos_y = map_data.player_position.y;
-                    let pos_x = map_data.player_position.x;
-
+                if c.tile == DEFAULT_TILE_SET.player {
                     // if the players position x is greater than available x pos then don't check code
-                    if pos_x > 0 {
+                    if new_player_position.x > 0 {
                         let tile_left = map_data.map[new_player_position.y]
                             .get(new_player_position.x - 1)
                             .map(|space| space.tile)
@@ -212,83 +208,140 @@ impl CollisionEngine {
         return "".to_string();
     }
 
-    pub(crate) fn process_enemy_move(&mut self, player: &mut Player, map_manager: &mut MapManager, chat: &mut Chat, monster_manager: &mut MonsterManager) {
+    pub(crate) async fn move_monsters<'a>(
+        &mut self,
+        player: &MutexGuard<'a, Player>,
+        monster_manager: &mut MonsterManager,
+    ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
-        let map = map_manager.get_map_mut(map_manager.current_map_index);
+        let mut new_monsters_position = HashMap::<i32, Vec2>::new();
 
-        if let Some(map_data) = map {
-            let player_pos = map_data.player_position;
+        for mon_index in 0..monsters.len() {
+            let monster = monsters.get_mut(mon_index);
 
-            for index in 0..monsters.len() {
-                let mut monster = monsters.get_mut(index).unwrap();
+            if let Some(m_data) = monster {
+                let cur_monster_pos = m_data.position;
+                let mut new_pos = Vec2::ZERO;
 
-                if monster.tile == MONSTER_TILE_SET.snake {
-                    let map_width = map_data.map_width;
-                    let map_height = map_data.map_height;
+                if cur_monster_pos.x < player.player_position.x {
+                    new_pos = Vec2::new(cur_monster_pos.x + 1, cur_monster_pos.y);
+                } else if cur_monster_pos.x > player.player_position.x {
+                    new_pos = Vec2::new(cur_monster_pos.x - 1, cur_monster_pos.y);
+                } else if cur_monster_pos.y < player.player_position.y {
+                    new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y + 1);
+                } else if cur_monster_pos.y > player.player_position.y {
+                    new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y - 1);
+                }
+                new_monsters_position.insert(m_data.id, new_pos);
+            }
+        }
 
-                    if player_pos.y > monster.position.y && monster.position.y < map_width {
-                        if !map_data.map[monster.position.y +1][monster.position.x].is_solid {
-                            map_data.map[monster.position.y +1][monster.position.x] = Space::new(monster.tile);
-                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                            monster.position.y += 1;  // Update x position
-                        }
-                    } else if player_pos.y < monster.position.y && monster.position.y < map_width {
-                        if !map_data.map[monster.position.y -1][monster.position.x].is_solid {
-                            map_data.map[monster.position.y -1][monster.position.x] = Space::new(monster.tile);
-                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                            monster.position.y -= 1;
-                        }
-                    } else if player_pos.x > monster.position.x && monster.position.x < map_height {
-                        if !map_data.map[monster.position.y][monster.position.x+1].is_solid {
-                            map_data.map[monster.position.y][monster.position.x +1] = Space::new(monster.tile);
-                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                            monster.position.x += 1;
-                        }
-                    } else if player_pos.x < monster.position.y && monster.position.y < map_width {
-                        if !map_data.map[monster.position.y][monster.position.x -1].is_solid {
-                            map_data.map[monster.position.y][monster.position.x -1] = Space::new(monster.tile);
-                            map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-                            monster.position.x -= 1;
-                        }
-                    }
+        new_monsters_position
+    }
 
-                    /*for pos_x in 0..map_height  {
-                        for pos_y in 0..map_width {
-                            let tile = &mut map_data.map[pos_x][pos_y];
+    pub(crate) async fn process_monsters_move<'a>(
+        &mut self,
+        new_monsters_position: &mut HashMap<i32, Vec2>,
+        map_manager_clone: &mut MutexGuard<'a, MapManager>,
+        monster_manager: &mut MutexGuard<'a, MonsterManager>,
+    ) -> HashMap<i32, Vec2> {
+        let monsters = monster_manager.get_monsters_mut();
+        let mut processed_monsters_move = HashMap::<i32, Vec2>::new();
 
-                            if tile.tile == monster.tile {
+        for index in 0..monsters.len() {
+            let monster = monsters.get_mut(index).unwrap();
 
-                                if player_pos.x > monster.position.x {
-                                    map_data.map[pos_x+1][pos_y] = *tile;
-                                } else if player_pos.x < monster.position.x {
-                                    map_data.map[pos_x-1][pos_y] = *tile;
-                                }
+            if monster.tile == MONSTER_TILE_SET.snake {
+                let new_enemy_pos = new_monsters_position[&monster.id];
+                //let mut map_guard = map_manager_clone.lock().await;
+                let map_index = map_manager_clone.current_map_index;
+                let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
+                let is_tile_solid = map_data.map[new_enemy_pos.y][new_enemy_pos.x].is_solid;
+                let is_tile_traversable =
+                    map_data.map[new_enemy_pos.y][new_enemy_pos.x].is_traversable;
 
-                                *tile = Space::new(DEFAULT_TILE_SET.floor);
-                            }
-                        }
-                    }
-                    */
+                if !is_tile_traversable {
+                    continue;
+                }
+
+                if is_tile_solid {
+                    continue;
+                }
+
+                processed_monsters_move.insert(monster.id, new_enemy_pos);
+
+                //drop(map_guard);
+            }
+        }
+
+        processed_monsters_move
+    }
+
+    pub(crate) async fn update_monsters_position<'a>(
+        &mut self,
+        map_manager_clone: &mut MutexGuard<'a, MapManager>,
+        monster_manager: &mut MutexGuard<'a, MonsterManager>,
+        processed_monsters_positions: HashMap<i32, Vec2>,
+    ) {
+        let monsters = monster_manager.get_monsters_mut();
+
+        for mon_index in 0..monsters.len() {
+            let monster = monster_manager.get_monster_mut(mon_index);
+            if let Some(md) = monster {
+                if let Some(new_mons_pos) = processed_monsters_positions.get(&md.id) {
+                    //let mut map_guard = map_manager_clone.lock().await;
+                    let map_index = map_manager_clone.current_map_index;
+                    let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
+                    let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x];
+
+                    let tile_below_monster = md.get_tile_below_monster();
+                    map_data.map[md.position.y][md.position.x] = Space::new(
+                        self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),
+                    );
+                    md.tile_below_monster = tmp_tile.tile;
+                    md.position = *new_mons_pos;
+                    map_data.map[new_mons_pos.y][md.position.x] = Space::new('S');
+                    //drop(map_guard);
                 }
             }
         }
     }
 
-    fn update_tile(&mut self, map_data: &MapData, mut tmp_tile: char) -> char {
-        let tile_set = &map_data.tile_set;
+    fn update_player_previous_tile(&mut self, player: &mut Player, mut tmp_tile: char) -> char {
+        let tile_set = DEFAULT_TILE_SET;
 
         if tmp_tile == tile_set.open_door {
             tmp_tile = tile_set.floor;
         }
 
-        if map_data.tile_below_player == tile_set.open_door {
+        if player.tile_below_player == tile_set.open_door {
             tmp_tile = tile_set.open_door;
         }
 
-        if map_data.tile_below_player == tile_set.closed_door_top {
+        if player.tile_below_player == tile_set.closed_door_top {
             tmp_tile = tile_set.closed_door_top;
         }
 
         tmp_tile
+    }
+
+    fn update_monster_previous_tile(&mut self, tile_below_monster: char, tmp_tile: char) -> char {
+        let tile_set = DEFAULT_TILE_SET;
+
+        let mut updated_tile = tmp_tile;
+
+        if tmp_tile == tile_set.open_door {
+            updated_tile = tile_set.floor;
+        }
+
+        if tile_below_monster == tile_set.open_door {
+            updated_tile = tile_set.open_door;
+        }
+
+        if tile_below_monster == tile_set.closed_door_top {
+            updated_tile = tile_set.closed_door_top;
+        }
+
+        updated_tile
     }
 }
