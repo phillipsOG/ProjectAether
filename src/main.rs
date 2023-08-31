@@ -99,13 +99,13 @@ async fn main() {
         .print_terminal(&player_guard, &mut map_manager_guard, &mut chat_clone)
         .await;
 
-    /*drop(terminal_guard);
+    drop(terminal_guard);
     drop(map_manager_guard);
     drop(collision_engine_guard);
-    drop(player_guard);*/
-    /*drop(monster_manager_guard);*/
+    drop(player_guard);
+    drop(monster_manager_guard);
 
-    /*tokio::spawn({
+    tokio::spawn({
         async move {
             let mut chat_clone = Arc::clone(&chat);
             let collision_engine_clone = Arc::clone(&collision_engine);
@@ -124,7 +124,7 @@ async fn main() {
             )
             .await;
         }
-    });*/
+    });
 
     /*tokio::spawn({
         async move {
@@ -141,7 +141,7 @@ async fn main() {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
-                    //let mut player_guard = player_clone.lock().await;
+                    let mut player_guard = player_clone.lock().await;
 
                     match player_guard.key_event {
                         KeyCode::Esc => {
@@ -151,9 +151,9 @@ async fn main() {
                     }
 
                     player_guard.key_event = key_input.code;
-                    /*let mut terminal_guard = terminal_clone.lock().await;
+                    let mut terminal_guard = terminal_clone.lock().await;
                     let mut map_manager_guard = map_manager_clone.lock().await;
-                    let mut collision_engine_guard = collision_engine_clone.lock().await;*/
+                    let mut collision_engine_guard = collision_engine_clone.lock().await;
 
                     let new_player_pos = collision_engine_guard
                         .move_player(&mut player_guard, &mut chat_clone)
@@ -181,7 +181,7 @@ async fn main() {
                         _ => {}
                     }
 
-                    let mut new_monsters_pos =
+                    /*let mut new_monsters_pos =
                         collision_engine_guard.move_monsters(&player_guard, &mut monster_manager_guard).await;
 
                     let processed_monsters_positions = collision_engine_guard
@@ -199,7 +199,7 @@ async fn main() {
                             processed_monsters_positions,
                         )
                         .await;
-
+*/
                     collision_engine_guard
                         .update_player_vision(
                             &mut map_manager_guard,
@@ -242,7 +242,7 @@ async fn main() {
 
         async_std::task::sleep(Duration::from_secs(1)).await;
     }
-}
+}*/
 
 // asynchronous function to update monsters
 async fn update_monsters_async(
@@ -294,4 +294,4 @@ async fn update_monsters_async(
 
         async_std::task::sleep(Duration::from_secs(1)).await;
     }
-}*/
+}
