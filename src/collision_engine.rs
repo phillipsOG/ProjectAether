@@ -210,7 +210,7 @@ impl CollisionEngine {
 
     pub(crate) async fn move_monsters<'a>(
         &mut self,
-        player: MutexGuard<'a, Player>,
+        player: &MutexGuard<'a, Player>,
         monster_manager: &mut MonsterManager,
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
@@ -235,6 +235,7 @@ impl CollisionEngine {
                 new_monsters_position.insert(m_data.id, new_pos);
             }
         }
+
         new_monsters_position
     }
 
