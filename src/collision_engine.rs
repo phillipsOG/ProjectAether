@@ -1,24 +1,39 @@
-use std::collections::HashMap;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use crate::chat::Chat;
 use crate::map_data::MapData;
 
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::MovementType;
+use crate::{MovementType};
 use crossterm::event::KeyCode;
 
 use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
-use std::io;
+use std::{io};
 use std::sync::Arc;
 
 use crate::monster_manager::MonsterManager;
 use crate::space::Space;
 use crate::Vec2;
+use crate::node::Node;
 
 #[derive(Clone)]
 pub struct CollisionEngine {}
+
+struct MonsterPositionSet {
+    pub current_position: Vec2,
+    pub new_position: Vec2
+}
+
+impl MonsterPositionSet {
+    pub(crate) fn new(current_position: Vec2, new_position: Vec2) -> Self {
+        MonsterPositionSet {
+            current_position,
+            new_position
+        }
+    }
+}
 
 impl CollisionEngine {
     pub(crate) fn new() -> Self {
@@ -36,22 +51,22 @@ impl CollisionEngine {
             KeyCode::Up => {
                 // Move up
                 chat_guard.process_chat_message("You walk up.");
-                return Vec2::new(player.player_position.x, player.player_position.y - 1);
+                return Vec2::new(player.position.x, player.position.y - 1);
             }
             KeyCode::Down => {
                 // Move down
                 chat_guard.process_chat_message("You walk down.");
-                return Vec2::new(player.player_position.x, player.player_position.y + 1);
+                return Vec2::new(player.position.x, player.position.y + 1);
             }
             KeyCode::Left => {
                 // Move left
                 chat_guard.process_chat_message("You walk left.");
-                return Vec2::new(player.player_position.x - 1, player.player_position.y);
+                return Vec2::new(player.position.x - 1, player.position.y);
             }
             KeyCode::Right => {
                 // Move right
                 chat_guard.process_chat_message("You walk right.");
-                return Vec2::new(player.player_position.x + 1, player.player_position.y);
+                return Vec2::new(player.position.x + 1, player.position.y);
             }
             KeyCode::Tab => {
                 println!("Please enter a command: ");
@@ -76,7 +91,7 @@ impl CollisionEngine {
 
             _ => {}
         }
-        current_position = player.player_position;
+        current_position = player.position;
         // Don't move
         return current_position;
     }
@@ -100,6 +115,8 @@ impl CollisionEngine {
         let mut chat_guard = chat.lock().await;
         let res = self.check_for_multi_tile(map, tmp_tile, new_player_pos);
 
+        //chat_guard.process_chat_message(&format!("tile travel cost: {:?}", map.map[new_player_pos.y][new_player_pos.x].travel_cost));
+
         if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
             if player.key_event == KeyCode::Up {
                 return MovementType::LadderUp;
@@ -107,9 +124,9 @@ impl CollisionEngine {
                 return MovementType::LadderDown;
             }
         } else if res == tile_set.ladder && tile_set.name == LADDER_TILE_SET.name {
-            if player.key_event == KeyCode::Up && player.player_position.y == 1 {
+            if player.key_event == KeyCode::Up && player.position.y == 1 {
                 return MovementType::LadderEnter;
-            } else if player.key_event == KeyCode::Down && player.player_position.y == 2 {
+            } else if player.key_event == KeyCode::Down && player.position.y == 2 {
                 return MovementType::LadderExit;
             }
         }
@@ -150,17 +167,15 @@ impl CollisionEngine {
         player: &mut Player,
         new_player_position: Vec2,
     ) {
-        //let mut map_guard = map_manager_clone.lock().await;
         let map_index = map_manager_clone.current_map_index;
         let map = map_manager_clone.get_map_mut(map_index).expect("map data");
         let tmp_tile = map.map[new_player_position.y][new_player_position.x].tile;
-        let pos = player.player_position.clone();
+        let pos = player.position.clone();
         map.map[pos.y][pos.x] = Space::new(self.update_player_previous_tile(player, tmp_tile));
-        player.player_position = new_player_position;
+        player.position = new_player_position;
         player.tile_below_player = tmp_tile;
         map.set_player_position(new_player_position);
         player.update_tile_below_player(tmp_tile);
-        //drop(map_guard);
     }
 
     pub(crate) async fn update_player_vision<'a>(
@@ -208,36 +223,53 @@ impl CollisionEngine {
         return "".to_string();
     }
 
-    pub(crate) async fn move_monsters<'a>(
+    pub(crate) async fn try_move_monsters<'a>(
         &mut self,
         player: &MutexGuard<'a, Player>,
         monster_manager: &mut MonsterManager,
+        map_guard: &mut MutexGuard<'a, MapManager>,
+        chat: &mut Arc<Mutex<Chat>>
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
         let mut new_monsters_position = HashMap::<i32, Vec2>::new();
+        let map_index = map_guard.current_map_index;
+        if let Some(map_data) = map_guard.get_map_mut(map_index) {
+            for mon_index in 0..monsters.len() {
+                let monster = monsters.get_mut(mon_index);
+                if let Some(m_data) = monster {
+                    let cur_monster_pos = m_data.position;
+                    let mut new_pos = Vec2::ZERO;
 
-        for mon_index in 0..monsters.len() {
-            let monster = monsters.get_mut(mon_index);
+                    /*if cur_monster_pos.x < player.position.x {
+                        new_pos = Vec2::new(cur_monster_pos.x + 1, cur_monster_pos.y);
+                    } else if cur_monster_pos.x > player.position.x {
+                        new_pos = Vec2::new(cur_monster_pos.x - 1, cur_monster_pos.y);
+                    } else if cur_monster_pos.y < player.position.y {
+                        new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y + 1);
+                    } else if cur_monster_pos.y > player.position.y {
+                        new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y - 1);
+                    }*/
+                    //chat.lock().await.process_debug_message(&format!("player start pos: {:?}, cur_monster_pos: {:?}", player.position, cur_monster_pos), 0);
 
-            if let Some(m_data) = monster {
-                let cur_monster_pos = m_data.position;
-                let mut new_pos = Vec2::ZERO;
-
-                if cur_monster_pos.x < player.player_position.x {
-                    new_pos = Vec2::new(cur_monster_pos.x + 1, cur_monster_pos.y);
-                } else if cur_monster_pos.x > player.player_position.x {
-                    new_pos = Vec2::new(cur_monster_pos.x - 1, cur_monster_pos.y);
-                } else if cur_monster_pos.y < player.player_position.y {
-                    new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y + 1);
-                } else if cur_monster_pos.y > player.player_position.y {
-                    new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y - 1);
+                    new_pos = Node::find_shortest_path(&map_data.map, cur_monster_pos, player.position, chat).await;
+                    //chat.lock().await.process_chat_message(&format!("New Mon Pos: {:?}", new_pos));
+                    new_monsters_position.insert(m_data.id, new_pos);
                 }
-                new_monsters_position.insert(m_data.id, new_pos);
             }
         }
-
         new_monsters_position
     }
+
+    /*pub(crate) fn find_shortest_path(
+        &mut self,
+        map: &Vec<Vec<Space>>,
+        monster_start_position: Vec2,
+        player_start_position: Vec2
+    ) -> Vec2 {
+
+
+        Vec2::ZERO
+    }*/
 
     pub(crate) async fn process_monsters_move<'a>(
         &mut self,
@@ -249,32 +281,53 @@ impl CollisionEngine {
         let mut processed_monsters_move = HashMap::<i32, Vec2>::new();
 
         for index in 0..monsters.len() {
-            let monster = monsters.get_mut(index).unwrap();
+            let monster = match monsters.get_mut(index) {
+                Some(monster) => monster,
+                None => continue
+            };
 
             if monster.tile == MONSTER_TILE_SET.snake {
-                let new_enemy_pos = new_monsters_position[&monster.id];
-                //let mut map_guard = map_manager_clone.lock().await;
-                let map_index = map_manager_clone.current_map_index;
-                let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
-                let is_tile_solid = map_data.map[new_enemy_pos.y][new_enemy_pos.x].is_solid;
-                let is_tile_traversable =
-                    map_data.map[new_enemy_pos.y][new_enemy_pos.x].is_traversable;
+                if let Some(new_enemy_pos) = new_monsters_position.get_mut(&monster.id) {
+                    let map_index = map_manager_clone.current_map_index;
+                    if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
+                        let tmp_tile = map_data.map[new_enemy_pos.y][new_enemy_pos.x];
+                        let is_tile_solid = tmp_tile.is_solid;
+                        let is_tile_traversable = tmp_tile.is_traversable;
 
-                if !is_tile_traversable {
-                    continue;
+                        if !is_tile_traversable {
+                            continue;
+                        }
+
+                        if is_tile_solid {
+                            continue;
+                        }
+
+                        processed_monsters_move.insert(monster.id, *new_enemy_pos);
+                    }
                 }
-
-                if is_tile_solid {
-                    continue;
-                }
-
-                processed_monsters_move.insert(monster.id, new_enemy_pos);
-
-                //drop(map_guard);
             }
         }
 
         processed_monsters_move
+    }
+
+    fn remove_duplicate_monster_positions(
+        &self,
+        new_monsters_position: HashMap<i32, MonsterPositionSet>,
+    ) -> HashMap<i32, Vec2> {
+        let mut non_duplicate_positions = HashMap::<i32, Vec2>::new();
+        let mut previous_positions: HashSet<Vec2> = HashSet::new();
+
+        for (key, position_set) in new_monsters_position {
+            let new_position = position_set.new_position;
+
+            if !previous_positions.contains(&new_position) {
+                previous_positions.insert(new_position.clone());
+                non_duplicate_positions.insert(key, new_position);
+            }
+        }
+
+        non_duplicate_positions
     }
 
     pub(crate) async fn update_monsters_position<'a>(
@@ -292,15 +345,16 @@ impl CollisionEngine {
                     //let mut map_guard = map_manager_clone.lock().await;
                     let map_index = map_manager_clone.current_map_index;
                     let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
-                    let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x];
+                    let tmp_tile = map_data.map[md.position.y][md.position.x];
 
+                    // TODO work on how monsters move on tiles
                     let tile_below_monster = md.get_tile_below_monster();
                     map_data.map[md.position.y][md.position.x] = Space::new(
-                        self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),
+                        DEFAULT_TILE_SET.floor/*self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),*/
                     );
                     md.tile_below_monster = tmp_tile.tile;
                     md.position = *new_mons_pos;
-                    map_data.map[new_mons_pos.y][md.position.x] = Space::new('S');
+                    map_data.map[new_mons_pos.y][new_mons_pos.x] = Space::new('S');
                     //drop(map_guard);
                 }
             }

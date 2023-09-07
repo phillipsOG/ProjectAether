@@ -92,7 +92,7 @@ impl MapManager {
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
 
-        player.player_position = pos;
+        player.position = pos;
         player.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.set_player_position(pos);
 
@@ -133,6 +133,8 @@ impl MapManager {
             self.current_map_index = 3;
         } else if map_name == "map2" {
             self.current_map_index = 4;
+        } else if map_name == "map3" {
+            self.current_map_index = 5;
         }
 
         self.get_map_mut(self.current_map_index)

@@ -10,7 +10,7 @@ use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
 use std::io::{stdout, Write};
 use std::sync::Arc;
-use crossterm::cursor::DisableBlinking;
+use crossterm::cursor::{DisableBlinking, SetCursorStyle};
 
 #[derive(Clone)]
 pub struct GameClient { }
@@ -25,17 +25,10 @@ impl GameClient {
         chat: &mut Arc<Mutex<Chat>>,
     ) {
         let mut stdout = stdout();
-        stdout.queue(crossterm::cursor::MoveTo(0, 0)).unwrap();
-        stdout.flush().unwrap();
-        stdout
-            .queue(terminal::Clear(terminal::ClearType::All))
-            .unwrap();
-
+        let player_pos = player.position;
+        //stdout.queue(crossterm::cursor::MoveTo(player_pos.x as u16, player_pos.y as u16)).unwrap();
 
         let mut str_map = String::new();
-
-        io::stdout().execute(DisableBlinking).expect("disable blink?");
-
         let mut tmp_plr = player.clone();
         let mut tmp_chat = chat.lock().await;
         let map_guard = map_manager_clone
@@ -72,6 +65,14 @@ impl GameClient {
                 str_map += &*format!("{}\n", tile_line);
             }
         }
+        //stdout.queue(crossterm::cursor::MoveTo(player.player_position.y as u16, player.player_position.x as u16)).unwrap();
+        stdout.queue(crossterm::cursor::MoveTo(0, 0)).unwrap();
+        stdout
+            .queue(terminal::Clear(terminal::ClearType::All))
+            .unwrap();
+        /*stdout
+            .queue(terminal::Clear(terminal::ClearType::All))
+            .unwrap();*/
 
         println!("{}", str_map);
         tmp_chat.print_chat();

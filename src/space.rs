@@ -8,6 +8,8 @@ pub struct Space {
     pub is_visible: bool,
     pub is_solid: bool,
     pub is_traversable: bool,
+    pub travel_cost: usize
+
 }
 
 impl Space {
@@ -23,6 +25,7 @@ impl Space {
             is_traversable: tile == DEFAULT_TILE_SET.floor
                 || tile == DEFAULT_TILE_SET.open_door
                 || tile == LADDER_TILE_SET.floor,
+            travel_cost: Space::calculate_tile_cost(tile),
         }
     }
 
@@ -38,6 +41,17 @@ impl Space {
             is_traversable: tile == DEFAULT_TILE_SET.floor
                 || tile == DEFAULT_TILE_SET.open_door
                 || tile == LADDER_TILE_SET.floor,
+            travel_cost: Space::calculate_tile_cost(tile),
+        }
+    }
+
+    fn calculate_tile_cost(tile: char) -> usize {
+        if tile == DEFAULT_TILE_SET.floor {
+            1
+        } else if tile == DEFAULT_TILE_SET.wall {
+            3
+        } else {
+            0
         }
     }
 }

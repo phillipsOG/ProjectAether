@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord, Debug)]
 pub struct Vec2 {
     pub x: usize,
     pub y: usize,

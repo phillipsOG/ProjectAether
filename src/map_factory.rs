@@ -43,19 +43,24 @@ impl MapFactory {
         let seed = hasher.finish();
 
         // create a seeded RNG using the generated seed
-        let mut rng = StdRng::seed_from_u64(seed);
 
         for pos_y in 0..height {
             for pos_x in 0..width {
+                let mut rng = rand::thread_rng();
+                let y: f64 = rng.gen(); // generates a float between 0 and 1
+
                 let tile =
                     if pos_y == 0 && pos_x > 0 || pos_y > 0 && pos_x == 0 || pos_y == height - 1 {
                         DEFAULT_TILE_SET.wall
                     } else {
                         // generate a random value based on the seeded RNG
                         // for example, generating floor tiles with a certain probability
-                        if rng.gen::<f32>() < 0.7 {
+                        if y < 0.8 {
                             DEFAULT_TILE_SET.floor
+                        } else if y < 0.6 {
+                            DEFAULT_TILE_SET.key
                         } else {
+
                             DEFAULT_TILE_SET.wall
                         }
                     };
@@ -71,7 +76,7 @@ impl MapFactory {
             .map(|line| line.chars().map(Space::from_char).collect())
             .collect();
 
-        player.player_position = pos;
+        player.position = pos;
         player.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.set_player_position(pos);
 
@@ -106,7 +111,6 @@ impl MapFactory {
                 terrain_data.height_increase = 10;
             } else {
                 terrain_data.width_increase = 1;
-                chat.process_chat_message("new land bound x");
             }
         } else if new_player_position.y >= map.map_height - 1 {
             terrain_data.height_increase = 1;
@@ -129,7 +133,7 @@ impl MapFactory {
                 }
 
                 if new_player_position.x >= map.map_width - terrain_data.width_increase {
-                    chat.process_chat_message("spawn building here");
+                    //chat.process_chat_message("spawn building here");
                     updated_map_data[pos_y + terrain_data.height_increase]
                         [pos_x + terrain_data.width_increase] =
                         self.generate_terrain_building(pos_y, pos_x);

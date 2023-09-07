@@ -1,3 +1,6 @@
+use std::io::{stdout, Write};
+use crossterm::{QueueableCommand, terminal};
+
 #[derive(Clone)]
 pub struct Chat {
     pub chat: [String; 10],
@@ -30,6 +33,10 @@ impl Chat {
     }
 
     pub(crate) fn print_chat(&mut self) {
+        let mut stdout = stdout();
+        stdout
+            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))
+            .unwrap();
         for i in 0..self.chat.len() {
             println!("{}", self.chat[i]);
         }
@@ -68,6 +75,10 @@ impl Chat {
 
         // store previous message
         self.previous_message = message.parse().unwrap();
+    }
+
+    pub(crate) fn process_debug_message(&mut self, message: &str, index: usize) {
+        self.chat[index] = message.parse().unwrap();
     }
 
     fn print_processed_input(&mut self) {

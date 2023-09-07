@@ -65,11 +65,11 @@ impl MapData {
 
         for i in 1..vision_radius + 1 {
             let y = player
-                .player_position
+                .position
                 .y
                 .wrapping_add((pos_y * i as i32) as usize);
             let x = player
-                .player_position
+                .position
                 .x
                 .wrapping_add((pos_x * i as i32) as usize);
 
