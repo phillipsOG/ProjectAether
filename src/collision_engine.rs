@@ -238,38 +238,16 @@ impl CollisionEngine {
                 let monster = monsters.get_mut(mon_index);
                 if let Some(m_data) = monster {
                     let cur_monster_pos = m_data.position;
-                    let mut new_pos = Vec2::ZERO;
+                    let mut new_pos = cur_monster_pos;
 
-                    /*if cur_monster_pos.x < player.position.x {
-                        new_pos = Vec2::new(cur_monster_pos.x + 1, cur_monster_pos.y);
-                    } else if cur_monster_pos.x > player.position.x {
-                        new_pos = Vec2::new(cur_monster_pos.x - 1, cur_monster_pos.y);
-                    } else if cur_monster_pos.y < player.position.y {
-                        new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y + 1);
-                    } else if cur_monster_pos.y > player.position.y {
-                        new_pos = Vec2::new(cur_monster_pos.x, cur_monster_pos.y - 1);
-                    }*/
-                    //chat.lock().await.process_debug_message(&format!("player start pos: {:?}, cur_monster_pos: {:?}", player.position, cur_monster_pos), 0);
+                    new_pos = Node::find_shortest_path(&map_data.map, cur_monster_pos, player.position).await;
 
-                    new_pos = Node::find_shortest_path(&map_data.map, cur_monster_pos, player.position, chat).await;
-                    //chat.lock().await.process_chat_message(&format!("New Mon Pos: {:?}", new_pos));
                     new_monsters_position.insert(m_data.id, new_pos);
                 }
             }
         }
         new_monsters_position
     }
-
-    /*pub(crate) fn find_shortest_path(
-        &mut self,
-        map: &Vec<Vec<Space>>,
-        monster_start_position: Vec2,
-        player_start_position: Vec2
-    ) -> Vec2 {
-
-
-        Vec2::ZERO
-    }*/
 
     pub(crate) async fn process_monsters_move<'a>(
         &mut self,

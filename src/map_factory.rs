@@ -143,20 +143,6 @@ impl MapFactory {
         }
         terrain_data.map = updated_map_data;
 
-        /*
-        chat.process_chat_message(&format!(
-            "y: {}, x: {}",
-            map.player_position.y, map.player_position.x
-        ));
-        chat.clear_chat();
-        chat.process_chat_message(&format!(
-            "y: {}, x: {}",
-            map.player_position.y, map.player_position.x
-        ));*/
-        /*chat.process_chat_message(&format!(
-            "map_width: {}, map_height: {}",
-            map.map_width, map.map_height
-        ));*/
         return Some(terrain_data);
     }
 

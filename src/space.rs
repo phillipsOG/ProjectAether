@@ -8,8 +8,9 @@ pub struct Space {
     pub is_visible: bool,
     pub is_solid: bool,
     pub is_traversable: bool,
-    pub travel_cost: usize
-
+    pub travel_cost: usize,
+    pub is_monster: bool,
+    pub is_player: bool
 }
 
 impl Space {
@@ -26,6 +27,8 @@ impl Space {
                 || tile == DEFAULT_TILE_SET.open_door
                 || tile == LADDER_TILE_SET.floor,
             travel_cost: Space::calculate_tile_cost(tile),
+            is_monster: tile == MONSTER_TILE_SET.snake,
+            is_player: tile == MONSTER_TILE_SET.player,
         }
     }
 
@@ -42,6 +45,8 @@ impl Space {
                 || tile == DEFAULT_TILE_SET.open_door
                 || tile == LADDER_TILE_SET.floor,
             travel_cost: Space::calculate_tile_cost(tile),
+            is_monster: tile == MONSTER_TILE_SET.snake,
+            is_player: tile == MONSTER_TILE_SET.player,
         }
     }
 
