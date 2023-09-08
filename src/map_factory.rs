@@ -7,6 +7,8 @@ use crate::terrain_data::TerrainData;
 use crate::tile_set::DEFAULT_TILE_SET;
 use crate::Vec2;
 
+use crate::map_manager::MapManager;
+use futures::lock::{Mutex, MutexGuard};
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;
@@ -17,8 +19,6 @@ use std::io;
 use std::io::BufRead;
 use std::path::Path;
 use std::sync::Arc;
-use futures::lock::{Mutex, MutexGuard};
-use crate::map_manager::MapManager;
 
 #[derive(Clone)]
 pub struct MapFactory {}
@@ -60,7 +60,6 @@ impl MapFactory {
                         } else if y < 0.6 {
                             DEFAULT_TILE_SET.key
                         } else {
-
                             DEFAULT_TILE_SET.wall
                         }
                     };

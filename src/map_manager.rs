@@ -5,15 +5,15 @@ use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 use crate::MovementType;
 use crate::Vec2;
 
+use crate::chat::Chat;
+use crate::terrain_data::TerrainData;
+use futures::lock::Mutex;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
 use std::sync::Arc;
-use futures::lock::Mutex;
-use crate::chat::Chat;
-use crate::terrain_data::TerrainData;
 
 #[derive(Clone)]
 pub struct MapManager {
@@ -58,7 +58,7 @@ impl MapManager {
     pub(crate) fn update_current_map(
         &mut self,
         terrain_data: TerrainData,
-        _chat_clone: &mut Arc<Mutex<Chat>>
+        _chat_clone: &mut Arc<Mutex<Chat>>,
     ) {
         let map_index = self.current_map_index;
         let map = self.get_map_mut(map_index).expect("map data");

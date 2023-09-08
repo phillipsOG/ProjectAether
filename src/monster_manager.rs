@@ -41,14 +41,18 @@ impl MonsterManager {
             for pos_x in 0..map_width {
                 let current_tile = map_data.map[pos_y][pos_x];
 
-                if !current_tile.is_solid && current_tile.tile == DEFAULT_TILE_SET.floor && loop_limit != 3 /*spawn_onerng.gen_range(0..10) >= 9*/ {
+                if !current_tile.is_solid
+                    && current_tile.tile == DEFAULT_TILE_SET.floor
+                    && loop_limit != 3
+                /*spawn_onerng.gen_range(0..10) >= 9*/
+                {
                     let mut new_monster = monster_factory
                         .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32);
                     new_monster.tile_below_monster = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
                     map_data.map[pos_y][pos_x] = Space::new(new_monster.tile);
                     self.monsters.push(new_monster);
-                    loop_limit+= 1;
+                    loop_limit += 1;
                 }
             }
         }

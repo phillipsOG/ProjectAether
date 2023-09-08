@@ -10,7 +10,7 @@ pub struct Space {
     pub is_traversable: bool,
     pub travel_cost: usize,
     pub is_monster: bool,
-    pub is_player: bool
+    pub is_player: bool,
 }
 
 impl Space {

@@ -5,32 +5,32 @@ use crate::map_data::MapData;
 
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::{MovementType};
+use crate::MovementType;
 use crossterm::event::KeyCode;
 
 use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
-use std::{io};
+use std::io;
 use std::sync::Arc;
 
 use crate::monster_manager::MonsterManager;
+use crate::node::Pathfinding;
 use crate::space::Space;
 use crate::Vec2;
-use crate::node::Node;
 
 #[derive(Clone)]
 pub struct CollisionEngine {}
 
 struct MonsterPositionSet {
     pub current_position: Vec2,
-    pub new_position: Vec2
+    pub new_position: Vec2,
 }
 
 impl MonsterPositionSet {
     pub(crate) fn new(current_position: Vec2, new_position: Vec2) -> Self {
         MonsterPositionSet {
             current_position,
-            new_position
+            new_position,
         }
     }
 }
@@ -103,11 +103,8 @@ impl CollisionEngine {
         chat: &mut Arc<Mutex<Chat>>,
         new_player_pos: Vec2,
     ) -> MovementType {
-
         let map_index = map_manager_clone.current_map_index;
-        let map = map_manager_clone
-            .get_map_mut(map_index)
-            .expect("map data");
+        let map = map_manager_clone.get_map_mut(map_index).expect("map data");
         let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
         let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
         let is_tile_traversable = map.map[new_player_pos.y][new_player_pos.x].is_traversable;
@@ -140,7 +137,7 @@ impl CollisionEngine {
                 player.inventory.remove_key(1);
                 chat_guard.process_chat_message("You unlock the door using a rusty key.");
                 map.map[new_player_pos.y][new_player_pos.x] =
-                Space::new(DEFAULT_TILE_SET.open_door);
+                    Space::new(DEFAULT_TILE_SET.open_door);
             } else {
                 chat_guard.process_chat_message("You need a rusty key to open this door.");
             };
@@ -228,7 +225,7 @@ impl CollisionEngine {
         player: &MutexGuard<'a, Player>,
         monster_manager: &mut MonsterManager,
         map_guard: &mut MutexGuard<'a, MapManager>,
-        chat: &mut Arc<Mutex<Chat>>
+        chat: &mut Arc<Mutex<Chat>>,
     ) -> HashMap<i32, Vec2> {
         let monsters = monster_manager.get_monsters_mut();
         let mut new_monsters_position = HashMap::<i32, Vec2>::new();
@@ -240,7 +237,21 @@ impl CollisionEngine {
                     let cur_monster_pos = m_data.position;
                     let mut new_pos = cur_monster_pos;
 
-                    new_pos = Node::find_shortest_path(&map_data.map, cur_monster_pos, player.position).await;
+                    // essentially acts as the tile radius for the monster searching for the player
+                    let radius = 25;
+                    new_pos = Pathfinding::find_shortest_path(
+                        &map_data.map,
+                        cur_monster_pos,
+                        player.position,
+                        radius,
+                    )
+                    .await;
+
+                    if new_pos == cur_monster_pos {
+                        // if new pos is the same as cur mon pos than no path found to the player within given radius
+                        // make the monster wander
+                        new_pos = Pathfinding::wander(cur_monster_pos, &map_data.map);
+                    }
 
                     new_monsters_position.insert(m_data.id, new_pos);
                 }
@@ -261,7 +272,7 @@ impl CollisionEngine {
         for index in 0..monsters.len() {
             let monster = match monsters.get_mut(index) {
                 Some(monster) => monster,
-                None => continue
+                None => continue,
             };
 
             if monster.tile == MONSTER_TILE_SET.snake {
@@ -328,7 +339,7 @@ impl CollisionEngine {
                     // TODO work on how monsters move on tiles
                     let tile_below_monster = md.get_tile_below_monster();
                     map_data.map[md.position.y][md.position.x] = Space::new(
-                        DEFAULT_TILE_SET.floor/*self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),*/
+                        DEFAULT_TILE_SET.floor, /*self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),*/
                     );
                     md.tile_below_monster = tmp_tile.tile;
                     md.position = *new_mons_pos;

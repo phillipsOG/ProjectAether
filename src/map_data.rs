@@ -64,14 +64,8 @@ impl MapData {
         let vision_radius: isize = 2; //set to 2
 
         for i in 1..vision_radius + 1 {
-            let y = player
-                .position
-                .y
-                .wrapping_add((pos_y * i as i32) as usize);
-            let x = player
-                .position
-                .x
-                .wrapping_add((pos_x * i as i32) as usize);
+            let y = player.position.y.wrapping_add((pos_y * i as i32) as usize);
+            let x = player.position.x.wrapping_add((pos_x * i as i32) as usize);
 
             if x >= self.map_width || y >= self.map_height {
                 break;

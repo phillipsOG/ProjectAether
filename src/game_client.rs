@@ -1,22 +1,24 @@
-use std::io;
 use crate::chat::Chat;
+use std::io;
 
 use crate::player::Player;
 use crate::tile_set::DEFAULT_TILE_SET;
 
-use crossterm::{terminal, QueueableCommand, ExecutableCommand};
+use crossterm::{terminal, ExecutableCommand, QueueableCommand};
 
 use crate::map_manager::MapManager;
+use crossterm::cursor::{DisableBlinking, SetCursorStyle};
 use futures::lock::{Mutex, MutexGuard};
 use std::io::{stdout, Write};
 use std::sync::Arc;
-use crossterm::cursor::{DisableBlinking, SetCursorStyle};
 
 #[derive(Clone)]
-pub struct GameClient { }
+pub struct GameClient {}
 
 impl GameClient {
-    pub(crate) fn new() -> Self { GameClient { } }
+    pub(crate) fn new() -> Self {
+        GameClient {}
+    }
 
     pub(crate) async fn print_terminal<'a>(
         &self,
@@ -71,8 +73,8 @@ impl GameClient {
             .queue(terminal::Clear(terminal::ClearType::All))
             .unwrap();
         /*stdout
-            .queue(terminal::Clear(terminal::ClearType::All))
-            .unwrap();*/
+        .queue(terminal::Clear(terminal::ClearType::All))
+        .unwrap();*/
 
         println!("{}", str_map);
         tmp_chat.print_chat();
