@@ -275,24 +275,22 @@ impl CollisionEngine {
                 None => continue,
             };
 
-            if monster.tile == MONSTER_TILE_SET.snake {
-                if let Some(new_enemy_pos) = new_monsters_position.get_mut(&monster.id) {
-                    let map_index = map_manager_clone.current_map_index;
-                    if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
-                        let tmp_tile = map_data.map[new_enemy_pos.y][new_enemy_pos.x];
-                        let is_tile_solid = tmp_tile.is_solid;
-                        let is_tile_traversable = tmp_tile.is_traversable;
+            if let Some(new_enemy_pos) = new_monsters_position.get_mut(&monster.id) {
+                let map_index = map_manager_clone.current_map_index;
+                if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
+                    let tmp_tile = map_data.map[new_enemy_pos.y][new_enemy_pos.x];
+                    let is_tile_solid = tmp_tile.is_solid;
+                    let is_tile_traversable = tmp_tile.is_traversable;
 
-                        if !is_tile_traversable {
-                            continue;
-                        }
-
-                        if is_tile_solid {
-                            continue;
-                        }
-
-                        processed_monsters_move.insert(monster.id, *new_enemy_pos);
+                    if !is_tile_traversable {
+                        continue;
                     }
+
+                    if is_tile_solid {
+                        continue;
+                    }
+
+                    processed_monsters_move.insert(monster.id, *new_enemy_pos);
                 }
             }
         }
@@ -343,7 +341,7 @@ impl CollisionEngine {
                     );
                     md.tile_below_monster = tmp_tile.tile;
                     md.position = *new_mons_pos;
-                    map_data.map[new_mons_pos.y][new_mons_pos.x] = Space::new('S');
+                    map_data.map[new_mons_pos.y][new_mons_pos.x] = Space::new(md.tile);
                     //drop(map_guard);
                 }
             }

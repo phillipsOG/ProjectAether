@@ -22,30 +22,13 @@ impl Space {
                 || tile == DEFAULT_TILE_SET.closed_door_side
                 || tile == DEFAULT_TILE_SET.closed_door_top
                 || tile == MONSTER_TILE_SET.snake
+                || tile == MONSTER_TILE_SET.goblin
                 || tile == DEFAULT_TILE_SET.player,
             is_traversable: tile == DEFAULT_TILE_SET.floor
                 || tile == DEFAULT_TILE_SET.open_door
                 || tile == LADDER_TILE_SET.floor,
             travel_cost: Space::calculate_tile_cost(tile),
-            is_monster: tile == MONSTER_TILE_SET.snake,
-            is_player: tile == MONSTER_TILE_SET.player,
-        }
-    }
-
-    pub(crate) fn from_char(tile: char) -> Self {
-        Space {
-            tile,
-            is_visible: false,
-            is_solid: tile == DEFAULT_TILE_SET.wall
-                || tile == DEFAULT_TILE_SET.closed_door_side
-                || tile == DEFAULT_TILE_SET.closed_door_top
-                || tile == MONSTER_TILE_SET.snake
-                || tile == DEFAULT_TILE_SET.player,
-            is_traversable: tile == DEFAULT_TILE_SET.floor
-                || tile == DEFAULT_TILE_SET.open_door
-                || tile == LADDER_TILE_SET.floor,
-            travel_cost: Space::calculate_tile_cost(tile),
-            is_monster: tile == MONSTER_TILE_SET.snake,
+            is_monster: tile == MONSTER_TILE_SET.snake || tile == MONSTER_TILE_SET.goblin,
             is_player: tile == MONSTER_TILE_SET.player,
         }
     }

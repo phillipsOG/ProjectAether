@@ -3,7 +3,7 @@ use futures::lock::MutexGuard;
 use crate::monster::Monster;
 use crate::monster_generator::MonsterFactory;
 
-use crate::tile_set::DEFAULT_TILE_SET;
+use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
 use crate::Vec2;
 
 use crate::map_manager::MapManager;
@@ -40,6 +40,13 @@ impl MonsterManager {
         for pos_y in 0..map_height {
             for pos_x in 0..map_width {
                 let current_tile = map_data.map[pos_y][pos_x];
+                let mut monster_type = MONSTER_TILE_SET.goblin;
+
+                if rng.gen::<f64>() < 0.5 {
+                    monster_type = MONSTER_TILE_SET.goblin
+                } else {
+                    monster_type = MONSTER_TILE_SET.snake
+                };
 
                 if !current_tile.is_solid
                     && current_tile.tile == DEFAULT_TILE_SET.floor
@@ -47,7 +54,7 @@ impl MonsterManager {
                 /*spawn_onerng.gen_range(0..10) >= 9*/
                 {
                     let mut new_monster = monster_factory
-                        .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32);
+                        .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32, monster_type);
                     new_monster.tile_below_monster = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
                     map_data.map[pos_y][pos_x] = Space::new(new_monster.tile);

@@ -80,8 +80,8 @@ impl MapData {
         }
     }
 
-    pub(crate) fn set_monster_position(&mut self, new_pos: Vec2) {
-        self.map[new_pos.y][new_pos.x] = Space::new(MONSTER_TILE_SET.snake);
+    pub(crate) fn set_monster_position(&mut self, new_pos: Vec2, monster_type: char) {
+        self.map[new_pos.y][new_pos.x] = Space::new(monster_type);
     }
 
     pub(crate) fn set_map_tile_set(&mut self, tile_set: TileSet) {

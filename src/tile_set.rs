@@ -60,6 +60,7 @@ pub const LADDER_TILE_SET: TileSet = TileSet {
 pub struct MonsterTileSet {
     pub player: char,
     pub snake: char,
+    pub goblin: char
 }
 
 impl MonsterTileSet {
@@ -70,10 +71,12 @@ impl MonsterTileSet {
     pub fn update_with(&mut self, other: MonsterTileSet) {
         self.player = other.player;
         self.snake = other.snake;
+        self.goblin = other.goblin;
     }
 }
 
 pub const MONSTER_TILE_SET: MonsterTileSet = MonsterTileSet {
     player: '@',
-    snake: 'S',
+    snake: 's',
+    goblin: 'g'
 };

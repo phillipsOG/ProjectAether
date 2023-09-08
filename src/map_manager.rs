@@ -89,7 +89,7 @@ impl MapManager {
         let mut new_map = MapData::new();
         new_map.map = map_lines
             .iter()
-            .map(|line| line.chars().map(Space::from_char).collect())
+            .map(|line| line.chars().map(Space::new).collect())
             .collect();
 
         player.position = pos;

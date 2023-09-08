@@ -1,5 +1,5 @@
 use crate::monster::Monster;
-use crate::tile_set::MONSTER_TILE_SET;
+use crate::tile_set::{MONSTER_TILE_SET, MonsterTileSet};
 use crate::Vec2;
 
 #[derive(Clone)]
@@ -10,7 +10,7 @@ impl MonsterFactory {
         MonsterFactory {}
     }
 
-    pub fn generate_monster(&mut self, pos: Vec2, id: i32) -> Monster {
-        Monster::new_set_position(MONSTER_TILE_SET.snake, pos, id)
+    pub fn generate_monster(&mut self, pos: Vec2, id: i32, monster_type: char) -> Monster {
+        Monster::new_set_position(monster_type, pos, id)
     }
 }
