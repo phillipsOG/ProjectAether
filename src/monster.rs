@@ -8,26 +8,20 @@ pub struct Monster {
     pub status: Status,
     pub position: Vec2,
     pub tile_below_monster: char,
+    pub in_battle: bool,
+    pub is_alive: bool
 }
 
 impl Monster {
-    pub(crate) fn new(tile: char, id: i32) -> Self {
-        Monster {
-            tile,
-            status: Status::new_monster(10, 3, 1),
-            id: Monster::generate_id(id),
-            position: Vec2::ZERO,
-            tile_below_monster: ' ',
-        }
-    }
-
-    pub(crate) fn new_set_position(tile: char, position: Vec2, id: i32) -> Self {
+    pub(crate) fn new(tile: char, position: Vec2, id: i32) -> Self {
         Monster {
             tile,
             status: Status::new_monster(10, 3, 1),
             id: Monster::generate_id(id),
             position,
             tile_below_monster: ' ',
+            in_battle: false,
+            is_alive: true
         }
     }
 

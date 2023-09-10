@@ -1,4 +1,4 @@
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::chat::Chat;
 use crate::map_data::MapData;
@@ -92,7 +92,7 @@ impl CollisionEngine {
             _ => {}
         }
         current_position = player.position;
-        // Don't move
+        // don't move
         return current_position;
     }
 
@@ -105,6 +105,7 @@ impl CollisionEngine {
     ) -> MovementType {
         let map_index = map_manager_clone.current_map_index;
         let map = map_manager_clone.get_map_mut(map_index).expect("map data");
+        let space = map.map[new_player_pos.y][new_player_pos.x];
         let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
         let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
         let is_tile_traversable = map.map[new_player_pos.y][new_player_pos.x].is_traversable;
@@ -112,8 +113,11 @@ impl CollisionEngine {
         let mut chat_guard = chat.lock().await;
         let res = self.check_for_multi_tile(map, tmp_tile, new_player_pos);
 
-        //chat_guard.process_chat_message(&format!("tile travel cost: {:?}", map.map[new_player_pos.y][new_player_pos.x].travel_cost));
+        if space.is_monster {
+            return MovementType::Battle
+        }
 
+        //chat_guard.process_chat_message(&format!("tile travel cost: {:?}", map.map[new_player_pos.y][new_player_pos.x].travel_cost));
         if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
             if player.key_event == KeyCode::Up {
                 return MovementType::LadderUp;
@@ -156,6 +160,17 @@ impl CollisionEngine {
         }
         drop(chat_guard);
         return MovementType::Unable;
+    }
+
+    fn is_tile_monster(&self, monster: char) -> bool {
+        let monster_variants = [MONSTER_TILE_SET.snake, MONSTER_TILE_SET.goblin];
+
+        for monster_variant in monster_variants {
+            if monster_variant == monster {
+                return true;
+            }
+        }
+        false
     }
 
     pub(crate) async fn update_player_position<'a>(
@@ -227,34 +242,36 @@ impl CollisionEngine {
         map_guard: &mut MutexGuard<'a, MapManager>,
         chat: &mut Arc<Mutex<Chat>>,
     ) -> HashMap<i32, Vec2> {
-        let monsters = monster_manager.get_monsters_mut();
         let mut new_monsters_position = HashMap::<i32, Vec2>::new();
         let map_index = map_guard.current_map_index;
         if let Some(map_data) = map_guard.get_map_mut(map_index) {
-            for mon_index in 0..monsters.len() {
-                let monster = monsters.get_mut(mon_index);
-                if let Some(m_data) = monster {
-                    let cur_monster_pos = m_data.position;
-                    let mut new_pos = cur_monster_pos;
+            for monster in monster_manager.get_monsters_mut().values_mut() {
 
+                let cur_monster_pos = monster.position;
+                let mut new_pos = cur_monster_pos;
+
+                if !monster.in_battle {
                     // essentially acts as the tile radius for the monster searching for the player
-                    let radius = 25;
+                    let radius = 10;
                     new_pos = Pathfinding::find_shortest_path(
                         &map_data.map,
                         cur_monster_pos,
                         player.position,
                         radius,
                     )
-                    .await;
+                        .await;
 
                     if new_pos == cur_monster_pos {
                         // if new pos is the same as cur mon pos than no path found to the player within given radius
                         // make the monster wander
                         new_pos = Pathfinding::wander(cur_monster_pos, &map_data.map);
+                        chat.lock().await.process_debug_message("monster is wandering", 0);
+                    } else {
+                        chat.lock().await.process_debug_message("monster stopped wandering", 0);
                     }
-
-                    new_monsters_position.insert(m_data.id, new_pos);
                 }
+
+                new_monsters_position.insert(monster.id, new_pos);
             }
         }
         new_monsters_position
@@ -266,15 +283,9 @@ impl CollisionEngine {
         map_manager_clone: &mut MutexGuard<'a, MapManager>,
         monster_manager: &mut MutexGuard<'a, MonsterManager>,
     ) -> HashMap<i32, Vec2> {
-        let monsters = monster_manager.get_monsters_mut();
         let mut processed_monsters_move = HashMap::<i32, Vec2>::new();
 
-        for index in 0..monsters.len() {
-            let monster = match monsters.get_mut(index) {
-                Some(monster) => monster,
-                None => continue,
-            };
-
+        for monster in monster_manager.get_monsters_mut().values_mut() {
             if let Some(new_enemy_pos) = new_monsters_position.get_mut(&monster.id) {
                 let map_index = map_manager_clone.current_map_index;
                 if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
@@ -323,27 +334,18 @@ impl CollisionEngine {
         monster_manager: &mut MutexGuard<'a, MonsterManager>,
         processed_monsters_positions: HashMap<i32, Vec2>,
     ) {
-        let monsters = monster_manager.get_monsters_mut();
+        for monster in monster_manager.get_monsters_mut().values_mut() {
+            if let Some(new_mons_pos) = processed_monsters_positions.get(&monster.id) {
+                let map_index = map_manager_clone.current_map_index;
+                let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
+                let tmp_tile = map_data.map[monster.position.y][monster.position.x];
 
-        for mon_index in 0..monsters.len() {
-            let monster = monster_manager.get_monster_mut(mon_index);
-            if let Some(md) = monster {
-                if let Some(new_mons_pos) = processed_monsters_positions.get(&md.id) {
-                    //let mut map_guard = map_manager_clone.lock().await;
-                    let map_index = map_manager_clone.current_map_index;
-                    let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
-                    let tmp_tile = map_data.map[md.position.y][md.position.x];
-
-                    // TODO work on how monsters move on tiles
-                    let tile_below_monster = md.get_tile_below_monster();
-                    map_data.map[md.position.y][md.position.x] = Space::new(
-                        DEFAULT_TILE_SET.floor, /*self.update_monster_previous_tile(tile_below_monster, tmp_tile.tile),*/
-                    );
-                    md.tile_below_monster = tmp_tile.tile;
-                    md.position = *new_mons_pos;
-                    map_data.map[new_mons_pos.y][new_mons_pos.x] = Space::new(md.tile);
-                    //drop(map_guard);
-                }
+                // TODO work on how monsters move on tiles
+                let tile_below_monster = monster.get_tile_below_monster();
+                map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor,/*self.update_monster_previous_tile(md.tile_below_monster, tmp_tile.tile)*/);
+                monster.tile_below_monster = tmp_tile.tile;
+                monster.position = *new_mons_pos;
+                map_data.map[new_mons_pos.y][new_mons_pos.x] = Space::new(monster.tile);
             }
         }
     }

@@ -11,6 +11,6 @@ impl MonsterFactory {
     }
 
     pub fn generate_monster(&mut self, pos: Vec2, id: i32, monster_type: char) -> Monster {
-        Monster::new_set_position(monster_type, pos, id)
+        Monster::new(monster_type, pos, id)
     }
 }

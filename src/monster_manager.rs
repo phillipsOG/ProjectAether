@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use futures::lock::MutexGuard;
 
 use crate::monster::Monster;
@@ -11,7 +12,7 @@ use rand::Rng;
 
 use crate::space::Space;
 
-type Monsters = Vec<Monster>;
+type Monsters = HashMap<i32, Monster>;
 
 #[derive(Clone)]
 pub struct MonsterManager {
@@ -20,7 +21,10 @@ pub struct MonsterManager {
 
 impl MonsterManager {
     pub(crate) fn new() -> Self {
-        MonsterManager { monsters: vec![] }
+
+        MonsterManager {
+            monsters: HashMap::<i32, Monster>::new()
+        }
     }
 
     pub(crate) fn spawn_monsters(
@@ -50,15 +54,16 @@ impl MonsterManager {
 
                 if !current_tile.is_solid
                     && current_tile.tile == DEFAULT_TILE_SET.floor
-                    && loop_limit != 3
+                    && loop_limit != 8
                 /*spawn_onerng.gen_range(0..10) >= 9*/
                 {
                     let mut new_monster = monster_factory
                         .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32, monster_type);
+
                     new_monster.tile_below_monster = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
                     map_data.map[pos_y][pos_x] = Space::new(new_monster.tile);
-                    self.monsters.push(new_monster);
+                    self.monsters.insert(new_monster.id, new_monster);
                     loop_limit += 1;
                 }
             }
@@ -70,14 +75,27 @@ impl MonsterManager {
     }
 
     pub(crate) fn get_monsters_mut(&mut self) -> &mut Monsters {
-        self.monsters.as_mut()
+        &mut self.monsters
     }
 
-    pub(crate) fn get_monster(&mut self, index: usize) -> Option<&Monster> {
-        self.monsters.get(index)
+    pub(crate) fn get_monster(&mut self, id: &i32) -> Option<&Monster> {
+        self.monsters.get(id)
     }
 
-    pub(crate) fn get_monster_mut(&mut self, index: usize) -> Option<&mut Monster> {
-        self.monsters.get_mut(index)
+    pub(crate) fn get_monster_mut(&mut self, id: &i32) -> Option<&mut Monster> {
+        self.monsters.get_mut(id)
+    }
+
+    pub(crate) fn get_monster_at_position(&mut self, position: Vec2) -> Option<&mut Monster> {
+        for monster in self.monsters.values_mut() {
+            if monster.position == position {
+                return Some(monster);
+            }
+        }
+        None
+    }
+    
+    pub(crate) fn despawn(&mut self, monster_id: i32) {
+        self.monsters.remove(&monster_id);
     }
 }

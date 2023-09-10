@@ -5,10 +5,10 @@ use std::ops::Deref;
 #[derive(Clone, Copy)]
 pub struct Space {
     pub tile: char,
+    pub travel_cost: usize,
     pub is_visible: bool,
     pub is_solid: bool,
     pub is_traversable: bool,
-    pub travel_cost: usize,
     pub is_monster: bool,
     pub is_player: bool,
 }
@@ -17,6 +17,7 @@ impl Space {
     pub(crate) fn new(tile: char) -> Self {
         Space {
             tile,
+            travel_cost: Space::calculate_tile_cost(tile),
             is_visible: false,
             is_solid: tile == DEFAULT_TILE_SET.wall
                 || tile == DEFAULT_TILE_SET.closed_door_side
@@ -27,7 +28,6 @@ impl Space {
             is_traversable: tile == DEFAULT_TILE_SET.floor
                 || tile == DEFAULT_TILE_SET.open_door
                 || tile == LADDER_TILE_SET.floor,
-            travel_cost: Space::calculate_tile_cost(tile),
             is_monster: tile == MONSTER_TILE_SET.snake || tile == MONSTER_TILE_SET.goblin,
             is_player: tile == MONSTER_TILE_SET.player,
         }

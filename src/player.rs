@@ -18,6 +18,7 @@ pub struct Player {
     pub multi_tile_below_player: bool,
     pub current_floor: usize,
     pub fog_of_war: bool,
+    pub is_alive: bool
 }
 
 impl Player {
@@ -35,6 +36,7 @@ impl Player {
             multi_tile_below_player: false,
             current_floor: 0,
             fog_of_war: true,
+            is_alive: true
         }
     }
 

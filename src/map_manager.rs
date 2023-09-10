@@ -2,7 +2,7 @@ use crate::map_data::MapData;
 use crate::player::Player;
 use crate::space::Space;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
-use crate::MovementType;
+use crate::{Map, MovementType};
 use crate::Vec2;
 
 use crate::chat::Chat;
@@ -116,6 +116,10 @@ impl MapManager {
     pub(crate) fn add_generated_map(&mut self, generated_map: MapData) {
         self.add_map(self.current_map_index, generated_map);
         self.current_map_index += 1;
+    }
+
+    pub(crate) fn get_mut_current_map(&mut self) -> &mut MapData {
+        self.get_map_mut(self.current_map_index).expect("map data")
     }
 
     pub(crate) fn load_map(

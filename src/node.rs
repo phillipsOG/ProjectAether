@@ -3,7 +3,6 @@ use crate::vec2::Vec2;
 use rand::Rng;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use crate::Map;
-use crate::map_data::MapData;
 
 pub(crate) struct CostMapData {
     cost_map: HashMap<Vec2, usize>,
@@ -37,35 +36,29 @@ impl Pathfinding {
         // define the directions (up, down, left, right)
         let directions = [(0, -1), (-1, 0), (0, 1), (1, 0)];
 
-        // generate a random number between 0 and 3 (inclusive)
-        let random_index = rand::thread_rng().gen_range(0..5);
+        loop {
+            // generate a random number between 0 and 3 (inclusive)
+            let random_index = rand::thread_rng().gen_range(0..5);
 
-        // constants for map width and height (you can adjust these according to your game)
-        let map_width: usize = map.len();
-        let map_height: usize = map[0].len();
+            // make it possible to not move
+            if random_index == 0 {
+                return current_monster_position
+            }
 
-        // Determine if the monster will wander or stay in place (25% chance of wandering)
-        return if random_index == 0 {
-            // if it's 0, the monster will stay in place
-            current_monster_position
-        } else {
             // otherwise, pick a random direction to wander
-            let (dx, dy) = directions[random_index - 1]; // Subtract 1 to match the array index
+            let (dx, dy) = directions[random_index-1]; // Subtract 1 to match the array index
             let new_x = current_monster_position.x as i32 + dx;
             let new_y = current_monster_position.y as i32 + dy;
+            let potential_position = Vec2::new(new_x as usize, new_y as usize);
 
-            // make sure the new position is within bounds and convert it to a Vec2
-            if new_x >= 0 && new_x < map_width as i32 && new_y >= 0 && new_y < map_height as i32 {
-                Vec2::new(new_x as usize, new_y as usize)
-            } else {
-                // if the new position is out of bounds, stay in place
-                current_monster_position
+            if map[potential_position.y][potential_position.x].is_traversable {
+                return potential_position;
             }
         }
     }
 
     pub(crate) async fn find_shortest_path(
-        map: &Vec<Vec<Space>>,
+        map: &Map,
         monster_start_position: Vec2,
         player_start_position: Vec2,
         radius: usize,
@@ -112,11 +105,11 @@ impl Pathfinding {
     }
 
     async fn build_cost_map(
-        map: &Vec<Vec<Space>>,
+        map: &Map,
         monster_start_position: Vec2,
         player_start_position: Vec2,
         ignore_monsters: bool,
-        mut loop_limit: usize,
+        radius: usize,
     ) -> CostMapData {
         // create a map to store the cost of reaching each position
         let mut cost_map = HashMap::new();
@@ -179,8 +172,12 @@ impl Pathfinding {
                         || tentative_cost <= cost_map[&neighbour_position]
                     {
                         // legit neighbour entry, with a lower value than previous so count towards the radius of the monster searching for the player
-                        if loop_limit > 0 {
-                            loop_limit -= 1;
+                        // calculate the distance between the current position and the player's position
+                        let distance_to_player = Pathfinding::calculate_distance(current_monster.position, player_start_position);
+
+                        // check if the distance exceeds the desired radius
+                        if distance_to_player > radius {
+                            break;
                         }
 
                         // calculate the heuristic
@@ -201,13 +198,18 @@ impl Pathfinding {
                     }
                 }
             }
-
-            if loop_limit <= 0 {
-                break;
-            }
         }
 
         return CostMapData::new(HashMap::<Vec2, usize>::new(), false);
+    }
+
+    fn calculate_distance(monster_position: Vec2, player_position: Vec2) -> usize {
+        // calculate the Manhattan distance (L1 distance) between the two positions
+        let dx = (player_position.x as isize - monster_position.x as isize).abs() as usize;
+        let dy = (player_position.y as isize - monster_position.y as isize).abs() as usize;
+        let manhattan_distance = dx + dy;
+
+        return manhattan_distance;
     }
 
     async fn calculate_heuristic(node_position: Vec2, player_position: Vec2) -> usize {
@@ -222,7 +224,7 @@ impl Pathfinding {
         monster_position: Vec2,
         player_position: Vec2,
         cost_map: &HashMap<Vec2, usize>,
-        map: &Vec<Vec<Space>>,
+        map: &Map,
         ignore_monsters: bool,
     ) -> Vec2 {
         let mut current_position = player_position;
@@ -290,7 +292,7 @@ impl Pathfinding {
 
     async fn get_traversable_neighbours(
         current_node_position: Vec2,
-        map: &Vec<Vec<Space>>,
+        map: &Map,
         player_pos: Vec2,
         monster_pos: Vec2,
         ignore_monsters: bool,
