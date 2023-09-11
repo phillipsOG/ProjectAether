@@ -12,8 +12,8 @@ pub struct MapData {
     pub map: Map,
     pub str_map: String,
     pub tile_set: TileSet,
-    pub map_width: usize,
-    pub map_height: usize,
+    pub width: usize,
+    pub height: usize,
 }
 
 impl MapData {
@@ -22,8 +22,8 @@ impl MapData {
             map: Map::new(),
             str_map: String::new(),
             tile_set: DEFAULT_TILE_SET,
-            map_width: 0,
-            map_height: 0,
+            width: 0,
+            height: 0,
         }
     }
 
@@ -33,8 +33,8 @@ impl MapData {
     }
 
     pub(crate) fn set_player_vision(&mut self, player: &Player, _player_pos: Vec2) {
-        for y in 0..self.map_height {
-            for x in 0..self.map_width {
+        for y in 0..self.height {
+            for x in 0..self.width {
                 /*println!(
                     "height: {}, width: {}, map_height: {}",
                     self.map_height,
@@ -67,7 +67,7 @@ impl MapData {
             let y = player.position.y.wrapping_add((pos_y * i as i32) as usize);
             let x = player.position.x.wrapping_add((pos_x * i as i32) as usize);
 
-            if x >= self.map_width || y >= self.map_height {
+            if x >= self.width || y >= self.height {
                 break;
             }
 

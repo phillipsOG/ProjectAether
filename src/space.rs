@@ -11,6 +11,7 @@ pub struct Space {
     pub is_traversable: bool,
     pub is_monster: bool,
     pub is_player: bool,
+    pub is_occupied: bool
 }
 
 impl Space {
@@ -30,6 +31,7 @@ impl Space {
                 || tile == LADDER_TILE_SET.floor,
             is_monster: tile == MONSTER_TILE_SET.snake || tile == MONSTER_TILE_SET.goblin,
             is_player: tile == MONSTER_TILE_SET.player,
+            is_occupied: false
         }
     }
 

@@ -34,8 +34,8 @@ impl MonsterManager {
     ) {
         let map_index = map_manager_clone.current_map_index;
         let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
-        let map_height = map_data.map_height;
-        let map_width = map_data.map_width;
+        let map_height = map_data.height;
+        let map_width = map_data.width;
 
         let mut rng = rand::thread_rng();
         let mut spawn_one = false;
@@ -60,7 +60,7 @@ impl MonsterManager {
                     let mut new_monster = monster_factory
                         .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32, monster_type);
 
-                    new_monster.tile_below_monster = DEFAULT_TILE_SET.floor;
+                    new_monster.tile_below = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
                     map_data.map[pos_y][pos_x] = Space::new(new_monster.tile);
                     self.monsters.insert(new_monster.id, new_monster);

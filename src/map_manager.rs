@@ -63,8 +63,8 @@ impl MapManager {
         let map_index = self.current_map_index;
         let map = self.get_map_mut(map_index).expect("map data");
         map.map = terrain_data.map;
-        map.map_height += terrain_data.height_increase;
-        map.map_width += terrain_data.width_increase;
+        map.height += terrain_data.height_increase;
+        map.width += terrain_data.width_increase;
     }
 
     pub(crate) fn add_map_set_player_position(
@@ -96,8 +96,8 @@ impl MapManager {
         player.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.set_player_position(pos);
 
-        new_map.map_height = new_map.map.len();
-        new_map.map_width = if new_map.map_height > 0 {
+        new_map.height = new_map.map.len();
+        new_map.width = if new_map.height > 0 {
             new_map.map[0].len()
         } else {
             0

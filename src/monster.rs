@@ -7,7 +7,7 @@ pub struct Monster {
     pub tile: char,
     pub status: Status,
     pub position: Vec2,
-    pub tile_below_monster: char,
+    pub tile_below: char,
     pub in_battle: bool,
     pub is_alive: bool
 }
@@ -19,7 +19,7 @@ impl Monster {
             status: Status::new_monster(10, 3, 1),
             id: Monster::generate_id(id),
             position,
-            tile_below_monster: ' ',
+            tile_below: ' ',
             in_battle: false,
             is_alive: true
         }
@@ -30,10 +30,10 @@ impl Monster {
     }
 
     pub(crate) fn update_tile_below_monster(&mut self, tile: char) {
-        self.tile_below_monster = tile;
+        self.tile_below = tile;
     }
 
     pub(crate) fn get_tile_below_monster(self) -> char {
-        return self.tile_below_monster;
+        return self.tile_below;
     }
 }

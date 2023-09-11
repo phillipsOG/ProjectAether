@@ -79,8 +79,8 @@ impl MapFactory {
         player.tile_below_player = DEFAULT_TILE_SET.floor;
         new_map.set_player_position(pos);
 
-        new_map.map_width = new_map.map.len();
-        new_map.map_height = if new_map.map_width > 0 {
+        new_map.width = new_map.map.len();
+        new_map.height = if new_map.width > 0 {
             new_map.map[0].len()
         } else {
             0
@@ -104,14 +104,14 @@ impl MapFactory {
         let mut chat = chat_clone.lock().await;
         let map_index = map_manager_guard.current_map_index;
         let map = map_manager_guard.get_map(map_index).expect("map data");
-        if new_player_position.x >= map.map_width - 1 {
+        if new_player_position.x >= map.width - 1 {
             if new_player_position.x >= 20 && new_player_position.y >= 10 {
                 terrain_data.width_increase = 10;
                 terrain_data.height_increase = 10;
             } else {
                 terrain_data.width_increase = 1;
             }
-        } else if new_player_position.y >= map.map_height - 1 {
+        } else if new_player_position.y >= map.height - 1 {
             terrain_data.height_increase = 1;
         } else {
             return None;
@@ -119,19 +119,19 @@ impl MapFactory {
 
         let mut updated_map_data = self.get_new_map_size(
             new_player_position,
-            map.map_height + terrain_data.height_increase,
-            map.map_width + terrain_data.width_increase,
+            map.height + terrain_data.height_increase,
+            map.width + terrain_data.width_increase,
         );
 
         for (pos_y, row) in map.map.iter().enumerate() {
             for (pos_x, _space) in row.iter().enumerate() {
-                if pos_y < map.map_width && pos_x == 0 || pos_x > map.map_height && pos_y == 0 {
+                if pos_y < map.width && pos_x == 0 || pos_x > map.height && pos_y == 0 {
                     updated_map_data[pos_y][pos_x] = Space::new(DEFAULT_TILE_SET.wall);
                 } else {
                     updated_map_data[pos_y][pos_x] = _space.clone();
                 }
 
-                if new_player_position.x >= map.map_width - terrain_data.width_increase {
+                if new_player_position.x >= map.width - terrain_data.width_increase {
                     //chat.process_chat_message("spawn building here");
                     updated_map_data[pos_y + terrain_data.height_increase]
                         [pos_x + terrain_data.width_increase] =
@@ -163,8 +163,8 @@ impl MapFactory {
             .iter()
             .map(|line| line.chars().map(Space::new).collect())
             .collect();
-        structure.map_height = structure.map.len();
-        structure.map_width = if structure.map_height > 0 {
+        structure.height = structure.map.len();
+        structure.width = if structure.height > 0 {
             structure.map[0].len()
         } else {
             0

@@ -12,9 +12,10 @@ use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
 use std::io;
 use std::sync::Arc;
+use crate::monster::Monster;
 
 use crate::monster_manager::MonsterManager;
-use crate::node::Pathfinding;
+use crate::pathfinding::Pathfinding;
 use crate::space::Space;
 use crate::Vec2;
 
@@ -105,6 +106,7 @@ impl CollisionEngine {
     ) -> MovementType {
         let map_index = map_manager_clone.current_map_index;
         let map = map_manager_clone.get_map_mut(map_index).expect("map data");
+
         let space = map.map[new_player_pos.y][new_player_pos.x];
         let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
         let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
@@ -117,7 +119,6 @@ impl CollisionEngine {
             return MovementType::Battle
         }
 
-        //chat_guard.process_chat_message(&format!("tile travel cost: {:?}", map.map[new_player_pos.y][new_player_pos.x].travel_cost));
         if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
             if player.key_event == KeyCode::Up {
                 return MovementType::LadderUp;
@@ -290,14 +291,16 @@ impl CollisionEngine {
                 let map_index = map_manager_clone.current_map_index;
                 if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
                     let tmp_tile = map_data.map[new_enemy_pos.y][new_enemy_pos.x];
-                    let is_tile_solid = tmp_tile.is_solid;
-                    let is_tile_traversable = tmp_tile.is_traversable;
 
-                    if !is_tile_traversable {
+                    if tmp_tile.is_occupied {
                         continue;
                     }
 
-                    if is_tile_solid {
+                    if !tmp_tile.is_traversable {
+                        continue;
+                    }
+
+                    if tmp_tile.is_solid {
                         continue;
                     }
 
@@ -305,19 +308,18 @@ impl CollisionEngine {
                 }
             }
         }
-
-        processed_monsters_move
+        self.remove_duplicate_monster_positions(processed_monsters_move)
     }
 
     fn remove_duplicate_monster_positions(
         &self,
-        new_monsters_position: HashMap<i32, MonsterPositionSet>,
+        new_monsters_position: HashMap<i32, Vec2>,
     ) -> HashMap<i32, Vec2> {
         let mut non_duplicate_positions = HashMap::<i32, Vec2>::new();
         let mut previous_positions: HashSet<Vec2> = HashSet::new();
 
-        for (key, position_set) in new_monsters_position {
-            let new_position = position_set.new_position;
+        for (key, pos) in new_monsters_position {
+            let new_position = pos;
 
             if !previous_positions.contains(&new_position) {
                 previous_positions.insert(new_position.clone());
@@ -338,14 +340,16 @@ impl CollisionEngine {
             if let Some(new_mons_pos) = processed_monsters_positions.get(&monster.id) {
                 let map_index = map_manager_clone.current_map_index;
                 let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
-                let tmp_tile = map_data.map[monster.position.y][monster.position.x];
+                let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x].tile;
 
-                // TODO work on how monsters move on tiles
-                let tile_below_monster = monster.get_tile_below_monster();
-                map_data.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor,/*self.update_monster_previous_tile(md.tile_below_monster, tmp_tile.tile)*/);
-                monster.tile_below_monster = tmp_tile.tile;
+                map_data.map[monster.position.y][monster.position.x] = Space::new(self.update_monster_previous_tile(monster, tmp_tile));
                 monster.position = *new_mons_pos;
-                map_data.map[new_mons_pos.y][new_mons_pos.x] = Space::new(monster.tile);
+                monster.tile_below = tmp_tile;
+
+                let mut updated_space = Space::new(monster.tile);
+                updated_space.is_occupied = true;
+
+                map_data.map[new_mons_pos.y][new_mons_pos.x] = updated_space;
             }
         }
     }
@@ -368,23 +372,21 @@ impl CollisionEngine {
         tmp_tile
     }
 
-    fn update_monster_previous_tile(&mut self, tile_below_monster: char, tmp_tile: char) -> char {
+    fn update_monster_previous_tile(&mut self, monster: &mut Monster, mut tmp_tile: char) -> char {
         let tile_set = DEFAULT_TILE_SET;
 
-        let mut updated_tile = tmp_tile;
-
         if tmp_tile == tile_set.open_door {
-            updated_tile = tile_set.floor;
+            tmp_tile = tile_set.floor;
         }
 
-        if tile_below_monster == tile_set.open_door {
-            updated_tile = tile_set.open_door;
+        if monster.tile_below == tile_set.open_door {
+            tmp_tile = tile_set.open_door;
         }
 
-        if tile_below_monster == tile_set.closed_door_top {
-            updated_tile = tile_set.closed_door_top;
+        if monster.tile_below == tile_set.closed_door_top {
+            tmp_tile = tile_set.closed_door_top;
         }
 
-        updated_tile
+        tmp_tile
     }
 }

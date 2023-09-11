@@ -8,7 +8,7 @@ mod map_manager;
 mod monster;
 mod monster_generator;
 mod monster_manager;
-mod node;
+mod pathfinding;
 mod player;
 mod player_movement_data;
 mod space;
@@ -84,10 +84,9 @@ async fn main() {
         map_factory.generate_map(&mut player_guard, 20, 20, Vec2::new(2, 1), "seedphrase");
     map_manager_guard.add_generated_map(new_map);
     map_manager_guard.add_map_set_player_position(&mut player_guard, "test_map", Vec2::new(10, 10));
+    //map_manager_guard.add_map_set_player_position(&mut player_guard, "map3", Vec2::new(4, 5));
     map_manager_guard.add_map_set_player_position(&mut player_guard, "map2", Vec2::new(6, 2));
-    map_manager_guard.add_map_set_player_position(&mut player_guard, "map3", Vec2::new(4, 5));
-
-    map_manager_guard.load_map("map3", MovementType::Normal);
+    map_manager_guard.load_map("map2", MovementType::Normal);
 
     let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
     let collision_engine_clone = Arc::clone(&collision_engine);
