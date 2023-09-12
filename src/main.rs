@@ -67,15 +67,13 @@ pub async fn run() {
 
     event_loop.run(move |event, _, control_flow| {
         match event {
-
             Event::WindowEvent {
                 ref event,
                 window_id,
             }
-            if window_id == state.window().id() => if !state.input(event) { // UPDATED!
+            if window_id == state.window().id() => if !state.input(event) {
                 match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
+                    WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
                         input:
                         KeyboardInput {
                             state: ElementState::Pressed,
@@ -93,16 +91,18 @@ pub async fn run() {
                     _ => {}
                 }
             }
-            Event::RedrawRequested(window_id) if window_id == state.window().id() => {
-                state.render().expect("TODO: panic message");
-                match state.render() {
-                    Ok(_) => {}
-                    // Reconfigure the surface if lost
-                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                    // The system is out of memory, we should probably quit
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    // All other errors (Outdated, Timeout) should be resolved by the next frame
-                    Err(e) => eprintln!("{:?}", e),
+            Event::RedrawRequested(window_id) => {
+                if window_id == state.window().id() {
+                    state.render().expect("state rendered");
+                    match state.render() {
+                        Ok(_) => {}
+                        // Reconfigure the surface if lost
+                        Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+                        // The system is out of memory, we should probably quit
+                        Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                        // All other errors (Outdated, Timeout) should be resolved by the next frame
+                        Err(e) => eprintln!("{:?}", e),
+                    }
                 }
             }
             Event::MainEventsCleared => {
