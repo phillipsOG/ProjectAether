@@ -17,7 +17,6 @@ mod terrain_data;
 mod tile_set;
 mod vec2;
 mod battle_system;
-mod state;
 
 type Map = Vec<Vec<Space>>;
 
@@ -29,6 +28,7 @@ use crossterm::{event, terminal, QueueableCommand};
 use futures::lock::Mutex;
 use futures::TryFutureExt;
 use std::sync::Arc;
+use std::time::Duration;
 use vec2::Vec2;
 
 use crate::battle_system::BattleSystem;
@@ -41,12 +41,12 @@ use crate::monster_manager::MonsterManager;
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
-use winit::{
-    event::*,
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-};
-use crate::state::State;
+use sdl2::pixels::Color;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::render::{Texture, WindowCanvas};
+
+use sdl2::image::{self, LoadTexture, InitFlag};
 
 enum MovementType {
     Unable,
@@ -58,65 +58,66 @@ enum MovementType {
     Battle,
 }
 
-pub async fn run() {
-    env_logger::init();
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+fn render(canvas: &mut WindowCanvas, colour: Color, texture: &Texture) -> Result<(), String> {
+    canvas.set_draw_color(colour);
+    canvas.clear();
 
-    let mut state = State::new(window).await;
+    canvas.copy(texture, None, None)?;
 
-    event_loop.run(move |event, _, control_flow| {
-        match event {
+    // call this last to present previous buffer data
+    canvas.present();
 
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            }
-            if window_id == state.window().id() => if !state.input(event) { // UPDATED!
-                match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        input:
-                        KeyboardInput {
-                            state: ElementState::Pressed,
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
-                            ..
-                        },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size);
-                    }
-                    _ => {}
-                }
-            }
-            Event::RedrawRequested(window_id) if window_id == state.window().id() => {
-                state.render().expect("TODO: panic message");
-                match state.render() {
-                    Ok(_) => {}
-                    // Reconfigure the surface if lost
-                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                    // The system is out of memory, we should probably quit
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    // All other errors (Outdated, Timeout) should be resolved by the next frame
-                    Err(e) => eprintln!("{:?}", e),
-                }
-            }
-            Event::MainEventsCleared => {
-                // RedrawRequested will only trigger once, unless we manually
-                // request it.
-                state.window().request_redraw();
-            }
-            _ => {}
-        }
-    });
+    Ok(())
 }
 
-fn main() {
-    pollster::block_on(run());
+fn main() -> Result<(), String> {
+
+    // prepare sdl
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
+
+    // leading _ signifies unused var and will stop it being dropped as a temp val
+    let _image_context = image::init(InitFlag::PNG | InitFlag::JPG)?;
+
+    // obviously the main game window
+    let window = video_subsystem.window("SDL2 Demo", 800, 600)
+        .position_centered()
+        .build()
+        .expect("could not initialize video subsystem");
+
+    // draw to our window by building the canvas
+    let mut canvas = window.into_canvas().build()
+        .expect("could not make a canvas");
+
+    let texture_creator = canvas.texture_creator();
+    let texture = texture_creator.load_texture("assets/bardo.png")?;
+
+    canvas.set_draw_color(Color::RGB(0, 255, 255));
+    canvas.clear();
+    canvas.present();
+    let mut event_pump = sdl_context.event_pump()?;
+    let mut i = 0;
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'running;
+                },
+                _ => {}
+            }
+        }
+
+        // update
+        i = (i+1) % 255;
+
+        // render
+        render(&mut canvas, Color::RGB(i, 64, 255-i), &texture)?;
+
+        // time management
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+    }
+
+    Ok(())
 }
 
 /*fn main() {
