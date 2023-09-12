@@ -17,31 +17,36 @@ mod terrain_data;
 mod tile_set;
 mod vec2;
 mod battle_system;
+mod state;
 
 type Map = Vec<Vec<Space>>;
 
 use crate::game_client::GameClient;
 use crate::space::Space;
 use std::io::stdout;
-
-use crossterm::event::{Event, KeyCode, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEventKind};
 use crossterm::{event, terminal, QueueableCommand};
 use futures::lock::Mutex;
 use futures::TryFutureExt;
 use std::sync::Arc;
-use std::time::Duration;
 use vec2::Vec2;
-use crate::battle_system::BattleSystem;
 
+use crate::battle_system::BattleSystem;
 use crate::chat::Chat;
 use crate::collision_engine::CollisionEngine;
-
 use crate::map_factory::MapFactory;
 use crate::map_manager::MapManager;
 use crate::monster_generator::MonsterFactory;
 use crate::monster_manager::MonsterManager;
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
+
+use winit::{
+    event::*,
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
+use crate::state::State;
 
 enum MovementType {
     Unable,
@@ -53,6 +58,77 @@ enum MovementType {
     Battle,
 }
 
+pub async fn run() {
+    env_logger::init();
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new().build(&event_loop).unwrap();
+
+    let mut state = State::new(window).await;
+
+    event_loop.run(move |event, _, control_flow| {
+        match event {
+
+            Event::WindowEvent {
+                ref event,
+                window_id,
+            }
+            if window_id == state.window().id() => if !state.input(event) { // UPDATED!
+                match event {
+                    WindowEvent::CloseRequested
+                    | WindowEvent::KeyboardInput {
+                        input:
+                        KeyboardInput {
+                            state: ElementState::Pressed,
+                            virtual_keycode: Some(VirtualKeyCode::Escape),
+                            ..
+                        },
+                        ..
+                    } => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(physical_size) => {
+                        state.resize(*physical_size);
+                    }
+                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        state.resize(**new_inner_size);
+                    }
+                    _ => {}
+                }
+            }
+            Event::RedrawRequested(window_id) if window_id == state.window().id() => {
+                state.render().expect("TODO: panic message");
+                match state.render() {
+                    Ok(_) => {}
+                    // Reconfigure the surface if lost
+                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+                    // The system is out of memory, we should probably quit
+                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                    // All other errors (Outdated, Timeout) should be resolved by the next frame
+                    Err(e) => eprintln!("{:?}", e),
+                }
+            }
+            Event::MainEventsCleared => {
+                // RedrawRequested will only trigger once, unless we manually
+                // request it.
+                state.window().request_redraw();
+            }
+            _ => {}
+        }
+    });
+}
+
+fn main() {
+    pollster::block_on(run());
+}
+
+/*fn main() {
+    env_logger::init(); // Necessary for logging within WGPU
+    let event_loop = EventLoop::new(); // Loop provided by winit for handling window events
+    let window = WindowBuilder::new().build(&event_loop).unwrap();
+
+    // Opens the window and starts processing events (although no events are handled yet)
+    event_loop.run(move |event, _, control_flow| {});
+}*/
+
+/*
 #[tokio::main]
 async fn main() {
     let mut player = Arc::new(Mutex::new(Player::new()));
@@ -316,4 +392,4 @@ async fn update_monsters_async(
 
         async_std::task::sleep(Duration::from_secs(1)).await;
     }
-}
+}*/
