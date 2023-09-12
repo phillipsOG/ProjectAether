@@ -5,5 +5,3 @@
 target/
 .vscode
 assets/
-SDL2.dll
-SDL2_image.dll
