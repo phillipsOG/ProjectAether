@@ -5,13 +5,15 @@ use crate::map_data::MapData;
 
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use crate::MovementType;
-use crossterm::event::KeyCode;
+use crate::{Direction, MovementType};
 
 use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
 use std::io;
 use std::sync::Arc;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::sys::KeyCode;
 use crate::monster::Monster;
 
 use crate::monster_manager::MonsterManager;
@@ -48,28 +50,38 @@ impl CollisionEngine {
     ) -> Vec2 {
         let mut current_position = Vec2::ZERO;
         let mut chat_guard = chat.lock().await;
+        player.speed = 5;
+
         match player.key_event {
-            KeyCode::Up => {
-                // Move up
-                chat_guard.process_chat_message("You walk up.");
+
+            Event::KeyDown { keycode: Some(Keycode::Up), repeat: false, .. } => {
+                player.direction = Direction::Up;
+                player.key_code = Keycode::Up;
                 return Vec2::new(player.position.x, player.position.y - 1);
-            }
-            KeyCode::Down => {
-                // Move down
-                chat_guard.process_chat_message("You walk down.");
+            },
+            Event::KeyDown { keycode: Some(Keycode::Down), repeat: false, .. } => {
+                player.direction = Direction::Down;
+                player.key_code = Keycode::Down;
                 return Vec2::new(player.position.x, player.position.y + 1);
-            }
-            KeyCode::Left => {
-                // Move left
-                chat_guard.process_chat_message("You walk left.");
+            },
+            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. } => {
+                player.direction = Direction::Left;
+                player.key_code = Keycode::Left;
                 return Vec2::new(player.position.x - 1, player.position.y);
-            }
-            KeyCode::Right => {
-                // Move right
-                chat_guard.process_chat_message("You walk right.");
+            },
+            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. } => {
+                player.direction = Direction::Right;
+                player.key_code = Keycode::Right;
                 return Vec2::new(player.position.x + 1, player.position.y);
-            }
-            KeyCode::Tab => {
+            },
+
+            Event::KeyUp { keycode: Some(Keycode::Left), repeat: false, .. } |
+            Event::KeyUp { keycode: Some(Keycode::Right), repeat: false, .. } |
+            Event::KeyUp { keycode: Some(Keycode::Up), repeat: false, .. } |
+            Event::KeyUp { keycode: Some(Keycode::Down), repeat: false, .. } => {
+                player.speed = 0;
+            },
+            Event::KeyUp { keycode: Some(Keycode::Tab), repeat: false, .. } => {
                 println!("Please enter a command: ");
 
                 let mut input = String::new();
@@ -92,8 +104,9 @@ impl CollisionEngine {
 
             _ => {}
         }
-        current_position = player.position;
+
         // don't move
+        current_position = player.position;
         return current_position;
     }
 
@@ -120,15 +133,15 @@ impl CollisionEngine {
         }
 
         if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
-            if player.key_event == KeyCode::Up {
+            if player.key_code == Keycode::Up {
                 return MovementType::LadderUp;
-            } else if player.key_event == KeyCode::Down {
+            } else if player.key_code == Keycode::Down {
                 return MovementType::LadderDown;
             }
         } else if res == tile_set.ladder && tile_set.name == LADDER_TILE_SET.name {
-            if player.key_event == KeyCode::Up && player.position.y == 1 {
+            if player.key_code == Keycode::Up && player.position.y == 1 {
                 return MovementType::LadderEnter;
-            } else if player.key_event == KeyCode::Down && player.position.y == 2 {
+            } else if player.key_code == Keycode::Down && player.position.y == 2 {
                 return MovementType::LadderExit;
             }
         }
@@ -199,7 +212,7 @@ impl CollisionEngine {
     ) {
         //let mut map_manager_guard = map_manager_clone.lock().await;
         let map_index = map_manager_clone.current_map_index;
-        let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
+        let map_data = map_manager_clone.get_mut_current_map();
         map_data.set_player_vision(player, _new_player_position);
     }
 

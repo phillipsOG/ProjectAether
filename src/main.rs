@@ -17,6 +17,7 @@ mod terrain_data;
 mod tile_set;
 mod vec2;
 mod battle_system;
+mod renderer;
 
 type Map = Vec<Vec<Space>>;
 
@@ -29,6 +30,7 @@ use futures::lock::Mutex;
 use futures::TryFutureExt;
 use std::sync::Arc;
 use std::time::Duration;
+use sdl2::event::Event;
 use vec2::Vec2;
 
 use crate::battle_system::BattleSystem;
@@ -42,13 +44,22 @@ use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
 
 use sdl2::pixels::Color;
-use sdl2::event::Event;
+//use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::{Texture, WindowCanvas};
 use sdl2::rect::{Point, Rect};
 use sdl2::image::{self, LoadTexture, InitFlag};
+use crate::renderer::Renderer;
 
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
 
 enum MovementType {
     Unable,
@@ -60,171 +71,6 @@ enum MovementType {
     Battle,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-#[derive(Debug)]
-struct GPlayer {
-    position: Point,
-    sprite: Rect,
-    speed: i32,
-    current_frame: i32,
-    direction: Direction
-}
-
-fn update_player(player: &mut GPlayer) {
-    use self::Direction::*;
-    match player.direction {
-        Left => {
-            player.position = player.position.offset(-player.speed, 0);
-        },
-        Right => {
-            player.position = player.position.offset(player.speed, 0);
-        },
-        Up => {
-            player.position = player.position.offset(0, -player.speed);
-        },
-        Down => {
-            player.position = player.position.offset(0, player.speed);
-        },
-    }
-
-    // Only continue to animate if the player is moving
-    if player.speed != 0 {
-        // Cheat: using the fact that all animations are 3 frames (NOT extensible)
-        player.current_frame = (player.current_frame + 1) % 3;
-    }
-}
-
-fn direction_spritesheet_row(direction: Direction) -> i32 {
-    use self::Direction::*;
-    match direction {
-        Up => 3,
-        Down => 0,
-        Left => 1,
-        Right => 2,
-    }
-}
-
-fn render(
-    canvas: &mut WindowCanvas,
-    colour: Color,
-    texture: &Texture,
-    player: &GPlayer
-) -> Result<(), String> {
-
-    canvas.set_draw_color(colour);
-    canvas.clear();
-
-    let (width, height) = canvas.output_size()?;
-    let (frame_width, frame_height) = player.sprite.size();
-    let current_frame = Rect::new(
-        player.sprite.x() + frame_width as i32 * player.current_frame,
-        player.sprite.y() + frame_height as i32 * direction_spritesheet_row(player.direction),
-        frame_width,
-        frame_height
-    );
-
-    let screen_position = player.position + Point::new(width as i32 /2, height as i32/2);
-    let screen_rect = Rect::from_center(screen_position, frame_width, frame_height);
-
-    canvas.copy(texture, current_frame, screen_rect)?;
-
-    // call this last to present previous buffer data
-    canvas.present();
-
-    Ok(())
-}
-
-fn main() -> Result<(), String> {
-
-    // prepare sdl
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
-
-    // leading _ signifies unused var and will stop it being dropped as a temp val
-    let _image_context = image::init(InitFlag::PNG | InitFlag::JPG)?;
-
-    // obviously the main game window
-    let window = video_subsystem.window("ProjectAether", 800, 600)
-        .position_centered()
-        .build()
-        .expect("could not initialize video subsystem");
-
-    // draw to our window by building the canvas
-    let mut canvas = window.into_canvas().build()
-        .expect("could not make a canvas");
-
-    let texture_creator = canvas.texture_creator();
-    let texture = texture_creator.load_texture("assets/bardo.png")?;
-
-    let mut player = GPlayer {
-        position: Point::new(0, 0),
-        sprite: Rect::new(0, 0, 26, 36),
-        speed: 0,
-        direction: Direction::Right,
-        current_frame: 0,
-    };
-
-    canvas.set_draw_color(Color::RGB(0, 255, 255));
-    canvas.clear();
-    canvas.present();
-
-    // main game loop
-    let mut event_pump = sdl_context.event_pump()?;
-    let mut i = 0;
-    'running: loop {
-        // Handle events
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running;
-                },
-                Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. } => {
-                    player.speed = PLAYER_MOVEMENT_SPEED;
-                    player.direction = Direction::Left;
-                },
-                Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. } => {
-                    player.speed = PLAYER_MOVEMENT_SPEED;
-                    player.direction = Direction::Right;
-                },
-                Event::KeyDown { keycode: Some(Keycode::Up), repeat: false, .. } => {
-                    player.speed = PLAYER_MOVEMENT_SPEED;
-                    player.direction = Direction::Up;
-                },
-                Event::KeyDown { keycode: Some(Keycode::Down), repeat: false, .. } => {
-                    player.speed = PLAYER_MOVEMENT_SPEED;
-                    player.direction = Direction::Down;
-                },
-                Event::KeyUp { keycode: Some(Keycode::Left), repeat: false, .. } |
-                Event::KeyUp { keycode: Some(Keycode::Right), repeat: false, .. } |
-                Event::KeyUp { keycode: Some(Keycode::Up), repeat: false, .. } |
-                Event::KeyUp { keycode: Some(Keycode::Down), repeat: false, .. } => {
-                    player.speed = 0;
-                },
-                _ => {}
-            }
-        }
-
-        update_player(&mut player);
-
-        // render
-        render(&mut canvas, Color::RGB(255, 255, 255), &texture, &player)?;
-
-        // time management
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-    }
-
-    Ok(())
-}
-
-/*
 #[tokio::main]
 async fn main() {
     let mut player = Arc::new(Mutex::new(Player::new()));
@@ -240,23 +86,12 @@ async fn main() {
 
     let monster_manager = Arc::new(Mutex::new(MonsterManager::new()));
     let monster_manager_clone = Arc::clone(&monster_manager);
-    let mut monster_manager_guard = monster_manager_clone.lock().await;
+    let monster_manager_guard = monster_manager_clone.lock().await;
 
-    let mut map_manager = Arc::new(Mutex::new(MapManager::new()));
+    let map_manager = Arc::new(Mutex::new(MapManager::new()));
     let map_manager_clone = Arc::clone(&map_manager);
     let mut map_manager_guard = map_manager_clone.lock().await;
 
-    map_manager_guard.add_map_set_player_position(
-        &mut player_guard,
-        "scene_ladder",
-        Vec2::new(3, 2),
-    );
-    map_manager_guard.add_map_set_player_position(&mut player_guard, "map1", Vec2::new(5, 2));
-    let new_map =
-        map_factory.generate_map(&mut player_guard, 20, 20, Vec2::new(2, 1), "seedphrase");
-    map_manager_guard.add_generated_map(new_map);
-    map_manager_guard.add_map_set_player_position(&mut player_guard, "test_map", Vec2::new(10, 10));
-    //map_manager_guard.add_map_set_player_position(&mut player_guard, "map3", Vec2::new(4, 5));
     map_manager_guard.add_map_set_player_position(&mut player_guard, "map2", Vec2::new(6, 2));
     map_manager_guard.load_map("map2", MovementType::Normal);
 
@@ -266,9 +101,6 @@ async fn main() {
 
     let chat = Arc::new(Mutex::new(Chat::new()));
     let mut chat_clone = Arc::clone(&chat);
-
-    monster_manager_guard
-        .spawn_monsters(&mut map_manager_guard, monster_factory);
 
     collision_engine_guard
         .update_player_vision(&mut map_manager_guard, &mut player_guard, Vec2::ZERO)
@@ -289,28 +121,97 @@ async fn main() {
     drop(player_guard);
     drop(monster_manager_guard);
 
-    tokio::spawn({
-        async move {
-            let mut chat_clone = Arc::clone(&chat);
-            let collision_engine_clone = Arc::clone(&collision_engine);
-            let monster_manager_clone = Arc::clone(&monster_manager);
-            let player_clone = Arc::clone(&player);
-            let mut map_manager_guard = Arc::clone(&map_manager);
-            let terminal_clone = Arc::clone(&terminal);
+    // prepare sdl
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
 
-            update_monsters_async(
-                collision_engine_clone,
-                &mut map_manager_guard,
-                player_clone,
-                monster_manager_clone,
-                &mut chat_clone,
-                terminal_clone,
-            )
-            .await;
+    // leading _ signifies unused var and will stop it being dropped as a temp val
+    let _image_context = image::init(InitFlag::PNG | InitFlag::JPG).unwrap();
+
+    // obviously the main game window
+    let window = video_subsystem.window("ProjectAether", 800, 600)
+        .position_centered()
+        .build()
+        .expect("could not initialize video subsystem");
+
+    // draw to our window by building the canvas
+    let mut canvas = window.into_canvas().build()
+        .expect("could not make a canvas");
+
+    let texture_creator = canvas.texture_creator();
+    let texture = texture_creator.load_texture("assets/bardo.png").unwrap();
+
+    canvas.set_draw_color(Color::RGB(255, 255, 255));
+
+    // main game loop
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    'running: loop {
+        for event in event_pump.poll_iter() {
+             match event {
+                 Event::Quit {..} |
+
+                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                     break 'running;
+                }
+                 _ => {}
+             }
+
+            canvas.clear();
+
+            let mut player_guard = player_clone.lock().await;
+            player_guard.key_event = event;
+
+            let mut terminal_guard = terminal_clone.lock().await;
+            let mut map_manager_guard = map_manager_clone.lock().await;
+            let mut collision_engine_guard = collision_engine_clone.lock().await;
+
+            let new_player_pos = collision_engine_guard
+                .try_move_player(&mut player_guard, &mut chat_clone)
+                .await;
+
+            let player_move_type = collision_engine_guard
+                .try_process_move(
+                    &mut map_manager_guard,
+                    &mut player_guard,
+                    &mut chat_clone,
+                    new_player_pos,
+                )
+                .await;
+            player_guard.previous_tile_below_player = player_guard.tile_below_player;
+
+            match player_move_type {
+                MovementType::Normal => {
+                    collision_engine_guard
+                        .update_player_position(
+                            &mut map_manager_guard,
+                            &mut player_guard,
+                            new_player_pos,
+                        )
+                        .await;
+                }
+                _ => {}
+            }
+
+            collision_engine_guard
+                .update_player_vision(
+                    &mut map_manager_guard,
+                    &mut player_guard,
+                    new_player_pos,
+                )
+                .await;
         }
-    });
 
-    loop {
+        // render
+        Renderer::render_player(&mut canvas, Color::RGB(255, 255, 255), &texture, &player.lock().await).unwrap();
+        //Renderer::render_map(&mut canvas, Color::RGB(255, 255, 255), &texture, &player.lock().await).unwrap();
+
+        // call this last to present previous buffer data
+        canvas.present();
+
+        // time management
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+    }
+    /*loop {
         match event::read().unwrap() {
             Event::Key(key_input) => {
                 if key_input.kind == KeyEventKind::Press {
@@ -327,9 +228,6 @@ async fn main() {
                     let mut terminal_guard = terminal_clone.lock().await;
                     let mut map_manager_guard = map_manager_clone.lock().await;
                     let mut collision_engine_guard = collision_engine_clone.lock().await;
-                    let mut monster_manager_guard = monster_manager_clone.lock().await;
-
-                    //let mut chat_guard = chat_clone.lock().await;
 
                     let new_player_pos = collision_engine_guard
                         .try_move_player(&mut player_guard, &mut chat_clone)
@@ -355,46 +253,7 @@ async fn main() {
                                 )
                                 .await;
                         }
-                        MovementType::LadderUp => {
-                            map_manager_guard.load_map("scene_ladder", MovementType::LadderUp);
-                            let ladder_entry_pos = Vec2::new(3, 2);
-                            player_guard.update_tile_below_player(LADDER_TILE_SET.floor);
-                            player_guard.previous_player_position = player_guard.position;
-                            player_guard.position = ladder_entry_pos;
-                        }
-                        MovementType::LadderDown => {
-                            map_manager_guard.load_map("scene_ladder", MovementType::LadderDown);
-                            player_guard.position = Vec2::new(3, 2);
-                        }
-                        MovementType::LadderExit => {
-                            map_manager_guard.load_map("map2", MovementType::Normal);
-                            player_guard.update_tile_below_player(LADDER_TILE_SET.floor);
-                            player_guard.position = player_guard.previous_player_position;
-                            player_guard.tile_below_player =
-                                player_guard.previous_tile_below_player;
-                        }
-                        MovementType::LadderEnter => {
-                            map_manager_guard.load_map("map1", MovementType::Normal);
-                        }
-                        MovementType::Battle => {
-                            let position = Vec2::new(new_player_pos.x, new_player_pos.y);
-                            
-                            if let Some(monster) = monster_manager_guard.get_monster_at_position(position) {
-                                BattleSystem::start_battle(&mut player_guard, monster, &chat_clone).await;
-                            }
-
-                            drop(monster_manager_guard);
-                        }
-
                         _ => {}
-                    }
-
-                    let terrain_data = map_factory
-                        .generate_terrain(&mut map_manager_guard, new_player_pos, &mut chat_clone)
-                        .await;
-
-                    if let Some(terrain_data) = terrain_data {
-                        map_manager_guard.update_current_map(terrain_data, &mut chat_clone);
                     }
 
                     collision_engine_guard
@@ -412,80 +271,5 @@ async fn main() {
             }
             _ => {}
         }
-    }
+    }*/
 }
-
-// asynchronous function to update monsters
-async fn update_monsters_async(
-    collision_engine_clone: Arc<Mutex<CollisionEngine>>,
-    map_manager_clone: &mut Arc<Mutex<MapManager>>,
-    player_clone: Arc<Mutex<Player>>,
-    monster_manager_clone: Arc<Mutex<MonsterManager>>,
-    chat_clone: &mut Arc<Mutex<Chat>>,
-    terminal_clone: Arc<Mutex<GameClient>>,
-) {
-    loop {
-        let mut collision_engine_guard = collision_engine_clone.lock().await;
-        let player_guard = player_clone.lock().await;
-        let mut monster_manager_guard = monster_manager_clone.lock().await;
-        let mut terminal_guard = terminal_clone.lock().await;
-        let mut map_manager_guard = map_manager_clone.lock().await;
-
-        let mut monsters_to_remove= Vec::<i32>::new();
-
-        for monster in monster_manager_guard.get_monsters_mut().values_mut() {
-            if !monster.is_alive {
-                let mut map = map_manager_guard.get_mut_current_map();
-                monsters_to_remove.push(monster.id);
-
-                chat_clone.lock().await.process_debug_message(&format!("mon dead at pos: {:?}", monster.position), 3);
-                map.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-            }
-        }
-
-        for monster_id in monsters_to_remove {
-            monster_manager_guard.despawn(monster_id);
-        }
-
-        let mut new_monsters_pos = collision_engine_guard
-            .try_move_monsters(
-                &player_guard,
-                &mut monster_manager_guard,
-                &mut map_manager_guard,
-                chat_clone,
-            )
-            .await;
-
-        let processed_monsters_positions = collision_engine_guard
-            .process_monsters_move(
-                &mut new_monsters_pos,
-                &mut map_manager_guard,
-                &mut monster_manager_guard,
-            )
-            .await;
-
-        collision_engine_guard
-            .update_monsters_position(
-                &mut map_manager_guard,
-                &mut monster_manager_guard,
-                processed_monsters_positions,
-            )
-            .await;
-
-        collision_engine_guard
-            .update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO)
-            .await;
-
-        terminal_guard
-            .print_terminal(&player_guard, &mut map_manager_guard, chat_clone)
-            .await;
-
-        drop(collision_engine_guard);
-        drop(terminal_guard);
-        drop(monster_manager_guard);
-        drop(map_manager_guard);
-        drop(player_guard);
-
-        async_std::task::sleep(Duration::from_secs(1)).await;
-    }
-}*/

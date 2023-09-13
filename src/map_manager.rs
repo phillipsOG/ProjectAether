@@ -127,7 +127,7 @@ impl MapManager {
         map_name: &str,
         _player_move: MovementType,
     ) -> Option<&mut MapData> {
-        if map_name == "scene_ladder" {
+        if map_name == "map2" {
             self.current_map_index = 0;
         } else if map_name == "map1" {
             self.current_map_index = 1;
@@ -135,7 +135,7 @@ impl MapManager {
             self.current_map_index = 2;
         } else if map_name == "test_map" {
             self.current_map_index = 3;
-        } else if map_name == "map2" {
+        } else if map_name == "scene_ladder" {
             self.current_map_index = 4;
         } else if map_name == "map3" {
             self.current_map_index = 5;

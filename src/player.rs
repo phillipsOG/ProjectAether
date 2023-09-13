@@ -1,4 +1,7 @@
-use crossterm::event::KeyCode;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::rect::{Point, Rect};
+use crate::Direction;
 
 use crate::inventory::Inventory;
 use crate::status::Status;
@@ -6,8 +9,9 @@ use crate::vec2::Vec2;
 
 #[derive(Clone)]
 pub struct Player {
-    pub key_event: KeyCode,
-    pub previous_key_event: KeyCode,
+    pub key_event: Event,
+    pub previous_key_event: Event,
+    pub key_code: Keycode,
     pub key_state: bool,
     pub inventory: Inventory,
     pub status: Status,
@@ -18,14 +22,20 @@ pub struct Player {
     pub multi_tile_below_player: bool,
     pub current_floor: usize,
     pub fog_of_war: bool,
-    pub is_alive: bool
+    pub is_alive: bool,
+    pub direction: Direction,
+    pub sprite_position: Point,
+    pub sprite: Rect,
+    pub speed: i32,
+    pub current_frame: i32,
 }
 
 impl Player {
     pub(crate) fn new() -> Self {
         Player {
-            key_event: KeyCode::Enter,
-            previous_key_event: KeyCode::Null,
+            key_event: Event::Unknown {timestamp: 0, type_: 0 },
+            previous_key_event: Event::Unknown {timestamp: 0, type_: 0 },
+            key_code: Keycode::Down,
             key_state: false,
             inventory: Inventory::new(),
             status: Status::new(),
@@ -36,7 +46,12 @@ impl Player {
             multi_tile_below_player: false,
             current_floor: 0,
             fog_of_war: true,
-            is_alive: true
+            is_alive: true,
+            direction: Direction::Right,
+            sprite_position: Point::new(0, 0),
+            sprite: Rect::new(0, 0, 26, 36),
+            speed: 0,
+            current_frame: 0
         }
     }
 
