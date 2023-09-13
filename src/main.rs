@@ -138,9 +138,6 @@ async fn main() {
     let mut canvas = window.into_canvas().build()
         .expect("could not make a canvas");
 
-    let texture_creator = canvas.texture_creator();
-    let texture = texture_creator.load_texture("assets/bardo.png").unwrap();
-
     canvas.set_draw_color(Color::RGB(255, 255, 255));
 
     // main game loop
@@ -199,11 +196,22 @@ async fn main() {
                     new_player_pos,
                 )
                 .await;
+
+            terminal_guard
+                .print_terminal(&player_guard, &mut map_manager_guard, &mut chat_clone)
+                .await;
+
+            drop(player_guard);
+            drop(map_manager_guard);
         }
 
+        let mut player_guard = player_clone.lock().await;
+        let mut map_manager_guard = map_manager_clone.lock().await;
+
         // render
-        Renderer::render_player(&mut canvas, Color::RGB(255, 255, 255), &texture, &player.lock().await).unwrap();
-        //Renderer::render_map(&mut canvas, Color::RGB(255, 255, 255), &texture, &player.lock().await).unwrap();
+        Renderer::render_tile(&mut canvas, &mut map_manager_guard.get_mut_current_map(), DEFAULT_TILE_SET.floor, 55, 60).unwrap();
+        Renderer::render_tile(&mut canvas, &mut map_manager_guard.get_mut_current_map(), DEFAULT_TILE_SET.wall, 55, 60).unwrap();
+        Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map()).unwrap();
 
         // call this last to present previous buffer data
         canvas.present();

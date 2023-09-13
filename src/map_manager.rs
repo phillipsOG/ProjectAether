@@ -122,6 +122,10 @@ impl MapManager {
         self.get_map_mut(self.current_map_index).expect("map data")
     }
 
+    pub(crate) fn get_mut_current_map_items(&mut self) -> &mut MapData {
+        self.get_map_mut(self.current_map_index).expect("map data")
+    }
+
     pub(crate) fn load_map(
         &mut self,
         map_name: &str,

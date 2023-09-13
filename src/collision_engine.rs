@@ -202,6 +202,28 @@ impl CollisionEngine {
         player.tile_below_player = tmp_tile;
         map.set_player_position(new_player_position);
         player.update_tile_below_player(tmp_tile);
+
+        // sprite related
+        match player.direction {
+            Direction::Up => {
+                player.sprite_position = player.sprite_position.offset(0, -player.speed);
+            },
+            Direction::Down => {
+                player.sprite_position = player.sprite_position.offset(0, player.speed);
+            },
+            Direction::Left => {
+                player.sprite_position = player.sprite_position.offset(-player.speed, 0);
+            },
+            Direction::Right => {
+                player.sprite_position = player.sprite_position.offset(player.speed, 0);
+            },
+        }
+
+        if player.speed != 0 {
+            // Cheat: using the fact that all animations are 3 frames (NOT extensible)
+            player.current_frame = (player.current_frame + 1) % 3;
+        }
+
     }
 
     pub(crate) async fn update_player_vision<'a>(
