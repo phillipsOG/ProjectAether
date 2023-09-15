@@ -1,14 +1,15 @@
 #[derive(Clone)]
 pub struct TileSet {
-    pub player: char,
-    pub wall: char,
-    pub closed_door_side: char,
-    pub closed_door_top: char,
-    pub open_door: char,
-    pub key: char,
-    pub floor: char,
+    pub player: &'static str,
+    pub wall: &'static str,
+    pub closed_door_side: &'static str,
+    pub closed_door_top: &'static str,
+    pub open_door: &'static str,
+    pub key: &'static str,
+    pub floor: &'static str,
     pub ladder: &'static str,
-    pub previous_tile: char,
+    pub previous_tile: &'static str,
+    pub room: &'static str,
     pub name: &'static str,
 }
 
@@ -32,35 +33,37 @@ impl TileSet {
 }
 
 pub const DEFAULT_TILE_SET: TileSet = TileSet {
-    player: '@',
-    wall: '#',
-    closed_door_side: '|',
-    closed_door_top: '-',
-    open_door: '/',
-    key: 'k',
-    floor: '.',
-    ladder: &"|-|",
-    previous_tile: '.',
-    name: &"Default Tile Set",
+    player: "@",
+    wall: "#",
+    closed_door_side: "|",
+    closed_door_top: "-",
+    open_door: "/",
+    key: "k",
+    floor: ".",
+    ladder: "|-|",
+    previous_tile: ".",
+    room: "room",
+    name: "Default Tile Set",
 };
 
 pub const LADDER_TILE_SET: TileSet = TileSet {
-    player: '@',
-    wall: '#',
-    closed_door_side: '#',
-    closed_door_top: '#',
-    open_door: '#',
-    key: ' ',
-    floor: '-',
-    ladder: &"|-|",
-    previous_tile: ' ',
-    name: &"Ladder Tile Set",
+    player: "@",
+    wall: "#",
+    closed_door_side: "#",
+    closed_door_top: "#",
+    open_door: "#",
+    key: " ",
+    floor: "-",
+    ladder: "|-|",
+    previous_tile: " ",
+    room: "",
+    name: "Ladder Tile Set",
 };
 
 pub struct MonsterTileSet {
-    pub player: char,
-    pub snake: char,
-    pub goblin: char
+    pub player: &'static str,
+    pub snake: &'static str,
+    pub goblin: &'static str
 }
 
 impl MonsterTileSet {
@@ -76,7 +79,7 @@ impl MonsterTileSet {
 }
 
 pub const MONSTER_TILE_SET: MonsterTileSet = MonsterTileSet {
-    player: '@',
-    snake: 's',
-    goblin: 'g'
+    player: "@",
+    snake: "s",
+    goblin: "g"
 };

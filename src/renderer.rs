@@ -4,10 +4,10 @@ use sdl2::mouse::SystemCursor::No;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{Texture, WindowCanvas};
-use crate::Direction;
+use crate::{Direction, Map};
 use crate::map_data::MapData;
 use crate::player::Player;
-use crate::tile_set::DEFAULT_TILE_SET;
+use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
 
 pub(crate) struct Renderer {
 
@@ -35,7 +35,7 @@ impl Renderer {
         for col in 0..map_width {
             for row in 0..map_height {
                 let space = &map_data.map[row as usize][col as usize];
-                if space.tile == DEFAULT_TILE_SET.player {
+                if space.tile_name == DEFAULT_TILE_SET.player {
 
                     let (frame_width, frame_height) = (player.sprite.width(), player.sprite.height());
                     let current_frame = Rect::new(
@@ -83,7 +83,7 @@ impl Renderer {
             for row in 0..map_height {
                 let space = &map_data.map[row as usize][col as usize];
 
-                let sprite = Rect::new(space.tile_position.x, space.tile_position.y, space.tile_width, space.tile_height);
+                let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
                 let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
                 let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
@@ -91,9 +91,9 @@ impl Renderer {
                 let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
 
                 // if the ascii tile is the player, than set the tile underneath the player as a floor tile
-                if space.tile == DEFAULT_TILE_SET.floor {
+                if space.tile_name == DEFAULT_TILE_SET.floor {
                     canvas.copy(&texture, sprite, sprite_build).unwrap();
-                } else if space.tile == DEFAULT_TILE_SET.wall {
+                } else if space.tile_name == DEFAULT_TILE_SET.wall {
                     canvas.copy(&texture, sprite, sprite_build).unwrap();
                 }
             }
@@ -104,8 +104,50 @@ impl Renderer {
 
     pub(crate) fn render_tile(
         canvas: &mut WindowCanvas,
+        map: &mut Map,
+        tile_to_render: &str,
+        tile_width: i32,
+        tile_height: i32,
+    ) -> Result<(), String> {
+        let texture_creator = canvas.texture_creator();
+        let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
+
+        let (screen_width, screen_height) = canvas.output_size()?;
+        let map_width = map[0].len() as i32;
+        let map_height = map.len() as i32;
+
+        for col in 0..map_width {
+            for row in 0..map_height {
+                let space = &map[row as usize][col as usize];
+
+                let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+
+                let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
+                let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+
+                let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+
+                // if the ascii tile is the player, than set the tile underneath the player as a floor tile
+                if space.tile_name == tile_to_render {
+                    // if tile is wall, than use a single wall sprite
+                    if col == 0 {
+                        let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+                        canvas.copy(&texture, sprite, sprite_build).unwrap();
+                    } else {
+                        // if tile is an object i.e. key, then draw the floor then when we draw the tiles for the objects
+                        // they will draw on-top of the floor
+                        canvas.copy(&texture, sprite, sprite_build).unwrap();
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn render_items(
+        canvas: &mut WindowCanvas,
         map_data: &MapData,
-        tile_to_render: char,
         tile_width: i32,
         tile_height: i32,
     ) -> Result<(), String> {
@@ -120,24 +162,14 @@ impl Renderer {
             for row in 0..map_height {
                 let space = &map_data.map[row as usize][col as usize];
 
-                let sprite = Rect::new(space.tile_position.x, space.tile_position.y, space.tile_width, space.tile_height);
+                if space.tile_name == DEFAULT_TILE_SET.key {
+                    let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
-                let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
+                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
 
-                let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
-
-                // if the ascii tile is the player, than set the tile underneath the player as a floor tile
-                if space.tile == tile_to_render || space.tile == DEFAULT_TILE_SET.player {
-                    // if tile is wall, than use a single wall sprite
-                    if col == 0 {
-                        let sprite = Rect::new(space.tile_position.x-10, space.tile_position.y, space.tile_width, space.tile_height);
-                        canvas.copy(&texture, sprite, sprite_build).unwrap();
-                    } else {
-                        // if tile is an object i.e. key, then draw the floor then when we draw the tiles for the objects
-                        // they will draw on-top of the floor
-                        canvas.copy(&texture, sprite, sprite_build).unwrap();
-                    }
+                    let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+                    canvas.copy(&texture, sprite, sprite_build).unwrap();
                 }
             }
         }
@@ -145,6 +177,69 @@ impl Renderer {
         Ok(())
     }
 
+    pub(crate) fn render_objects(
+        canvas: &mut WindowCanvas,
+        map_data: &MapData,
+        tile_width: i32,
+        tile_height: i32,
+    ) -> Result<(), String> {
+        let texture_creator = canvas.texture_creator();
+        let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
+
+        let (screen_width, screen_height) = canvas.output_size()?;
+        let map_width = map_data.map[0].len() as i32;
+        let map_height = map_data.map.len() as i32;
+
+        for col in 0..map_width {
+            for row in 0..map_height {
+                let space = &map_data.map[row as usize][col as usize];
+
+                if space.tile_name == DEFAULT_TILE_SET.closed_door_side || space.tile_name == DEFAULT_TILE_SET.open_door {
+                    let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+
+                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
+                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+
+                    let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+                    canvas.copy(&texture, sprite, sprite_build).unwrap();
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn render_monsters(
+        canvas: &mut WindowCanvas,
+        map_data: &MapData,
+        tile_width: i32,
+        tile_height: i32,
+    ) -> Result<(), String> {
+        let texture_creator = canvas.texture_creator();
+        let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
+
+        let (screen_width, screen_height) = canvas.output_size()?;
+        let map_width = map_data.map[0].len() as i32;
+        let map_height = map_data.map.len() as i32;
+
+        for col in 0..map_width {
+            for row in 0..map_height {
+                let space = &map_data.map[row as usize][col as usize];
+
+                if space.tile_name == MONSTER_TILE_SET.snake || space.tile_name == MONSTER_TILE_SET.goblin {
+                    let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+
+                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
+                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+
+                    let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+                    canvas.copy(&texture, sprite, sprite_build).unwrap();
+                }
+            }
+        }
+
+        Ok(())
+    }
 
     fn direction_spritesheet_row(direction: Direction) -> i32 {
         use self::Direction::*;

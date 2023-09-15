@@ -48,10 +48,10 @@ impl GameClient {
             let tile_line: String = tile
                 .iter()
                 .map(|space| {
-                    if space.is_visible || space.tile == DEFAULT_TILE_SET.player {
-                        space.tile
+                    if space.is_visible || space.tile_name == DEFAULT_TILE_SET.player {
+                        space.tile_name
                     } else {
-                        ' ' //show no map tile at iteration if not visible or player
+                        " " //show no map tile at iteration if not visible or player
                     }
                 })
                 .collect();

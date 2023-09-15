@@ -19,6 +19,7 @@ use crate::monster::Monster;
 use crate::monster_manager::MonsterManager;
 use crate::pathfinding::Pathfinding;
 use crate::space::Space;
+use crate::space_factory::SpaceFactory;
 use crate::Vec2;
 
 #[derive(Clone)]
@@ -120,8 +121,8 @@ impl CollisionEngine {
         let map_index = map_manager_clone.current_map_index;
         let map = map_manager_clone.get_map_mut(map_index).expect("map data");
 
-        let space = map.map[new_player_pos.y][new_player_pos.x];
-        let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile;
+        let space = &map.map[new_player_pos.y][new_player_pos.x];
+        let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile_name;
         let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
         let is_tile_traversable = map.map[new_player_pos.y][new_player_pos.x].is_traversable;
         let tile_set = map.tile_set.clone();
@@ -154,18 +155,16 @@ impl CollisionEngine {
             if player.inventory.keys >= 1 {
                 player.inventory.remove_key(1);
                 chat_guard.process_chat_message("You unlock the door using a rusty key.");
-                map.map[new_player_pos.y][new_player_pos.x] =
-                    Space::new(DEFAULT_TILE_SET.open_door);
+                map.map[new_player_pos.y][new_player_pos.x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.open_door);
             } else {
                 chat_guard.process_chat_message("You need a rusty key to open this door.");
             };
         }
         if tile_set.name == DEFAULT_TILE_SET.name {
-            if !is_tile_traversable {
-                return MovementType::Unable;
-            }
-            if !is_tile_solid {
-                return MovementType::Normal;
+            return if !is_tile_traversable {
+                MovementType::Unable
+            } else {
+                MovementType::Normal
             }
         } else if tile_set.name == LADDER_TILE_SET.name {
             if is_tile_traversable {
@@ -176,7 +175,7 @@ impl CollisionEngine {
         return MovementType::Unable;
     }
 
-    fn is_tile_monster(&self, monster: char) -> bool {
+    fn is_tile_monster(&self, monster: &'static str) -> bool {
         let monster_variants = [MONSTER_TILE_SET.snake, MONSTER_TILE_SET.goblin];
 
         for monster_variant in monster_variants {
@@ -195,13 +194,13 @@ impl CollisionEngine {
     ) {
         let map_index = map_manager_clone.current_map_index;
         let map = map_manager_clone.get_map_mut(map_index).expect("map data");
-        let tmp_tile = map.map[new_player_position.y][new_player_position.x].tile;
+        let new_tile = map.map[new_player_position.y][new_player_position.x].tile_name;
         let pos = player.position.clone();
-        map.map[pos.y][pos.x] = Space::new(self.update_player_previous_tile(player, tmp_tile));
+        map.map[pos.y][pos.x] = SpaceFactory::generate_space(self.update_player_previous_tile(player, new_tile));
         player.position = new_player_position;
-        player.tile_below_player = tmp_tile;
+        player.tile_below_player = new_tile;
         map.set_player_position(new_player_position);
-        player.update_tile_below_player(tmp_tile);
+        player.update_tile_below_player(new_tile);
 
         // sprite related
         match player.direction {
@@ -241,21 +240,21 @@ impl CollisionEngine {
     fn check_for_multi_tile(
         &mut self,
         map_data: &MapData,
-        tmp_tile: char,
+        tmp_tile: &'static str,
         new_player_position: Vec2,
     ) -> String {
         for (_col_idx, col) in map_data.map.iter().enumerate() {
             for (_row_idx, c) in col.iter().enumerate() {
-                if c.tile == DEFAULT_TILE_SET.player {
+                if c.tile_name == DEFAULT_TILE_SET.player {
                     // if the players position x is greater than available x pos then don't check code
                     if new_player_position.x > 0 {
                         let tile_left = map_data.map[new_player_position.y]
                             .get(new_player_position.x - 1)
-                            .map(|space| space.tile)
+                            .map(|space| space.tile_name)
                             .unwrap_or_default();
                         let tile_right = map_data.map[new_player_position.y]
                             .get(new_player_position.x + 1)
-                            .map(|space| space.tile)
+                            .map(|space| space.tile_name)
                             .unwrap_or_default();
                         let next_tile = format!("{}{}{}", tile_left, tmp_tile, tile_right);
                         if next_tile == DEFAULT_TILE_SET.ladder
@@ -325,7 +324,7 @@ impl CollisionEngine {
             if let Some(new_enemy_pos) = new_monsters_position.get_mut(&monster.id) {
                 let map_index = map_manager_clone.current_map_index;
                 if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
-                    let tmp_tile = map_data.map[new_enemy_pos.y][new_enemy_pos.x];
+                    let tmp_tile = &map_data.map[new_enemy_pos.y][new_enemy_pos.x];
 
                     if tmp_tile.is_occupied {
                         continue;
@@ -375,13 +374,13 @@ impl CollisionEngine {
             if let Some(new_mons_pos) = processed_monsters_positions.get(&monster.id) {
                 let map_index = map_manager_clone.current_map_index;
                 let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
-                let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x].tile;
+                let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x].tile_name;
 
-                map_data.map[monster.position.y][monster.position.x] = Space::new(self.update_monster_previous_tile(monster, tmp_tile));
+                map_data.map[monster.position.y][monster.position.x] = SpaceFactory::generate_space(self.update_monster_previous_tile(monster, tmp_tile));
                 monster.position = *new_mons_pos;
                 monster.tile_below = tmp_tile;
 
-                let mut updated_space = Space::new(monster.tile);
+                let mut updated_space = SpaceFactory::generate_space(monster.tile_name);
                 updated_space.is_occupied = true;
 
                 map_data.map[new_mons_pos.y][new_mons_pos.x] = updated_space;
@@ -389,7 +388,7 @@ impl CollisionEngine {
         }
     }
 
-    fn update_player_previous_tile(&mut self, player: &mut Player, mut tmp_tile: char) -> char {
+    fn update_player_previous_tile(&mut self, player: &mut Player, mut tmp_tile: &'static str) -> &'static str {
         let tile_set = DEFAULT_TILE_SET;
 
         if tmp_tile == tile_set.open_door {
@@ -407,7 +406,7 @@ impl CollisionEngine {
         tmp_tile
     }
 
-    fn update_monster_previous_tile(&mut self, monster: &mut Monster, mut tmp_tile: char) -> char {
+    fn update_monster_previous_tile(&mut self, monster: &mut Monster, mut tmp_tile: &'static str) -> &'static str {
         let tile_set = DEFAULT_TILE_SET;
 
         if tmp_tile == tile_set.open_door {

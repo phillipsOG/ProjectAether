@@ -17,8 +17,8 @@ pub struct Player {
     pub status: Status,
     pub position: Vec2,
     pub previous_player_position: Vec2,
-    pub tile_below_player: char,
-    pub previous_tile_below_player: char,
+    pub tile_below_player: &'static str,
+    pub previous_tile_below_player: &'static str,
     pub multi_tile_below_player: bool,
     pub current_floor: usize,
     pub fog_of_war: bool,
@@ -41,8 +41,8 @@ impl Player {
             status: Status::new(),
             position: Vec2::ZERO,
             previous_player_position: Vec2::ZERO,
-            tile_below_player: '.',
-            previous_tile_below_player: '.',
+            tile_below_player: ".",
+            previous_tile_below_player: ".",
             multi_tile_below_player: false,
             current_floor: 0,
             fog_of_war: true,
@@ -55,7 +55,7 @@ impl Player {
         }
     }
 
-    pub(crate) fn update_tile_below_player(&mut self, tile: char) {
+    pub(crate) fn update_tile_below_player(&mut self, tile: &'static str) {
         self.tile_below_player = tile;
     }
 }

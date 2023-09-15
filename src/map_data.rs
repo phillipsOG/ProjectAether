@@ -29,7 +29,7 @@ impl MapData {
 
     pub(crate) fn set_player_position(&mut self, pos: Vec2) {
         let tile_set = &self.tile_set;
-        self.map[pos.y][pos.x] = Space::new(tile_set.player);
+        self.map[pos.y][pos.x] = Space::new(&tile_set.player);
     }
 
     pub(crate) fn set_player_vision(&mut self, player: &Player, _player_pos: Vec2) {
@@ -74,13 +74,13 @@ impl MapData {
             let tile = &mut self.map[y][x];
             tile.is_visible = true; //if tile.tile == MONSTER_TILE_SET.snake { false } else { true};
 
-            if tile.is_solid && tile.tile != DEFAULT_TILE_SET.open_door {
+            if tile.is_solid && tile.tile_name != DEFAULT_TILE_SET.open_door {
                 break;
             }
         }
     }
 
-    pub(crate) fn set_monster_position(&mut self, new_pos: Vec2, monster_type: char) {
+    pub(crate) fn set_monster_position(&mut self, new_pos: Vec2, monster_type: &'static str) {
         self.map[new_pos.y][new_pos.x] = Space::new(monster_type);
     }
 
@@ -95,7 +95,7 @@ impl MapData {
             .unwrap();
 
         for tile in &self.map {
-            let tile_line: String = tile.iter().map(|space| space.tile).collect();
+            let tile_line: String = tile.iter().map(|space| space.tile_name).collect();
             println!("{}", tile_line);
         }
     }
@@ -107,7 +107,7 @@ impl MapData {
             .unwrap();
         let mut counter = 0;
         for tile in &self.map {
-            let tile_line: String = tile.iter().map(|space| space.tile).collect();
+            let tile_line: String = tile.iter().map(|space| space.tile_name).collect();
             if counter <= module.len() - 1 {
                 println!("{}          {}", tile_line, module[counter]);
                 counter += 1;
@@ -122,7 +122,7 @@ impl MapData {
         let mut counter = 0;
         self.str_map = String::new();
         for tile in &self.map {
-            let tile_line: String = tile.iter().map(|space| space.tile).collect();
+            let tile_line: String = tile.iter().map(|space| space.tile_name).collect();
             if counter <= module.len() {
                 self.str_map += &*format!(
                     "{}      {}      {}",
@@ -146,10 +146,10 @@ impl MapData {
         module_pieces
     }
 
-    pub(crate) fn get_tile_at_position(&self, position: Option<(usize, usize)>) -> char {
+    pub(crate) fn get_tile_at_position(&self, position: Option<(usize, usize)>) -> &'static str {
         if let Some((col, row)) = position {
-            return self.map[col][row].tile;
+            return self.map[col][row].tile_name;
         }
-        ' '
+        " "
     }
 }

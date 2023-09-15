@@ -10,7 +10,7 @@ impl MonsterFactory {
         MonsterFactory {}
     }
 
-    pub fn generate_monster(&mut self, pos: Vec2, id: i32, monster_type: char) -> Monster {
+    pub fn generate_monster(&mut self, pos: Vec2, id: i32, monster_type: &'static str) -> Monster {
         Monster::new(monster_type, pos, id)
     }
 }

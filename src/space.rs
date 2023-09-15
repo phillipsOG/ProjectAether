@@ -5,94 +5,66 @@ use sdl2::rect::{Point, Rect};
 
 #[derive(Clone, Copy)]
 pub struct Space {
-    pub tile: char,
-    pub tile_width: u32,
+    pub tile_name: &'static str,
+    pub tile_sprite_position: Point,
     pub tile_height: u32,
-    pub tile_position: Point,
+    pub tile_width: u32,
     pub travel_cost: usize,
     pub is_visible: bool,
     pub is_solid: bool,
     pub is_traversable: bool,
     pub is_monster: bool,
     pub is_player: bool,
-    pub is_occupied: bool
+    pub is_occupied: bool,
+    pub is_item: bool
 }
 
 impl Space {
-    pub(crate) fn new(tile: char) -> Self {
+    pub(crate) fn new(tile_name: &'static str) -> Self {
         Space {
-            tile,
-            tile_width: Space::get_tile_width(tile),
-            tile_height: Space::get_tile_height(tile),
-            tile_position: Space::get_tile_position(tile),
-            travel_cost: Space::calculate_tile_cost(tile),
+            tile_name,
+            tile_sprite_position: Point::new(0, 0),
+            tile_height: 0,
+            tile_width: 0,
+            travel_cost: Space::calculate_tile_cost(tile_name),
             is_visible: false,
-            is_solid: tile == DEFAULT_TILE_SET.wall
-                || tile == DEFAULT_TILE_SET.closed_door_side
-                || tile == DEFAULT_TILE_SET.closed_door_top
-                || tile == MONSTER_TILE_SET.snake
-                || tile == MONSTER_TILE_SET.goblin
-                || tile == DEFAULT_TILE_SET.player,
-            is_traversable: tile == DEFAULT_TILE_SET.floor
-                || tile == DEFAULT_TILE_SET.open_door
-                || tile == LADDER_TILE_SET.floor,
-            is_monster: tile == MONSTER_TILE_SET.snake || tile == MONSTER_TILE_SET.goblin,
-            is_player: tile == MONSTER_TILE_SET.player,
-            is_occupied: false
+            is_solid: tile_name == DEFAULT_TILE_SET.wall
+                || tile_name == DEFAULT_TILE_SET.closed_door_side
+                || tile_name == DEFAULT_TILE_SET.closed_door_top
+                || tile_name == MONSTER_TILE_SET.snake
+                || tile_name == MONSTER_TILE_SET.goblin
+                || tile_name == DEFAULT_TILE_SET.player,
+            is_traversable: tile_name == DEFAULT_TILE_SET.floor
+                || tile_name == DEFAULT_TILE_SET.open_door
+                || tile_name == LADDER_TILE_SET.floor,
+            is_monster: tile_name == MONSTER_TILE_SET.snake || tile_name == MONSTER_TILE_SET.goblin,
+            is_player: tile_name == MONSTER_TILE_SET.player,
+            is_occupied: false,
+            is_item: false,
         }
     }
 
-    fn calculate_tile_cost(tile: char) -> usize {
-        if tile == DEFAULT_TILE_SET.floor {
+    fn calculate_tile_cost(tile_name: &'static str) -> usize {
+        if tile_name == DEFAULT_TILE_SET.floor {
             1
-        } else if tile == DEFAULT_TILE_SET.wall {
+        } else if tile_name == DEFAULT_TILE_SET.wall {
             3
         } else {
             0
         }
     }
-
-    fn get_tile_position(tile: char) -> Point {
-        if tile == DEFAULT_TILE_SET.floor || tile == DEFAULT_TILE_SET.player {
-            return Point::new(30, 150);
-        }
-        else if tile == DEFAULT_TILE_SET.wall {
-            return Point::new(160, 20);
-        }
-        Point::new(0, 0)
-    }
-
-    fn get_tile_width(tile: char) -> u32 {
-        if tile == DEFAULT_TILE_SET.floor || tile == DEFAULT_TILE_SET.player{
-            return 20;
-        }
-        else if tile == DEFAULT_TILE_SET.wall {
-            return 60;
-        }
-        25
-    }
-
-    fn get_tile_height(tile: char) -> u32 {
-        if tile == DEFAULT_TILE_SET.floor || tile == DEFAULT_TILE_SET.player {
-            return 20;
-        }
-        else if tile == DEFAULT_TILE_SET.wall {
-            return 60;
-        }
-        25
-    }
 }
 
 impl fmt::Display for Space {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.tile)
+        write!(f, "{}", self.tile_name)
     }
 }
 
 impl Deref for Space {
-    type Target = char;
+    type Target = &'static str;
 
     fn deref(&self) -> &Self::Target {
-        &self.tile
+        &self.tile_name
     }
 }

@@ -11,6 +11,7 @@ use crate::map_manager::MapManager;
 use rand::Rng;
 
 use crate::space::Space;
+use crate::space_factory::SpaceFactory;
 
 type Monsters = HashMap<i32, Monster>;
 
@@ -43,17 +44,17 @@ impl MonsterManager {
 
         for pos_y in 0..map_height {
             for pos_x in 0..map_width {
-                let current_tile = map_data.map[pos_y][pos_x];
-                let mut monster_type = MONSTER_TILE_SET.goblin;
+                let current_tile = &map_data.map[pos_y][pos_x];
+                let mut monster_type = MONSTER_TILE_SET.snake;
 
                 if rng.gen::<f64>() < 0.5 {
-                    monster_type = MONSTER_TILE_SET.goblin
+                    monster_type = MONSTER_TILE_SET.snake
                 } else {
                     monster_type = MONSTER_TILE_SET.snake
                 };
 
                 if !current_tile.is_solid
-                    && current_tile.tile == DEFAULT_TILE_SET.floor
+                    && current_tile.tile_name == DEFAULT_TILE_SET.floor
                     && loop_limit != 8
                 /*spawn_onerng.gen_range(0..10) >= 9*/
                 {
@@ -62,7 +63,7 @@ impl MonsterManager {
 
                     new_monster.tile_below = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
-                    map_data.map[pos_y][pos_x] = Space::new(new_monster.tile);
+                    map_data.map[pos_y][pos_x] = SpaceFactory::generate_space(new_monster.tile_name);
                     self.monsters.insert(new_monster.id, new_monster);
                     loop_limit += 1;
                 }

@@ -163,7 +163,7 @@ impl Pathfinding {
 
             for neighbour_position in neighbours {
                 if !closed_set.contains(&neighbour_position) {
-                    let tile = map[neighbour_position.y][neighbour_position.x];
+                    let tile = &map[neighbour_position.y][neighbour_position.x];
                     let movement_cost = tile.travel_cost;
                     let tentative_cost = cost_map[&current_monster.position] + movement_cost;
 

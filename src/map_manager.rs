@@ -67,7 +67,7 @@ impl MapManager {
         map.width += terrain_data.width_increase;
     }
 
-    pub(crate) fn add_map_set_player_position(
+    /*pub(crate) fn add_map_set_player_position(
         &mut self,
         player: &mut Player,
         map_name: &str,
@@ -111,7 +111,7 @@ impl MapManager {
 
         self.add_map(self.current_map_index, new_map);
         self.current_map_index += 1;
-    }
+    }*/
 
     pub(crate) fn add_generated_map(&mut self, generated_map: MapData) {
         self.add_map(self.current_map_index, generated_map);
@@ -131,7 +131,7 @@ impl MapManager {
         map_name: &str,
         _player_move: MovementType,
     ) -> Option<&mut MapData> {
-        if map_name == "map2" {
+        if map_name == "gen_map" {
             self.current_map_index = 0;
         } else if map_name == "map1" {
             self.current_map_index = 1;

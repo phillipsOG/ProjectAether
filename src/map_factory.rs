@@ -5,7 +5,7 @@ use crate::player::Player;
 use crate::space::Space;
 use crate::terrain_data::TerrainData;
 use crate::tile_set::DEFAULT_TILE_SET;
-use crate::Vec2;
+use crate::{Map, Vec2};
 
 use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
@@ -19,6 +19,8 @@ use std::io;
 use std::io::BufRead;
 use std::path::Path;
 use std::sync::Arc;
+use sdl2::rect::{Point, Rect};
+use crate::space_factory::SpaceFactory;
 
 #[derive(Clone)]
 pub struct MapFactory {}
@@ -28,7 +30,7 @@ impl MapFactory {
         MapFactory {}
     }
 
-    pub(crate) fn generate_map(
+    /*pub(crate) fn generate_map(
         &mut self,
         player: &mut Player,
         height: usize,
@@ -87,9 +89,89 @@ impl MapFactory {
         };
 
         return new_map;
+    }*/
+
+    pub(crate) fn generate_graphical_map(
+        &mut self,
+        player: &mut Player,
+        height: usize,
+        width: usize,
+        seed_phrase: &str,
+    ) -> Map {
+        let mut map = vec![vec![Space::new(""); width]; height];
+
+        let mut hasher = DefaultHasher::new();
+        seed_phrase.hash(&mut hasher);
+        let seed = hasher.finish();
+
+        let mut generated_ladder = false;
+
+        // create a seeded RNG using the generated seed
+        for pos_y in 0..height {
+            for pos_x in 0..width {
+                let mut rng = rand::thread_rng();
+                let y: f64 = rng.gen(); // generates a float between 0 and 1
+
+                for pos_y in 0..height {
+                    for pos_x in 0..width {
+                        let mut new_space = Space::new(DEFAULT_TILE_SET.floor); // default to floor
+
+                        // Check if it's along the top, left side, or bottom
+                        if pos_y == 0 || pos_x == 0 || pos_y == height - 1 || pos_x == width-1 {
+                            new_space = Space::new(DEFAULT_TILE_SET.wall);
+                            new_space.tile_sprite_position = Point::new(160, 20);
+                            new_space.tile_width = 60;
+                            new_space.tile_height = 60;
+                        } else {
+                            new_space = Space::new(DEFAULT_TILE_SET.floor); // open on the right
+                            new_space.tile_sprite_position = Point::new(30, 150);
+                            new_space.tile_width = 20;
+                            new_space.tile_height = 20;
+                        }
+
+                        map[pos_y][pos_x] = new_space;
+                    }
+                }
+
+            }
+        }
+
+        /**/
+
+        map
     }
 
-    pub(crate) async fn generate_terrain<'a>(
+    pub(crate) fn generate_object(&self, tile_name: &str, spawn_pos: Vec2, graphical_map: &mut Map, map: &mut Map) {
+
+        if tile_name == DEFAULT_TILE_SET.key {
+            map[spawn_pos.y][spawn_pos.x] = SpaceFactory::generate_space(tile_name);
+        } else if tile_name == DEFAULT_TILE_SET.room {
+            let mut new_wall = SpaceFactory::generate_space(DEFAULT_TILE_SET.wall);
+            let mut new_floor = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+
+            // Generate a 3x3 room with walls on the outside
+            for y in 0..5 {
+                for x in 0..4 {
+                    if y == 0 || y == 4 || x == 0 || x == 3 {
+                        graphical_map[spawn_pos.y + y][spawn_pos.x + x] = new_wall;
+                        map[spawn_pos.y + y][spawn_pos.x + x] = new_wall;
+                    } else {
+                        graphical_map[spawn_pos.y + y][spawn_pos.x + x] = new_floor;
+                        map[spawn_pos.y + y][spawn_pos.x + x] = new_floor;
+                    }
+                }
+            }
+
+            // Add a door on the side
+            map[spawn_pos.y + 1][spawn_pos.x + 3] = SpaceFactory::generate_space(DEFAULT_TILE_SET.closed_door_side);
+
+            // Ensure that the door tile isn't altered
+            graphical_map[spawn_pos.y + 1][spawn_pos.x + 3] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+        }
+
+    }
+
+    /*pub(crate) async fn generate_terrain<'a>(
         &mut self,
         map_manager_guard: &mut MutexGuard<'a, MapManager>,
         new_player_position: Vec2,
@@ -143,9 +225,9 @@ impl MapFactory {
         terrain_data.map = updated_map_data;
 
         return Some(terrain_data);
-    }
+    }*/
 
-    fn generate_terrain_building(&mut self, _pos_y: usize, _pos_x: usize) -> Space {
+    /*fn generate_terrain_building(&mut self, _pos_y: usize, _pos_x: usize) -> Space {
         let mut map = "".to_owned();
 
         map += "\n";
@@ -173,12 +255,12 @@ impl MapFactory {
         for (pos_y, row) in structure.map.iter().enumerate() {
             for (pos_x, _space) in row.iter().enumerate() {
                 if pos_y + 2 == _pos_y && _pos_x == pos_x {
-                    return structure.map[pos_y][pos_x];
+                    return structure.map[pos_y][pos_x].clone();
                 }
             }
         }
         return Space::new(DEFAULT_TILE_SET.floor);
-    }
+    }*/
 
     fn read_lines<P>(&mut self, filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     where
@@ -195,12 +277,12 @@ impl MapFactory {
         map_width: usize,
     ) -> Vec<Vec<Space>> {
         if new_player_position.y >= map_height - 1 {
-            return vec![vec![Space::new('.'); map_width]; map_height + 1];
+            return vec![vec![Space::new("."); map_width]; map_height + 1];
         } else if new_player_position.x >= map_width - 1 {
-            return vec![vec![Space::new('.'); map_width + 1]; map_height];
+            return vec![vec![Space::new("."); map_width + 1]; map_height];
         }
 
-        let new_map_data = vec![vec![Space::new('.'); map_width]; map_height];
+        let new_map_data = vec![vec![Space::new("."); map_width]; map_height];
         new_map_data
     }
 }
