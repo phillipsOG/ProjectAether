@@ -15,7 +15,7 @@ impl SpaceFactory {
         }
         else if tile_name == DEFAULT_TILE_SET.floor {
             let mut new_space = Space::new(DEFAULT_TILE_SET.floor);
-            new_space.tile_sprite_position = Point::new(30, 150);
+            new_space.tile_sprite_position = Point::new(180, 30);
             new_space.tile_width = 20;
             new_space.tile_height = 20;
             new_space

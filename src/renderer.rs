@@ -1,13 +1,12 @@
 use sdl2::image::LoadTexture;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{WindowCanvas};
-use crate::{Direction, Map};
+use crate::{Direction, Map, Monsters};
 use crate::map_data::MapData;
-use crate::monster_manager::MonsterManager;
 use crate::player::Player;
-use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
-use futures::lock::Mutex;
-use std::sync::Arc;
+use crate::tile_set::{DEFAULT_TILE_SET};
+use crate::basic_colour::COLOUR;
+use crate::vec2::Vec2;
 
 pub(crate) struct Renderer {
 
@@ -27,7 +26,7 @@ impl Renderer {
 
         let (width, height) = canvas.output_size()?;
 
-        let screen_position = player.sprite_position + Point::new(width as i32 / 2, height as i32 / 2);
+        //let screen_position = player.sprite_position + Point::new(width as i32 / 2, height as i32 / 2);
 
         let map_width = map_data.map[0].len() as i32;
         let map_height = map_data.map.len() as i32;
@@ -58,7 +57,6 @@ impl Renderer {
 
         Ok(())
     }
-
 
     pub(crate) fn render_map(
         canvas: &mut WindowCanvas,
@@ -220,6 +218,7 @@ impl Renderer {
     pub(crate) fn render_monsters(
         canvas: &mut WindowCanvas,
         map_data: &MapData,
+        monsters: &mut Monsters,
         tile_width: i32,
         tile_height: i32,
         camera_x: i32,
@@ -229,21 +228,55 @@ impl Renderer {
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
 
         let (screen_width, screen_height) = canvas.output_size()?;
-        let map_width = map_data.map[0].len() as i32;
-        let map_height = map_data.map.len() as i32;
+        let map_width = map_data.width as i32;
+        let map_height = map_data.height as i32;
 
-        for col in 0..map_width {
-            for row in 0..map_height {
-                let space = &map_data.map[row as usize][col as usize];
+        for monster in monsters.values_mut() {
+            for col in 0..map_height {
+                for row in 0..map_width {
+                    let space = &map_data.map[col as usize][row as usize];
+                    let space_position = Vec2::new(row as usize, col as usize);
+                    if space_position == monster.position {
 
-                if space.tile_name == MONSTER_TILE_SET.snake || space.tile_name == MONSTER_TILE_SET.goblin {
-                    let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+                        // MONSTER SPRITE
+                        let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
-                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
+                        let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
+                        let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
-                    let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
-                    canvas.copy(&texture, sprite, sprite_build).unwrap();
+                        let sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+                        canvas.copy(&texture, sprite, sprite_build).unwrap();
+
+                        // MONSTER HEALTH
+                        // calculate the position for drawing the health bar above the monster
+                        let health_bar_x = centered_row;
+                        let health_bar_y = centered_col - 10; // adjust the position as needed
+
+                        // Calculate the width of the health bar based on the monster's health
+                        let max_health = monster.status.max_health as f32;
+                        let current_health = monster.status.current_health as f32;
+                        let health_percentage = max_health / current_health;
+                        let health_bar_width = (tile_width as f32 * health_percentage) as u32;
+
+                        // define the health bar's dimensions
+                        let health_bar_height = 7; // adjust the height as needed
+
+                        let mut hp_bar_colour = COLOUR.white;
+
+                        if health_percentage > 0.7 {
+                            hp_bar_colour = COLOUR.green;
+                        } else if health_percentage > 0.4 {
+                            hp_bar_colour = COLOUR.yellow;
+                        } else {
+                            hp_bar_colour = COLOUR.red;
+                        }
+
+                        // draw the filled health bar rectangle with the specified color
+                        let health_bar_rect = Rect::new(health_bar_x, health_bar_y, health_bar_width, health_bar_height);
+                        canvas.set_draw_color(hp_bar_colour);
+                        canvas.fill_rect(health_bar_rect).expect("colour fill");
+                        canvas.draw_rect(health_bar_rect).expect("hp bar");
+                    }
                 }
             }
         }

@@ -5,15 +5,12 @@ use crate::monster::Monster;
 use crate::monster_generator::MonsterFactory;
 
 use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
-use crate::Vec2;
+use crate::{Monsters, Vec2};
 
 use crate::map_manager::MapManager;
 use rand::Rng;
 
-use crate::space::Space;
 use crate::space_factory::SpaceFactory;
-
-type Monsters = HashMap<i32, Monster>;
 
 #[derive(Clone)]
 pub struct MonsterManager {

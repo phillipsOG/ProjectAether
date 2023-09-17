@@ -17,11 +17,11 @@ impl BattleSystem {
         chat: &Arc<Mutex<Chat>>
     ) {
         //monster.in_battle = true;
-        monster.status.health -= player.status.str;
+        monster.status.max_health -= player.status.str;
 
-        chat.lock().await.process_debug_message(&format!("monster has: {} hp left", monster.status.health), 1);
+        chat.lock().await.process_debug_message(&format!("monster has: {} hp left", monster.status.max_health), 1);
         
-        if monster.status.health.is_negative() {
+        if monster.status.max_health.is_negative() {
             chat.lock().await.process_debug_message("monster has no hp left", 1);
             monster.is_alive = false;
         }

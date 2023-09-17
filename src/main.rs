@@ -20,8 +20,11 @@ mod battle_system;
 mod renderer;
 mod space_factory;
 mod camera;
+mod basic_colour;
 
 type Map = Vec<Vec<Space>>;
+
+use std::collections::HashMap;
 use crate::game_client::GameClient;
 use crate::space::Space;
 use std::io::stdout;
@@ -42,17 +45,16 @@ use crate::monster_generator::MonsterFactory;
 use crate::monster_manager::MonsterManager;
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
-
 use sdl2::pixels::Color;
-//use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::render::{Canvas, Texture, WindowCanvas};
-use sdl2::rect::{Point, Rect};
 use sdl2::image::{self, LoadTexture, InitFlag};
+use crate::basic_colour::COLOUR;
 use crate::map_data::MapData;
 use crate::renderer::Renderer;
-use crate::space_factory::SpaceFactory;
 use crate::camera::Camera;
+use crate::monster::Monster;
+
+type Monsters = HashMap<i32, Monster>;
 
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
 const SCREEN_WIDTH: u32 = 800;
@@ -157,7 +159,6 @@ async fn main() {
         .queue(terminal::Clear(terminal::ClearType::All))
         .unwrap();
 
-
     drop(terminal_guard);
     drop(map_manager_guard);
     drop(collision_engine_guard);
@@ -181,10 +182,6 @@ async fn main() {
     let mut canvas = window.into_canvas().build()
         .expect("could not make a canvas");
 
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-
-    let mut cur_pos = plr_spawn;
-
     tokio::spawn({
         async move {
             let mut chat_clone = Arc::clone(&chat);
@@ -205,9 +202,13 @@ async fn main() {
         }
     });
 
+    let mut cur_pos = plr_spawn;
+
     // main game loop
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
+        canvas.set_draw_color(COLOUR.black);
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } |
@@ -259,7 +260,6 @@ async fn main() {
                         BattleSystem::start_battle(&mut player_guard, monster, &chat_clone).await;
                     }
 
-                    drop(monster_manager_guard);
                 }
                 _ => {}
             }
@@ -292,8 +292,11 @@ async fn main() {
         // keys etc.
         Renderer::render_items(&mut canvas, &mut map_manager_guard.get_mut_current_map(), 55, 60, camera.x, camera.y).unwrap();
 
+        let mut monster_manager_guard = monster_manager_clone.lock().await;
+
         // monsters, snakes, goblins, goons, ghouls etc.
-        Renderer::render_monsters(&mut canvas, &mut map_manager_guard.get_mut_current_map(), 55, 60, camera.x, camera.y).unwrap();
+        Renderer::render_monsters(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), 55, 60, camera.x, camera.y).unwrap();
+        drop(monster_manager_guard);
 
         Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map(), camera.x, camera.y).unwrap();
 

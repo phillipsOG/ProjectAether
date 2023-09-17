@@ -118,15 +118,9 @@ impl MapFactory {
 
                         // Check if it's along the top, left side, or bottom
                         if pos_y == 0 || pos_x == 0 || pos_y == height - 1 || pos_x == width-1 {
-                            new_space = Space::new(DEFAULT_TILE_SET.wall);
-                            new_space.tile_sprite_position = Point::new(160, 20);
-                            new_space.tile_width = 60;
-                            new_space.tile_height = 60;
+                            new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.wall);
                         } else {
-                            new_space = Space::new(DEFAULT_TILE_SET.floor); // open on the right
-                            new_space.tile_sprite_position = Point::new(30, 150);
-                            new_space.tile_width = 20;
-                            new_space.tile_height = 20;
+                            new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor); // open on the right
                         }
 
                         map[pos_y][pos_x] = new_space;
