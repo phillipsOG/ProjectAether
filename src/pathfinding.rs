@@ -1,4 +1,3 @@
-use crate::space::Space;
 use crate::vec2::Vec2;
 use rand::Rng;
 use std::collections::{BinaryHeap, HashMap, HashSet};

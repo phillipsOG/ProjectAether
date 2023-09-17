@@ -53,6 +53,7 @@ use crate::map_data::MapData;
 use crate::renderer::Renderer;
 use crate::camera::Camera;
 use crate::monster::Monster;
+use crate::space_factory::SpaceFactory;
 
 type Monsters = HashMap<i32, Monster>;
 
@@ -123,6 +124,9 @@ async fn main() {
     map_factory.generate_object(DEFAULT_TILE_SET.key, spawn_pos, &mut new_graphical_map, &mut new_map.map);
 
     let spawn_pos = Vec2::new(0, 0);
+    map_factory.generate_object(DEFAULT_TILE_SET.room, spawn_pos, &mut new_graphical_map, &mut new_map.map);
+
+    let spawn_pos = Vec2::new(5, 4);
     map_factory.generate_object(DEFAULT_TILE_SET.room, spawn_pos, &mut new_graphical_map, &mut new_map.map);
 
     let spawn_pos = Vec2::new(0, 5);
@@ -284,6 +288,7 @@ async fn main() {
 
         let player_guard = player_clone.lock().await;
         let mut map_manager_guard = map_manager_clone.lock().await;
+        let mut monster_manager_guard = monster_manager_clone.lock().await;
 
         let mut camera = Camera::new(&player_guard); // create the camera with the player reference
         camera.update_camera_position(cur_pos, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -291,7 +296,38 @@ async fn main() {
         let tile_width = 55;
         let tile_height = 60;
 
-        let mut monster_manager_guard = monster_manager_clone.lock().await;
+        /*let mut collision_engine_guard = collision_engine_clone.lock().await;
+        let mut chat_clone = Arc::clone(&chat);
+
+        let mut new_monsters_pos = collision_engine_guard
+            .try_move_monsters(
+                &player_guard,
+                &mut monster_manager_guard,
+                &mut map_manager_guard,
+                &mut chat_clone,
+            )
+            .await;
+
+        let processed_monsters_positions = collision_engine_guard
+            .process_monsters_move(
+                &mut new_monsters_pos,
+                &mut map_manager_guard,
+                &mut monster_manager_guard,
+            )
+            .await;
+
+        collision_engine_guard
+            .update_monsters_position(
+                &mut map_manager_guard,
+                &mut monster_manager_guard,
+                processed_monsters_positions,
+            )
+            .await;
+
+        collision_engine_guard
+            .update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO)
+            .await;*/
+
         let cell_x = 0;
         let cell_y = 0;
 
@@ -311,7 +347,25 @@ async fn main() {
         Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map(), cell_x, cell_y, camera.x, camera.y).unwrap();
         Renderer::render_monsters_status(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), &monsters_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
 
-        drop (monster_manager_guard);
+        // @TODO make this a function call inside monster_manager to cull dead monsters
+        let mut monsters_to_remove = Vec::<i32>::new();
+        for monster in monster_manager_guard.get_monsters_mut().values_mut() {
+            if !monster.is_alive {
+                let mut map = map_manager_guard.get_mut_current_map();
+                monsters_to_remove.push(monster.id);
+
+                chat_clone.lock().await.process_debug_message(&format!("mon dead at pos: {:?}", monster.position), 3);
+                map.map[monster.position.y][monster.position.x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+            }
+        }
+        for monster_id in monsters_to_remove {
+            monster_manager_guard.despawn(monster_id);
+        }
+
+        //drop(collision_engine_guard);
+        drop(monster_manager_guard);
+        drop(map_manager_guard);
+        drop(player_guard);
 
         // call this last to present previous buffer data
         canvas.present();
@@ -334,24 +388,8 @@ async fn update_monsters_async(
         let mut collision_engine_guard = collision_engine_clone.lock().await;
         let player_guard = player_clone.lock().await;
         let mut monster_manager_guard = monster_manager_clone.lock().await;
-        let mut terminal_guard = terminal_clone.lock().await;
+        let terminal_guard = terminal_clone.lock().await;
         let mut map_manager_guard = map_manager_clone.lock().await;
-
-        let mut monsters_to_remove = Vec::<i32>::new();
-
-        for monster in monster_manager_guard.get_monsters_mut().values_mut() {
-            if !monster.is_alive {
-                let mut map = map_manager_guard.get_mut_current_map();
-                monsters_to_remove.push(monster.id);
-
-                chat_clone.lock().await.process_debug_message(&format!("mon dead at pos: {:?}", monster.position), 3);
-                map.map[monster.position.y][monster.position.x] = Space::new(DEFAULT_TILE_SET.floor);
-            }
-        }
-
-        for monster_id in monsters_to_remove {
-            monster_manager_guard.despawn(monster_id);
-        }
 
         let mut new_monsters_pos = collision_engine_guard
             .try_move_monsters(
@@ -393,7 +431,6 @@ async fn update_monsters_async(
         drop(map_manager_guard);
         drop(player_guard);
 
-        //::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / ));
-        async_std::task::sleep(Duration::from_secs(1)).await;
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 1));
     }
 }

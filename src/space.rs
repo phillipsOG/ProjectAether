@@ -38,7 +38,7 @@ impl Space {
                 || tile_name == DEFAULT_TILE_SET.open_door
                 || tile_name == LADDER_TILE_SET.floor,
             is_monster: tile_name == MONSTER_TILE_SET.snake || tile_name == MONSTER_TILE_SET.goblin,
-            is_player: tile_name == MONSTER_TILE_SET.player,
+            is_player: tile_name == DEFAULT_TILE_SET.player,
             is_occupied: false,
             is_item: false,
         }

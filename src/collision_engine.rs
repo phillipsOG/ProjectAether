@@ -150,7 +150,7 @@ impl CollisionEngine {
         if tmp_tile == tile_set.key {
             chat_guard.process_chat_message("You pick up a rusty key.");
             player.inventory.add_key(1);
-            map.map[new_player_pos.y][new_player_pos.x] = Space::new(DEFAULT_TILE_SET.floor);
+            map.map[new_player_pos.y][new_player_pos.x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
         } else if tmp_tile == tile_set.closed_door_side || tmp_tile == tile_set.closed_door_top {
             if player.inventory.keys >= 1 {
                 player.inventory.remove_key(1);
