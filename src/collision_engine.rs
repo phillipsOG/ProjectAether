@@ -293,8 +293,7 @@ impl CollisionEngine {
                         cur_monster_pos,
                         player.position,
                         radius,
-                    )
-                        .await;
+                    ).await;
 
                     if new_pos == cur_monster_pos {
                         // if new pos is the same as cur mon pos than no path found to the player within given radius

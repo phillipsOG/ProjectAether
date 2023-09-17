@@ -114,7 +114,7 @@ impl MapFactory {
 
                 for pos_y in 0..height {
                     for pos_x in 0..width {
-                        let mut new_space = Space::new(DEFAULT_TILE_SET.floor); // default to floor
+                        let mut new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor); // default to floor
 
                         // Check if it's along the top, left side, or bottom
                         if pos_y == 0 || pos_x == 0 || pos_y == height - 1 || pos_x == width-1 {

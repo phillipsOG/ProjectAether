@@ -5,7 +5,7 @@ use crate::{Direction, Map, Monsters};
 use crate::map_data::MapData;
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET};
-use crate::basic_colour::COLOUR;
+use crate::basic_colour::{BasicColour, COLOUR};
 use crate::monster::Monster;
 use crate::vec2::Vec2;
 
@@ -19,6 +19,8 @@ impl Renderer {
         canvas: &mut WindowCanvas,
         player: &Player,
         map_data: &MapData,
+        grid_x: i32,
+        grid_y: i32,
         camera_x: i32,
         camera_y: i32
     ) -> Result<(), String> {
@@ -59,53 +61,12 @@ impl Renderer {
         Ok(())
     }
 
-    pub(crate) fn render_map(
-        canvas: &mut WindowCanvas,
-        map_data: &MapData,
-    ) -> Result<(), String> {
-        let texture_creator = canvas.texture_creator();
-        let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
-
-        let tile_width = 40;
-        let tile_height = 40;
-
-        let (screen_width, screen_height) = canvas.output_size()?;
-        let map_width = map_data.map[0].len() as i32;
-        let map_height = map_data.map.len() as i32;
-
-        // copy takes in a texture ref,
-        // src is a rect, we specify with an x and y pos where on the texture we are copying from,
-        // proceeded by the width and height of the spritesheet we're copying
-        // dst is also a rect, the x and y are used this time to specify where on the screen the copied sprite will be drawn
-        // proceeded by the width and height allowing us to size the copied sprite as required
-        // canvas.copy(&texture, Rect::new(30, 150, 20, 20)/*, Rect::new(0, 0, 25, 25)*/,None).unwrap();
-        for col in 0..map_width {
-            for row in 0..map_height {
-                let space = &map_data.map[row as usize][col as usize];
-
-                let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
-
-                let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
-                let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
-
-                let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
-
-                // if the ascii tile is the player, than set the tile underneath the player as a floor tile
-                if space.tile_name == DEFAULT_TILE_SET.floor {
-                    canvas.copy(&texture, sprite, sprite_build).unwrap();
-                } else if space.tile_name == DEFAULT_TILE_SET.wall {
-                    canvas.copy(&texture, sprite, sprite_build).unwrap();
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     pub(crate) fn render_tile(
         canvas: &mut WindowCanvas,
         map: &mut Map,
         tile_to_render: &str,
+        grid_x: i32,
+        grid_y: i32,
         tile_width: i32,
         tile_height: i32,
         camera_x: i32,
@@ -147,9 +108,13 @@ impl Renderer {
         Ok(())
     }
 
-    pub(crate) fn render_items(
+    pub(crate) fn render_tiles(
         canvas: &mut WindowCanvas,
-        map_data: &MapData,
+        graphical_map: &mut Map,
+        player_map: &mut MapData,
+        tiles_to_render: &Vec<&str>,
+        grid_x: i32,
+        grid_y: i32,
         tile_width: i32,
         tile_height: i32,
         camera_x: i32,
@@ -159,21 +124,33 @@ impl Renderer {
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
 
         let (screen_width, screen_height) = canvas.output_size()?;
-        let map_width = map_data.map[0].len() as i32;
-        let map_height = map_data.map.len() as i32;
+        let map_width = player_map.width as i32;
+        let map_height = player_map.height as i32;
 
-        for col in 0..map_width {
-            for row in 0..map_height {
-                let space = &map_data.map[row as usize][col as usize];
+        for col in 0..map_height {
+            for row in 0..map_width {
+                let graphical_space = &graphical_map[col as usize][row as usize];
+                let player_map_space = &player_map.map[col as usize][row as usize];
 
-                if space.tile_name == DEFAULT_TILE_SET.key {
-                    let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+                let sprite = Rect::new(graphical_space.tile_sprite_position.x, graphical_space.tile_sprite_position.y, graphical_space.tile_width, graphical_space.tile_height);
 
-                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
-                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
+                let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
+                let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
-                    let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
-                    canvas.copy(&texture, sprite, sprite_build).unwrap();
+                let sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+
+                for tile_name in tiles_to_render.as_slice() {
+                    // check if the tile is under the player and is visible
+                    if player_map_space.is_player {
+                        // draw the tile under the player
+                        canvas.copy(&texture, sprite, sprite_build).unwrap();
+                    } else if graphical_space.tile_name == *tile_name && player_map_space.is_visible {
+                        if col == 0 {
+                            canvas.copy(&texture, sprite, sprite_build).unwrap();
+                        } else {
+                            canvas.copy(&texture, sprite, sprite_build).unwrap();
+                        }
+                    }
                 }
             }
         }
@@ -184,6 +161,9 @@ impl Renderer {
     pub(crate) fn render_objects(
         canvas: &mut WindowCanvas,
         map_data: &MapData,
+        objects_to_render: &Vec<&str>,
+        grid_x: i32,
+        grid_y: i32,
         tile_width: i32,
         tile_height: i32,
         camera_x: i32,
@@ -193,22 +173,25 @@ impl Renderer {
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
 
         let (screen_width, screen_height) = canvas.output_size()?;
-        let map_width = map_data.map[0].len() as i32;
-        let map_height = map_data.map.len() as i32;
+        let map_width = map_data.width as i32;
+        let map_height = map_data.height as i32;
 
-        for col in 0..map_width {
-            for row in 0..map_height {
-                let space = &map_data.map[row as usize][col as usize];
+        for col in 0..map_height {
+            for row in 0..map_width {
+                let space = &map_data.map[col as usize][row as usize];
 
-                if space.tile_name == DEFAULT_TILE_SET.closed_door_side || space.tile_name == DEFAULT_TILE_SET.open_door {
-                    let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+                for object_to_render in objects_to_render.as_slice() {
+                    if space.tile_name == *object_to_render && space.is_visible {
+                        let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
-                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
+                        let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
+                        let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
-                    let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
-                    canvas.copy(&texture, sprite, sprite_build).unwrap();
+                        let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+                        canvas.copy(&texture, sprite, sprite_build).unwrap();
+                    }
                 }
+
             }
         }
 
@@ -219,6 +202,9 @@ impl Renderer {
         canvas: &mut WindowCanvas,
         map_data: &MapData,
         monsters: &mut Monsters,
+        monsters_to_render: &Vec<&str>,
+        grid_x: i32,
+        grid_y: i32,
         tile_width: i32,
         tile_height: i32,
         camera_x: i32,
@@ -236,16 +222,18 @@ impl Renderer {
                 for row in 0..map_width {
                     let space = &map_data.map[col as usize][row as usize];
                     let space_position = Vec2::new(row as usize, col as usize);
-                    if space_position == monster.position {
 
-                        // MONSTER SPRITE
-                        let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
+                    for monster_to_render in monsters_to_render.as_slice() {
+                        if space.tile_name == *monster_to_render && space_position == monster.position && space.is_visible {
+                            // MONSTER SPRITE
+                            let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                        let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
-                        let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
+                            let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
+                            let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
-                        let sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
-                        canvas.copy(&texture, sprite, sprite_build).unwrap();
+                            let sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
+                            canvas.copy(&texture, sprite, sprite_build).unwrap();
+                        }
                     }
                 }
             }
@@ -258,13 +246,14 @@ impl Renderer {
         canvas: &mut WindowCanvas,
         map_data: &MapData,
         monsters: &mut Monsters,
+        monsters_to_render: &Vec<&str>,
+        grid_x: i32,
+        grid_y: i32,
         tile_width: i32,
         tile_height: i32,
         camera_x: i32,
         camera_y: i32
     ) -> Result<(), String> {
-        let texture_creator = canvas.texture_creator();
-
         let (screen_width, screen_height) = canvas.output_size()?;
         let map_width = map_data.width as i32;
         let map_height = map_data.height as i32;
@@ -275,57 +264,61 @@ impl Renderer {
         for monster in monsters.values_mut() {
             for col in 0..map_height {
                 for row in 0..map_width {
+                    let space = &map_data.map[col as usize][row as usize];
                     let space_position = Vec2::new(row as usize, col as usize);
-                    if space_position == monster.position {
-                        // MONSTER HEALTH
-                        let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
-                        let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
-                        // calculate the position for drawing the health bar above the monster
-                        let health_bar_x = centered_row;
-                        let health_bar_y = centered_col - 10; // adjust the position as needed
+                    for monster_to_render in monsters_to_render.as_slice() {
+                        if space.tile_name == *monster_to_render && space_position == monster.position && space.is_visible {
+                            // MONSTER HEALTH
+                            let centered_row = (row * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
+                            let centered_col = (col * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
-                        // Calculate the width of the health bar based on the monster's health
-                        let max_health = monster.status.max_health as f32;
-                        let current_health = monster.status.current_health as f32;
-                        let health_percentage = max_health / current_health;
-                        let health_bar_width = (tile_width as f32 * health_percentage) as u32;
+                            // calculate the position for drawing the health bar above the monster
+                            let health_bar_x = centered_row;
+                            let health_bar_y = centered_col - 10; // adjust the position as needed
 
-                        // define the health bar's dimensions
-                        let health_bar_height = 7; // adjust the height as needed
+                            // Calculate the width of the health bar based on the monster's health
+                            let max_health = monster.status.max_health as f32;
+                            let current_health = monster.status.current_health as f32;
+                            let health_percentage = max_health / current_health;
+                            let health_bar_width = (tile_width as f32 * health_percentage) as u32;
 
-                        let mut hp_bar_colour = COLOUR.white;
+                            // define the health bar's dimensions
+                            let health_bar_height = 7; // adjust the height as needed
 
-                        if health_percentage > 0.7 {
-                            hp_bar_colour = COLOUR.green;
-                        } else if health_percentage > 0.4 {
-                            hp_bar_colour = COLOUR.yellow;
-                        } else {
-                            hp_bar_colour = COLOUR.red;
+                            let mut hp_bar_colour = COLOUR.white;
+
+                            if health_percentage > 0.7 {
+                                hp_bar_colour = COLOUR.green;
+                            } else if health_percentage > 0.4 {
+                                hp_bar_colour = COLOUR.yellow;
+                            } else {
+                                hp_bar_colour = COLOUR.red;
+                            }
+
+                            // draw the filled health bar rectangle with the specified color
+                            let health_bar_rect = Rect::new(health_bar_x, health_bar_y, health_bar_width, health_bar_height);
+                            canvas.set_draw_color(hp_bar_colour);
+                            canvas.fill_rect(health_bar_rect).expect("colour fill");
+                            canvas.draw_rect(health_bar_rect).expect("hp bar");
+
+                            // render the monster's name above the health bar
+                            let font_path = "assets/spindles_end.ttf";
+                            let font_size = 18;
+
+                            let font = ttf_context.load_font(font_path, font_size)?;
+                            let text_surface = font.render(&monster.name).blended(COLOUR.white).unwrap();
+                            let text_texture = texture_creator.create_texture_from_surface(&text_surface).unwrap();
+                            let text_width = text_surface.width() as i32;
+                            let text_height = text_surface.height() as i32;
+                            let text_position = Rect::new(
+                                health_bar_x + (health_bar_width as i32 / 2) - (text_width / 2),
+                                health_bar_y - text_height,
+                                text_width as u32,
+                                text_height as u32,
+                            );
+                            canvas.copy(&text_texture, None, text_position).unwrap();
                         }
-
-                        // draw the filled health bar rectangle with the specified color
-                        let health_bar_rect = Rect::new(health_bar_x, health_bar_y, health_bar_width, health_bar_height);
-                        canvas.set_draw_color(hp_bar_colour);
-                        canvas.fill_rect(health_bar_rect).expect("colour fill");
-                        canvas.draw_rect(health_bar_rect).expect("hp bar");
-
-                        // render the monster's name above the health bar
-                        let font_path = "assets/sol.ttf";
-                        let font_size = 14;
-
-                        let font = ttf_context.load_font(font_path, font_size)?;
-                        let text_surface = font.render(&monster.name).blended(hp_bar_colour).unwrap();
-                        let text_texture = texture_creator.create_texture_from_surface(&text_surface).unwrap();
-                        let text_width = text_surface.width() as i32;
-                        let text_height = text_surface.height() as i32;
-                        let text_position = Rect::new(
-                            health_bar_x + (health_bar_width as i32 / 2) - (text_width / 2),
-                            health_bar_y - text_height,
-                            text_width as u32,
-                            text_height as u32,
-                        );
-                        canvas.copy(&text_texture, None, text_position).unwrap();
                     }
                 }
             }

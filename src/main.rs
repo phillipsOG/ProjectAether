@@ -44,7 +44,7 @@ use crate::map_manager::MapManager;
 use crate::monster_generator::MonsterFactory;
 use crate::monster_manager::MonsterManager;
 use crate::player::Player;
-use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
+use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
 use sdl2::pixels::Color;
 use sdl2::keyboard::Keycode;
 use sdl2::image::{self, LoadTexture, InitFlag};
@@ -77,6 +77,14 @@ enum MovementType {
     LadderExit,
     Battle,
 }
+
+// Define grid parameters
+const GRID_ROWS: usize = 4; // Number of rows
+const GRID_COLS: usize = 4; // Number of columns
+const CELL_SIZE: i32 = 1;   // Size of each grid cell in pixels
+const START_X: i32 = 0;      // X-coordinate of the top-left corner of the grid
+const START_Y: i32 = 0;      // Y-coordinate of the top-left corner of the grid
+
 
 #[tokio::main]
 async fn main() {
@@ -259,7 +267,6 @@ async fn main() {
                     if let Some(monster) = monster_manager_guard.get_monster_at_position(position) {
                         BattleSystem::start_battle(&mut player_guard, monster, &chat_clone).await;
                     }
-
                 }
                 _ => {}
             }
@@ -269,8 +276,7 @@ async fn main() {
                     &mut map_manager_guard,
                     &mut player_guard,
                     new_player_pos,
-                )
-                .await;
+                ).await;
 
             drop(map_manager_guard);
             drop(player_guard);
@@ -282,27 +288,30 @@ async fn main() {
         let mut camera = Camera::new(&player_guard); // create the camera with the player reference
         camera.update_camera_position(cur_pos, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        // renders the base map, walls and floor (can update this later for procedural gen)
-        Renderer::render_tile(&mut canvas, &mut new_graphical_map, DEFAULT_TILE_SET.wall, 55, 60, camera.x, camera.y).unwrap();
-        Renderer::render_tile(&mut canvas, &mut new_graphical_map, DEFAULT_TILE_SET.floor, 55, 60, camera.x, camera.y).unwrap();
-
-        // doors closed/open
-        Renderer::render_objects(&mut canvas, &mut map_manager_guard.get_mut_current_map(), 55, 60, camera.x, camera.y).unwrap();
-
-        // keys etc.
-        Renderer::render_items(&mut canvas, &mut map_manager_guard.get_mut_current_map(), 55, 60, camera.x, camera.y).unwrap();
+        let tile_width = 55;
+        let tile_height = 60;
 
         let mut monster_manager_guard = monster_manager_clone.lock().await;
+        let cell_x = 0;
+        let cell_y = 0;
+
+        let tiles_to_render = vec![DEFAULT_TILE_SET.wall, DEFAULT_TILE_SET.floor];
+        let objects_to_render = vec![DEFAULT_TILE_SET.closed_door_side, DEFAULT_TILE_SET.open_door, DEFAULT_TILE_SET.key];
+        let monsters_to_render = vec![MONSTER_TILE_SET.snake];
+
+        // we pass in the normal map because the graphical map doesn't have tile visibility updated
+        // renders the base map, walls and floor (can update this later for procedural gen)
+        Renderer::render_tiles(&mut canvas, &mut new_graphical_map, &mut map_manager_guard.get_mut_current_map(), &tiles_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
+
+        // doors closed/open, keys etc.
+        Renderer::render_objects(&mut canvas, &mut map_manager_guard.get_mut_current_map(), &objects_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
 
         // monsters, snakes, goblins, goons, ghouls etc.
-        Renderer::render_monsters(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), 55, 60, camera.x, camera.y).unwrap();
+        Renderer::render_monsters(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), &monsters_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
+        Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map(), cell_x, cell_y, camera.x, camera.y).unwrap();
+        Renderer::render_monsters_status(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), &monsters_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
 
-        Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map(), camera.x, camera.y).unwrap();
-        
-        Renderer::render_monsters_status(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), 55, 60, camera.x, camera.y).unwrap();
-
-        drop(monster_manager_guard);
-
+        drop (monster_manager_guard);
 
         // call this last to present previous buffer data
         canvas.present();
