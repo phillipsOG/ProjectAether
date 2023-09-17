@@ -1,13 +1,13 @@
-use futures::lock::MutexGuard;
 use sdl2::image::LoadTexture;
-use sdl2::mouse::SystemCursor::No;
-use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
-use sdl2::render::{Texture, WindowCanvas};
+use sdl2::render::{WindowCanvas};
 use crate::{Direction, Map};
 use crate::map_data::MapData;
+use crate::monster_manager::MonsterManager;
 use crate::player::Player;
 use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
+use futures::lock::Mutex;
+use std::sync::Arc;
 
 pub(crate) struct Renderer {
 
@@ -18,7 +18,9 @@ impl Renderer {
     pub(crate) fn render_player(
         canvas: &mut WindowCanvas,
         player: &Player,
-        map_data: &MapData
+        map_data: &MapData,
+        camera_x: i32,
+        camera_y: i32
     ) -> Result<(), String> {
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.load_texture("assets/bardo.png").unwrap();
@@ -45,8 +47,8 @@ impl Renderer {
                         frame_height,
                     );
 
-                    let centered_row = (col * tile_width) + (width as i32 / 2) - ((map_width * tile_width) / 2);
-                    let centered_col = (row * tile_height) + (height as i32 / 2) - ((map_height * tile_height) / 2);
+                    let centered_row = (col * tile_width) + (width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
+                    let centered_col = (row * tile_height) + (height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
                     let sprite = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
 
                     canvas.copy(&texture, current_frame, sprite).unwrap();
@@ -108,6 +110,8 @@ impl Renderer {
         tile_to_render: &str,
         tile_width: i32,
         tile_height: i32,
+        camera_x: i32,
+        camera_y: i32
     ) -> Result<(), String> {
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
@@ -122,8 +126,8 @@ impl Renderer {
 
                 let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
-                let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+                let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) - camera_x;
+                let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) - camera_y;
 
                 let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
 
@@ -150,6 +154,8 @@ impl Renderer {
         map_data: &MapData,
         tile_width: i32,
         tile_height: i32,
+        camera_x: i32,
+        camera_y: i32
     ) -> Result<(), String> {
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
@@ -165,8 +171,8 @@ impl Renderer {
                 if space.tile_name == DEFAULT_TILE_SET.key {
                     let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
-                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
+                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
 
                     let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
                     canvas.copy(&texture, sprite, sprite_build).unwrap();
@@ -182,6 +188,8 @@ impl Renderer {
         map_data: &MapData,
         tile_width: i32,
         tile_height: i32,
+        camera_x: i32,
+        camera_y: i32
     ) -> Result<(), String> {
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
@@ -197,8 +205,8 @@ impl Renderer {
                 if space.tile_name == DEFAULT_TILE_SET.closed_door_side || space.tile_name == DEFAULT_TILE_SET.open_door {
                     let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
-                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
+                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
 
                     let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
                     canvas.copy(&texture, sprite, sprite_build).unwrap();
@@ -214,6 +222,8 @@ impl Renderer {
         map_data: &MapData,
         tile_width: i32,
         tile_height: i32,
+        camera_x: i32,
+        camera_y: i32
     ) -> Result<(), String> {
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator.load_texture("assets/dimension.png").unwrap();
@@ -229,8 +239,8 @@ impl Renderer {
                 if space.tile_name == MONSTER_TILE_SET.snake || space.tile_name == MONSTER_TILE_SET.goblin {
                     let sprite = Rect::new(space.tile_sprite_position.x, space.tile_sprite_position.y, space.tile_width, space.tile_height);
 
-                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2);
-                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2);
+                    let centered_row = (col * tile_width) + (screen_width as i32 / 2) - ((map_width * tile_width) / 2) -camera_x;
+                    let centered_col = (row * tile_height) + (screen_height as i32 / 2) - ((map_height * tile_height) / 2) -camera_y;
 
                     let mut sprite_build = Rect::new(centered_row, centered_col, tile_width as u32, tile_height as u32);
                     canvas.copy(&texture, sprite, sprite_build).unwrap();
