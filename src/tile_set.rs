@@ -83,3 +83,9 @@ pub const MONSTER_TILE_SET: MonsterTileSet = MonsterTileSet {
     snake: "s",
     goblin: "g"
 };
+
+pub const MONSTER_TILE_SET_NAMES: MonsterTileSet = MonsterTileSet {
+    player: "@",
+    snake: "Snake",
+    goblin: "Goblin"
+};

@@ -380,7 +380,7 @@ impl CollisionEngine {
                 monster.position = *new_mons_pos;
                 monster.tile_below = tmp_tile;
 
-                let mut updated_space = SpaceFactory::generate_space(monster.tile_name);
+                let mut updated_space = SpaceFactory::generate_space(monster.tile);
                 updated_space.is_occupied = true;
 
                 map_data.map[new_mons_pos.y][new_mons_pos.x] = updated_space;

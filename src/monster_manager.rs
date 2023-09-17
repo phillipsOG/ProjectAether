@@ -60,7 +60,7 @@ impl MonsterManager {
 
                     new_monster.tile_below = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
-                    map_data.map[pos_y][pos_x] = SpaceFactory::generate_space(new_monster.tile_name);
+                    map_data.map[pos_y][pos_x] = SpaceFactory::generate_space(new_monster.tile);
                     self.monsters.insert(new_monster.id, new_monster);
                     loop_limit += 1;
                 }

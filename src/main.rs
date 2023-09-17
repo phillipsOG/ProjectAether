@@ -57,8 +57,8 @@ use crate::monster::Monster;
 type Monsters = HashMap<i32, Monster>;
 
 const PLAYER_MOVEMENT_SPEED: i32 = 5;
-const SCREEN_WIDTH: u32 = 800;
-const SCREEN_HEIGHT: u32 = 600;
+const SCREEN_WIDTH: u32 = 1280;
+const SCREEN_HEIGHT: u32 = 720;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -296,9 +296,13 @@ async fn main() {
 
         // monsters, snakes, goblins, goons, ghouls etc.
         Renderer::render_monsters(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), 55, 60, camera.x, camera.y).unwrap();
-        drop(monster_manager_guard);
 
         Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map(), camera.x, camera.y).unwrap();
+        
+        Renderer::render_monsters_status(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), 55, 60, camera.x, camera.y).unwrap();
+
+        drop(monster_manager_guard);
+
 
         // call this last to present previous buffer data
         canvas.present();

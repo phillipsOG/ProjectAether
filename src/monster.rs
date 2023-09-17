@@ -4,7 +4,8 @@ use crate::Vec2;
 #[derive(Copy, Clone)]
 pub struct Monster {
     pub id: i32,
-    pub tile_name: &'static str,
+    pub tile: &'static str,
+    pub name: &'static str,
     pub status: Status,
     pub position: Vec2,
     pub tile_below: &'static str,
@@ -13,9 +14,10 @@ pub struct Monster {
 }
 
 impl Monster {
-    pub(crate) fn new(tile: &'static str, position: Vec2, id: i32) -> Self {
+    pub(crate) fn new(tile: &'static str, name: &'static str, position: Vec2, id: i32) -> Self {
         Monster {
-            tile_name: tile,
+            tile,
+            name,
             status: Status::new_monster(10, 3, 1),
             id: Monster::generate_id(id),
             position,
