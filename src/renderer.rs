@@ -148,11 +148,13 @@ impl Renderer {
         tile_height: i32,
         camera_x: i32,
         camera_y: i32,
+        display_grid_coordinates: bool
     ) -> Result<(), String> {
         let texture_creator = canvas.texture_creator();
         let texture = texture_creator
             .load_texture("assets/dimension.png")
             .unwrap();
+        let ttf_context = sdl2::ttf::init().unwrap();
 
         let (screen_width, screen_height) = canvas.output_size()?;
         let map_width = player_map.width as i32;
@@ -163,19 +165,20 @@ impl Renderer {
                 let graphical_space = &graphical_map[col as usize][row as usize];
                 let player_map_space = &player_map.map[col as usize][row as usize];
 
-                let sprite = Rect::new(
-                    graphical_space.tile_sprite_position.x,
-                    graphical_space.tile_sprite_position.y,
-                    graphical_space.tile_width,
-                    graphical_space.tile_height,
-                );
-
                 let centered_row = (row * tile_width) + (screen_width as i32 / 2)
                     - ((map_width * tile_width) / 2)
                     - camera_x;
                 let centered_col = (col * tile_height) + (screen_height as i32 / 2)
                     - ((map_height * tile_height) / 2)
                     - camera_y;
+
+                // set up the default sprite to draw from the graphical map
+                let mut sprite = Rect::new(
+                    graphical_space.tile_sprite_position.x,
+                    graphical_space.tile_sprite_position.y,
+                    graphical_space.tile_width,
+                    graphical_space.tile_height,
+                );
 
                 let sprite_build = Rect::new(
                     centered_row,
@@ -185,17 +188,51 @@ impl Renderer {
                 );
 
                 for tile_name in tiles_to_render.as_slice() {
+                    if player_map_space.tile_name == *tile_name  {
+                        sprite = Rect::new(
+                            player_map_space.tile_sprite_position.x,
+                            player_map_space.tile_sprite_position.y,
+                            player_map_space.tile_width,
+                            player_map_space.tile_height,
+                        );
+                    }
+
                     // check if the tile is under the player and is visible
                     if player_map_space.is_player {
                         // draw the tile under the player
                         canvas.copy(&texture, sprite, sprite_build).unwrap();
-                    } else if graphical_space.tile_name == *tile_name && player_map_space.is_visible
+                    }
+                    else if (graphical_space.tile_name == *tile_name || player_map_space.tile_name == *tile_name) && player_map_space.is_visible
                     {
                         if col == 0 {
                             canvas.copy(&texture, sprite, sprite_build).unwrap();
                         } else {
                             canvas.copy(&texture, sprite, sprite_build).unwrap();
                         }
+                    }
+
+                    if display_grid_coordinates {
+                        let health_bar_height = 1;
+                        let health_bar_width = 1;
+
+                        // render the tile x, y for debug
+                        let font_path = "assets/helvetica.ttf";
+                        let font_size = 16;
+
+                        let font = ttf_context.load_font(font_path, font_size)?;
+                        let tile_pos = &format!("({}, {})", row, col);
+
+                        let text_surface = font.render(tile_pos).blended(COLOUR.yellow).unwrap();
+                        let text_texture = texture_creator.create_texture_from_surface(&text_surface).unwrap();
+                        let text_width = text_surface.width() as i32;
+                        let text_height = text_surface.height() as i32;
+                        let text_position = Rect::new(
+                            centered_row +22 + (health_bar_width / 2) - (text_width / 2),
+                            centered_col +28 + health_bar_height - text_height,
+                            text_width as u32,
+                            text_height as u32,
+                        );
+                        canvas.copy(&text_texture, None, text_position).unwrap();
                     }
                 }
             }
@@ -395,7 +432,7 @@ impl Renderer {
                             canvas.draw_rect(health_bar_rect).expect("hp bar");
 
                             // render the monster's name above the health bar
-                            let font_path = "assets/spindles_end.ttf";
+                            let font_path = "assets/helvetica.ttf";
                             let font_size = 18;
 
                             let font = ttf_context.load_font(font_path, font_size)?;

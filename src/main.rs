@@ -151,10 +151,64 @@ async fn main() {
         spawn_pos,
         &mut new_graphical_map,
         &mut new_map.map,
+        RotationAngle::Degrees180,
+    );
+
+    let spawn_pos = Vec2::new(5, 9);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.wall_stack,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
         RotationAngle::None,
     );
 
-    let spawn_pos = Vec2::new(0, 5);
+    let spawn_pos = Vec2::new(10, 9);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.wall_stack,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::None,
+    );
+
+    let spawn_pos = Vec2::new(9, 13);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.wall_stack,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::Degrees90,
+    );
+
+    let spawn_pos = Vec2::new(13, 13);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.wall_stack,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::Degrees90,
+    );
+
+    let spawn_pos = Vec2::new(5, 9);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.wall_stack,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::Degrees90,
+    );
+
+    let spawn_pos = Vec2::new(3, 4);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.wall_stack,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::Degrees90,
+    );
+
+    let spawn_pos = Vec2::new(0, 4);
     map_factory.generate_object(
         DEFAULT_TILE_SET.room,
         spawn_pos,
@@ -163,7 +217,7 @@ async fn main() {
         RotationAngle::None,
     );
 
-    let spawn_pos = Vec2::new(1, 7);
+    let spawn_pos = Vec2::new(2, 7);
     map_factory.generate_object(
         DEFAULT_TILE_SET.key,
         spawn_pos,
@@ -256,24 +310,34 @@ async fn main() {
 
     let mut cur_pos = plr_spawn;
 
+    let mut display_grid_coordinates = false;
+
     // main game loop
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         canvas.set_draw_color(COLOUR.black);
+        canvas.clear();
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
+                Event::Quit { .. } | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
                     break 'running;
                 }
+                Event::KeyDown {
+                    keycode: Some(Keycode::LCtrl),
+                    ..
+                } => {
+                    if display_grid_coordinates == false {
+                        display_grid_coordinates = true;
+                    } else {
+                        display_grid_coordinates = false;
+                    }
+                }
                 _ => {}
             }
-
-            canvas.clear();
 
             let mut player_guard = player_clone.lock().await;
             player_guard.key_event = event;
@@ -281,6 +345,14 @@ async fn main() {
             let mut map_manager_guard = map_manager_clone.lock().await;
             let mut collision_engine_guard = collision_engine_clone.lock().await;
             let mut monster_manager_guard = monster_manager_clone.lock().await;
+
+            let culled_monsters_positions = monster_manager_guard.cull_dead_monsters();
+            for culled_monster_position in culled_monsters_positions {
+                map_manager_guard.get_mut_current_map().map[culled_monster_position.y][culled_monster_position.x] =
+                    SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+                new_graphical_map[culled_monster_position.y][culled_monster_position.x] =
+                    SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+            }
 
             let new_player_pos = collision_engine_guard
                 .try_move_player(&mut player_guard, &mut chat_clone)
@@ -335,51 +407,24 @@ async fn main() {
         let tile_width = 55;
         let tile_height = 60;
 
-        /*let mut collision_engine_guard = collision_engine_clone.lock().await;
-        let mut chat_clone = Arc::clone(&chat);
-
-        let mut new_monsters_pos = collision_engine_guard
-            .try_move_monsters(
-                &player_guard,
-                &mut monster_manager_guard,
-                &mut map_manager_guard,
-                &mut chat_clone,
-            )
-            .await;
-
-        let processed_monsters_positions = collision_engine_guard
-            .process_monsters_move(
-                &mut new_monsters_pos,
-                &mut map_manager_guard,
-                &mut monster_manager_guard,
-            )
-            .await;
-
-        collision_engine_guard
-            .update_monsters_position(
-                &mut map_manager_guard,
-                &mut monster_manager_guard,
-                processed_monsters_positions,
-            )
-            .await;
-
-        collision_engine_guard
-            .update_player_vision(&mut map_manager_guard, &player_guard, Vec2::ZERO)
-            .await;*/
-
         let cell_x = 0;
         let cell_y = 0;
 
-        let tiles_to_render = vec![DEFAULT_TILE_SET.wall, DEFAULT_TILE_SET.floor];
-        let objects_to_render = vec![
+        let tiles_to_render = vec![
+            DEFAULT_TILE_SET.wall,
+            DEFAULT_TILE_SET.floor,
             DEFAULT_TILE_SET.closed_door_side,
             DEFAULT_TILE_SET.open_door,
-            DEFAULT_TILE_SET.key,
+            MONSTER_TILE_SET.snake,
+            DEFAULT_TILE_SET.key
         ];
+
         let monsters_to_render = vec![MONSTER_TILE_SET.snake];
 
         // we pass in the normal map because the graphical map doesn't have tile visibility updated
         // renders the base map, walls and floor (can update this later for procedural gen)
+        // doors closed/open, keys etc.
+        // monsters, snakes, goblins, goons, ghouls etc.
         Renderer::render_tiles(
             &mut canvas,
             &mut new_graphical_map,
@@ -391,35 +436,7 @@ async fn main() {
             tile_height,
             camera.x,
             camera.y,
-        )
-        .unwrap();
-
-        // doors closed/open, keys etc.
-        Renderer::render_objects(
-            &mut canvas,
-            &mut map_manager_guard.get_mut_current_map(),
-            &objects_to_render,
-            cell_x,
-            cell_y,
-            tile_width,
-            tile_height,
-            camera.x,
-            camera.y,
-        )
-        .unwrap();
-
-        // monsters, snakes, goblins, goons, ghouls etc.
-        Renderer::render_monsters(
-            &mut canvas,
-            &mut map_manager_guard.get_mut_current_map(),
-            monster_manager_guard.get_monsters_mut(),
-            &monsters_to_render,
-            cell_x,
-            cell_y,
-            tile_width,
-            tile_height,
-            camera.x,
-            camera.y,
+            display_grid_coordinates
         )
         .unwrap();
         Renderer::render_player(
@@ -446,23 +463,12 @@ async fn main() {
         )
         .unwrap();
 
-        // @TODO make this a function call inside monster_manager to cull dead monsters
-        let mut monsters_to_remove = Vec::<i32>::new();
-        for monster in monster_manager_guard.get_monsters_mut().values_mut() {
-            if !monster.is_alive {
-                let map = map_manager_guard.get_mut_current_map();
-                monsters_to_remove.push(monster.id);
-
-                chat_clone
-                    .lock()
-                    .await
-                    .process_debug_message(&format!("mon dead at pos: {:?}", monster.position), 3);
-                map.map[monster.position.y][monster.position.x] =
-                    SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
-            }
-        }
-        for monster_id in monsters_to_remove {
-            monster_manager_guard.despawn(monster_id);
+        let culled_monsters_positions = monster_manager_guard.cull_dead_monsters();
+        for culled_monster_position in culled_monsters_positions {
+            map_manager_guard.get_mut_current_map().map[culled_monster_position.y][culled_monster_position.x] =
+                SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+            new_graphical_map[culled_monster_position.y][culled_monster_position.x] =
+                SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
         }
 
         //drop(collision_engine_guard);
@@ -536,4 +542,5 @@ async fn update_monsters_async(
 
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 1));
     }
+
 }

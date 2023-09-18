@@ -323,7 +323,7 @@ impl CollisionEngine {
 
                 if !monster.in_battle {
                     // essentially acts as the tile radius for the monster searching for the player
-                    let radius = 10;
+                    let radius = monster.vision_radius;
                     new_pos = Pathfinding::find_shortest_path(
                         &map_data.map,
                         cur_monster_pos,
@@ -366,9 +366,9 @@ impl CollisionEngine {
                 if let Some(map_data) = map_manager_clone.get_map_mut(map_index) {
                     let tmp_tile = &map_data.map[new_enemy_pos.y][new_enemy_pos.x];
 
-                    if tmp_tile.is_occupied {
+                    /*if !tmp_tile.is_occupied {
                         continue;
-                    }
+                    }*/
 
                     if !tmp_tile.is_traversable {
                         continue;

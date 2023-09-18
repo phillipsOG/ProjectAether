@@ -1,7 +1,7 @@
 use crate::vec2::Vec2;
-use crate::Map;
 use rand::Rng;
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use crate::Map;
 
 pub(crate) struct CostMapData {
     cost_map: HashMap<Vec2, usize>,
@@ -41,11 +41,11 @@ impl Pathfinding {
 
             // make it possible to not move
             if random_index == 0 {
-                return current_monster_position;
+                return current_monster_position
             }
 
             // otherwise, pick a random direction to wander
-            let (dx, dy) = directions[random_index - 1]; // Subtract 1 to match the array index
+            let (dx, dy) = directions[random_index-1]; // Subtract 1 to match the array index
             let new_x = current_monster_position.x as i32 + dx;
             let new_y = current_monster_position.y as i32 + dy;
             let potential_position = Vec2::new(new_x as usize, new_y as usize);
@@ -172,10 +172,7 @@ impl Pathfinding {
                     {
                         // legit neighbour entry, with a lower value than previous so count towards the radius of the monster searching for the player
                         // calculate the distance between the current position and the player's position
-                        let distance_to_player = Pathfinding::calculate_distance(
-                            current_monster.position,
-                            player_start_position,
-                        );
+                        let distance_to_player = Pathfinding::calculate_distance(current_monster.position, player_start_position);
 
                         // check if the distance exceeds the desired radius
                         if distance_to_player > radius {
@@ -232,8 +229,14 @@ impl Pathfinding {
         let mut current_position = player_position;
         let mut path = Vec::new();
 
+        let mut loop_count = 0;
+
         // start from the player's position and work backward
         while current_position != monster_position {
+            /*if loop_count <= 15 {
+                break;
+            }*/
+
             // find neighboring positions
             let mut neighbours = Vec::<Vec2>::new();
 
@@ -277,6 +280,7 @@ impl Pathfinding {
             }
 
             path.push(current_position);
+            loop_count+=1;
         }
 
         // remove initial player pos

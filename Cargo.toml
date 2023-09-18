@@ -12,8 +12,14 @@ futures = "0.3.28"
 ordered-float = "3.9.1"
 rand = "0.8.5"
 tokio = { version = "1.32.0", features = ["rt", "rt-multi-thread", "macros"] }
+flame = "0.2.2"
+flamer = "0.5"
 
 [dependencies.sdl2]
 version = "0.35.2"
 default-features = false
 features = ["image", "ttf"]
+
+[profile.release]
+debug = true
+

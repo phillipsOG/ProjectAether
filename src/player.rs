@@ -5,6 +5,7 @@ use sdl2::rect::{Point, Rect};
 
 use crate::inventory::Inventory;
 use crate::status::Status;
+use crate::tile_set::DEFAULT_TILE_SET;
 use crate::vec2::Vec2;
 
 #[derive(Clone)]
@@ -28,7 +29,7 @@ pub struct Player {
     pub sprite: Rect,
     pub speed: i32,
     pub current_frame: i32,
-    pub vision_radius: isize
+    pub vision_radius: isize,
 }
 
 impl Player {
@@ -48,8 +49,8 @@ impl Player {
             status: Status::new(),
             position: Vec2::ZERO,
             previous_player_position: Vec2::ZERO,
-            tile_below_player: ".",
-            previous_tile_below_player: ".",
+            tile_below_player: DEFAULT_TILE_SET.floor,
+            previous_tile_below_player: DEFAULT_TILE_SET.floor,
             multi_tile_below_player: false,
             current_floor: 0,
             fog_of_war: true,
@@ -59,7 +60,7 @@ impl Player {
             sprite: Rect::new(0, 0, 26, 36),
             speed: 0,
             current_frame: 0,
-            vision_radius: 1,
+            vision_radius: 2,
         }
     }
 

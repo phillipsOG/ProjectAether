@@ -11,6 +11,7 @@ pub struct TileSet {
     pub previous_tile: &'static str,
     pub room: &'static str,
     pub name: &'static str,
+    pub wall_stack: &'static str
 }
 
 impl TileSet {
@@ -43,6 +44,7 @@ pub const DEFAULT_TILE_SET: TileSet = TileSet {
     ladder: "|-|",
     previous_tile: ".",
     room: "room",
+    wall_stack: "wall",
     name: "Default Tile Set",
 };
 
@@ -57,6 +59,7 @@ pub const LADDER_TILE_SET: TileSet = TileSet {
     ladder: "|-|",
     previous_tile: " ",
     room: "",
+    wall_stack: "wall_stack",
     name: "Ladder Tile Set",
 };
 

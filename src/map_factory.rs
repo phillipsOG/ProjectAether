@@ -128,55 +128,74 @@ impl MapFactory {
         map
     }
 
-    pub(crate) fn generate_object(&self, tile_name: &str, spawn_pos: Vec2, graphical_map: &mut Map, map: &mut Map, rotation_angle: RotationAngle) {
+    pub(crate) fn generate_object(
+        &self,
+        tile_name: &str,
+        spawn_pos: Vec2,
+        graphical_map: &mut Map,
+        map: &mut Map,
+        rotation_angle: RotationAngle,
+    ) {
+        let new_wall = SpaceFactory::generate_space(DEFAULT_TILE_SET.wall);
+        let new_floor = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+
         if tile_name == DEFAULT_TILE_SET.key {
             map[spawn_pos.y][spawn_pos.x] = SpaceFactory::generate_space(tile_name);
-        } else if tile_name == DEFAULT_TILE_SET.room {
-            let mut new_wall = SpaceFactory::generate_space(DEFAULT_TILE_SET.wall);
-            let mut new_floor = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+        } else if tile_name == DEFAULT_TILE_SET.wall_stack {
+            // Generate a wall stack in a straight line
+            for x in 0..5 {
+                let (rotated_x, rotated_y) = match rotation_angle {
+                    RotationAngle::Degrees90 => (x, 0),       // Rotate 90 degrees
+                    RotationAngle::Degrees180 => (0, x),      // Rotate 180 degrees
+                    RotationAngle::Degrees270 => (x, 0),      // Rotate 270 degrees
+                    RotationAngle::None => (0, x),            // No rotation
+                };
 
-            // Generate a 3x3 room with walls on the outside
+                graphical_map[spawn_pos.y + rotated_y][spawn_pos.x + rotated_x] = new_wall;
+                map[spawn_pos.y + rotated_y][spawn_pos.x + rotated_x] = new_wall;
+            }
+        } else if tile_name == DEFAULT_TILE_SET.room {
+            // generate a 3x3 room with walls on the outside
             for y in 0..5 {
                 for x in 0..4 {
                     let (rotated_x, rotated_y) = match rotation_angle {
-                        RotationAngle::Degrees90 => (x, 4 - y),     // Rotate 90 degrees
+                        RotationAngle::Degrees90 => (x, 4 - y), // Rotate 90 degrees
                         RotationAngle::Degrees180 => (3 - x, 4 - y), // Rotate 180 degrees
-                        RotationAngle::Degrees270 => (3 - x, y),     // Rotate 270 degrees
-                        RotationAngle::None => (x, y),              // No rotation
+                        RotationAngle::Degrees270 => (3 - x, y), // Rotate 270 degrees
+                        RotationAngle::None => (x, y),          // No rotation
                     };
 
                     if rotated_y == 0 || rotated_y == 4 || rotated_x == 0 || rotated_x == 3 {
-                        graphical_map[spawn_pos.y + y][spawn_pos.x + x] = new_wall;
-                        map[spawn_pos.y + y][spawn_pos.x + x] = new_wall;
+                        graphical_map[spawn_pos.y + rotated_y][spawn_pos.x + rotated_x] = new_wall;
+                        map[spawn_pos.y + rotated_y][spawn_pos.x + rotated_x] = new_wall;
                     } else {
-                        graphical_map[spawn_pos.y + y][spawn_pos.x + x] = new_floor;
-                        map[spawn_pos.y + y][spawn_pos.x + x] = new_floor;
+                        graphical_map[spawn_pos.y + rotated_y][spawn_pos.x + rotated_x] = new_floor;
+                        map[spawn_pos.y + rotated_y][spawn_pos.x + rotated_x] = new_floor;
                     }
                 }
             }
 
-            // Add a door on the side (rotated if needed)
+            // add a door on the side (rotated if needed)
             let (door_x, door_y) = match rotation_angle {
-                RotationAngle::Degrees90 => (3, 1),     // Rotate 90 degrees
-                RotationAngle::Degrees180 => (0, 3),    // Rotate 180 degrees
-                RotationAngle::Degrees270 => (1, 0),    // Rotate 270 degrees
-                RotationAngle::None => (3, 1),          // No rotation
+                RotationAngle::Degrees90 => (3, 1),  // Rotate 90 degrees
+                RotationAngle::Degrees180 => (0, 3), // Rotate 180 degrees
+                RotationAngle::Degrees270 => (1, 0), // Rotate 270 degrees
+                RotationAngle::None => (3, 1),       // No rotation
             };
-            map[spawn_pos.y + door_y][spawn_pos.x + door_x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.closed_door_side);
+            map[spawn_pos.y + door_y][spawn_pos.x + door_x] =
+                SpaceFactory::generate_space(DEFAULT_TILE_SET.closed_door_side);
 
-            // Ensure that the door tile isn't altered (rotated if needed)
+            // ensure that the door tile isn't altered (rotated if needed)
             let (door_x, door_y) = match rotation_angle {
-                RotationAngle::Degrees90 => (3, 1),     // Rotate 90 degrees
-                RotationAngle::Degrees180 => (0, 3),    // Rotate 180 degrees
-                RotationAngle::Degrees270 => (1, 0),    // Rotate 270 degrees
-                RotationAngle::None => (3, 1),          // No rotation
+                RotationAngle::Degrees90 => (3, 1),  // Rotate 90 degrees
+                RotationAngle::Degrees180 => (0, 3), // Rotate 180 degrees
+                RotationAngle::Degrees270 => (1, 0), // Rotate 270 degrees
+                RotationAngle::None => (3, 1),       // No rotation
             };
-            graphical_map[spawn_pos.y + door_y][spawn_pos.x + door_x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
-        } else {
-            // Handle other tiles or error case if needed
+            graphical_map[spawn_pos.y + door_y][spawn_pos.x + door_x] =
+                SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
         }
     }
-
 
     /*pub(crate) async fn generate_terrain<'a>(
         &mut self,

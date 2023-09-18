@@ -44,12 +44,16 @@ impl Space {
         }
     }
 
+    // remember to add a cost that's greater than 0 for any traversable-tiles
+    // or monsters will immediately teleport to the player upon opening a door because the cost is 0 (lol)
+    // monsters need a travel cost of 0 to calculate through each other when targetting the player
     fn calculate_tile_cost(tile_name: &'static str) -> usize {
-        if tile_name == DEFAULT_TILE_SET.floor {
+        if tile_name == DEFAULT_TILE_SET.floor || tile_name == DEFAULT_TILE_SET.open_door {
             1
         } else if tile_name == DEFAULT_TILE_SET.wall {
             3
         } else {
+            // alternatively returning a cost of 1 for any other traversable-tile will work
             0
         }
     }

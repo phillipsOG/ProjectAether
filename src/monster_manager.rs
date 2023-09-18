@@ -51,7 +51,8 @@ impl MonsterManager {
 
                 if !current_tile.is_solid
                     && current_tile.tile_name == DEFAULT_TILE_SET.floor
-                    && loop_limit != 8
+                    && loop_limit != 2
+                    && pos_x > 4
                 /*spawn_onerng.gen_range(0..10) >= 9*/
                 {
                     let mut new_monster = monster_factory.generate_monster(
@@ -97,5 +98,22 @@ impl MonsterManager {
 
     pub(crate) fn despawn(&mut self, monster_id: i32) {
         self.monsters.remove(&monster_id);
+    }
+
+    pub(crate) fn cull_dead_monsters(&mut self) -> Vec<Vec2> {
+        let mut monsters_to_cull = Vec::<i32>::new();
+        let mut culled_monsters_positions = Vec::<Vec2>::new();
+
+        for monster in self.get_monsters_mut().values_mut() {
+            if !monster.is_alive {
+                monsters_to_cull.push(monster.id);
+                culled_monsters_positions.push(monster.position);
+            }
+        }
+        for monster_id in monsters_to_cull {
+            self.despawn(monster_id);
+        }
+
+        culled_monsters_positions
     }
 }

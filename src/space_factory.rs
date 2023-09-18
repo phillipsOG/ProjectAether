@@ -6,7 +6,13 @@ pub(crate) struct SpaceFactory;
 
 impl SpaceFactory {
     pub(crate) fn generate_space(tile_name: &str) -> Space {
-        if tile_name == DEFAULT_TILE_SET.wall {
+        if tile_name == DEFAULT_TILE_SET.player {
+            let mut new_space = Space::new(DEFAULT_TILE_SET.player);
+            new_space.tile_sprite_position = Point::new(26, 36);
+            new_space.tile_width = 60;
+            new_space.tile_height = 60;
+            new_space
+        } else if tile_name == DEFAULT_TILE_SET.wall {
             let mut new_space = Space::new(DEFAULT_TILE_SET.wall);
             new_space.tile_sprite_position = Point::new(160, 20);
             new_space.tile_width = 60;

@@ -1,4 +1,5 @@
 use crate::status::Status;
+use crate::tile_set::{MONSTER_TILE_SET};
 use crate::Vec2;
 
 #[derive(Copy, Clone)]
@@ -11,6 +12,7 @@ pub struct Monster {
     pub tile_below: &'static str,
     pub in_battle: bool,
     pub is_alive: bool,
+    pub vision_radius: usize,
 }
 
 impl Monster {
@@ -24,6 +26,7 @@ impl Monster {
             tile_below: " ",
             in_battle: false,
             is_alive: true,
+            vision_radius: Monster::get_vision_radius(tile),
         }
     }
 
@@ -37,5 +40,14 @@ impl Monster {
 
     pub(crate) fn get_tile_below_monster(self) -> &'static str {
         return self.tile_below;
+    }
+
+    fn get_vision_radius(monster_name: &'static str) -> usize {
+        if monster_name == MONSTER_TILE_SET.snake {
+            return 15;
+        }
+
+        // monster is blind
+        return 0;
     }
 }
