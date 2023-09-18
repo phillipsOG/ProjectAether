@@ -1,7 +1,7 @@
+use crate::Direction;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::rect::{Point, Rect};
-use crate::Direction;
 
 use crate::inventory::Inventory;
 use crate::status::Status;
@@ -28,13 +28,20 @@ pub struct Player {
     pub sprite: Rect,
     pub speed: i32,
     pub current_frame: i32,
+    pub vision_radius: isize
 }
 
 impl Player {
     pub(crate) fn new() -> Self {
         Player {
-            key_event: Event::Unknown {timestamp: 0, type_: 0 },
-            previous_key_event: Event::Unknown {timestamp: 0, type_: 0 },
+            key_event: Event::Unknown {
+                timestamp: 0,
+                type_: 0,
+            },
+            previous_key_event: Event::Unknown {
+                timestamp: 0,
+                type_: 0,
+            },
             key_code: Keycode::Down,
             key_state: false,
             inventory: Inventory::new(),
@@ -51,7 +58,8 @@ impl Player {
             sprite_position: Point::new(0, 0),
             sprite: Rect::new(0, 0, 26, 36),
             speed: 0,
-            current_frame: 0
+            current_frame: 0,
+            vision_radius: 1,
         }
     }
 

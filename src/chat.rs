@@ -1,5 +1,5 @@
 use crossterm::{terminal, QueueableCommand};
-use std::io::{stdout, Write};
+use std::io::stdout;
 
 #[derive(Clone)]
 pub struct Chat {

@@ -9,16 +9,16 @@ use crate::{Direction, MovementType};
 
 use crate::map_manager::MapManager;
 use futures::lock::{Mutex, MutexGuard};
-use std::io;
-use std::sync::Arc;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::sys::KeyCode;
+use std::io;
+use std::sync::Arc;
+
 use crate::monster::Monster;
 
 use crate::monster_manager::MonsterManager;
 use crate::pathfinding::Pathfinding;
-use crate::space::Space;
+
 use crate::space_factory::SpaceFactory;
 use crate::Vec2;
 
@@ -54,35 +54,70 @@ impl CollisionEngine {
         player.speed = 5;
 
         match player.key_event {
-
-            Event::KeyDown { keycode: Some(Keycode::Up), repeat: false, .. } => {
+            Event::KeyDown {
+                keycode: Some(Keycode::Up),
+                repeat: false,
+                ..
+            } => {
                 player.direction = Direction::Up;
                 player.key_code = Keycode::Up;
                 return Vec2::new(player.position.x, player.position.y - 1);
-            },
-            Event::KeyDown { keycode: Some(Keycode::Down), repeat: false, .. } => {
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::Down),
+                repeat: false,
+                ..
+            } => {
                 player.direction = Direction::Down;
                 player.key_code = Keycode::Down;
                 return Vec2::new(player.position.x, player.position.y + 1);
-            },
-            Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. } => {
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::Left),
+                repeat: false,
+                ..
+            } => {
                 player.direction = Direction::Left;
                 player.key_code = Keycode::Left;
                 return Vec2::new(player.position.x - 1, player.position.y);
-            },
-            Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. } => {
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::Right),
+                repeat: false,
+                ..
+            } => {
                 player.direction = Direction::Right;
                 player.key_code = Keycode::Right;
                 return Vec2::new(player.position.x + 1, player.position.y);
-            },
+            }
 
-            Event::KeyUp { keycode: Some(Keycode::Left), repeat: false, .. } |
-            Event::KeyUp { keycode: Some(Keycode::Right), repeat: false, .. } |
-            Event::KeyUp { keycode: Some(Keycode::Up), repeat: false, .. } |
-            Event::KeyUp { keycode: Some(Keycode::Down), repeat: false, .. } => {
+            Event::KeyUp {
+                keycode: Some(Keycode::Left),
+                repeat: false,
+                ..
+            }
+            | Event::KeyUp {
+                keycode: Some(Keycode::Right),
+                repeat: false,
+                ..
+            }
+            | Event::KeyUp {
+                keycode: Some(Keycode::Up),
+                repeat: false,
+                ..
+            }
+            | Event::KeyUp {
+                keycode: Some(Keycode::Down),
+                repeat: false,
+                ..
+            } => {
                 player.speed = 0;
-            },
-            Event::KeyUp { keycode: Some(Keycode::Tab), repeat: false, .. } => {
+            }
+            Event::KeyUp {
+                keycode: Some(Keycode::Tab),
+                repeat: false,
+                ..
+            } => {
                 println!("Please enter a command: ");
 
                 let mut input = String::new();
@@ -123,14 +158,14 @@ impl CollisionEngine {
 
         let space = &map.map[new_player_pos.y][new_player_pos.x];
         let tmp_tile = map.map[new_player_pos.y][new_player_pos.x].tile_name;
-        let is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
+        let _is_tile_solid = map.map[new_player_pos.y][new_player_pos.x].is_solid;
         let is_tile_traversable = map.map[new_player_pos.y][new_player_pos.x].is_traversable;
         let tile_set = map.tile_set.clone();
         let mut chat_guard = chat.lock().await;
         let res = self.check_for_multi_tile(map, tmp_tile, new_player_pos);
 
         if space.is_monster {
-            return MovementType::Battle
+            return MovementType::Battle;
         }
 
         if res == tile_set.ladder && tile_set.name == DEFAULT_TILE_SET.name {
@@ -150,12 +185,14 @@ impl CollisionEngine {
         if tmp_tile == tile_set.key {
             chat_guard.process_chat_message("You pick up a rusty key.");
             player.inventory.add_key(1);
-            map.map[new_player_pos.y][new_player_pos.x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+            map.map[new_player_pos.y][new_player_pos.x] =
+                SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
         } else if tmp_tile == tile_set.closed_door_side || tmp_tile == tile_set.closed_door_top {
             if player.inventory.keys >= 1 {
                 player.inventory.remove_key(1);
                 chat_guard.process_chat_message("You unlock the door using a rusty key.");
-                map.map[new_player_pos.y][new_player_pos.x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.open_door);
+                map.map[new_player_pos.y][new_player_pos.x] =
+                    SpaceFactory::generate_space(DEFAULT_TILE_SET.open_door);
             } else {
                 chat_guard.process_chat_message("You need a rusty key to open this door.");
             };
@@ -165,7 +202,7 @@ impl CollisionEngine {
                 MovementType::Unable
             } else {
                 MovementType::Normal
-            }
+            };
         } else if tile_set.name == LADDER_TILE_SET.name {
             if is_tile_traversable {
                 return MovementType::Normal;
@@ -196,7 +233,8 @@ impl CollisionEngine {
         let map = map_manager_clone.get_map_mut(map_index).expect("map data");
         let new_tile = map.map[new_player_position.y][new_player_position.x].tile_name;
         let pos = player.position.clone();
-        map.map[pos.y][pos.x] = SpaceFactory::generate_space(self.update_player_previous_tile(player, new_tile));
+        map.map[pos.y][pos.x] =
+            SpaceFactory::generate_space(self.update_player_previous_tile(player, new_tile));
         player.position = new_player_position;
         player.tile_below_player = new_tile;
         map.set_player_position(new_player_position);
@@ -206,23 +244,22 @@ impl CollisionEngine {
         match player.direction {
             Direction::Up => {
                 player.sprite_position = player.sprite_position.offset(0, -player.speed);
-            },
+            }
             Direction::Down => {
                 player.sprite_position = player.sprite_position.offset(0, player.speed);
-            },
+            }
             Direction::Left => {
                 player.sprite_position = player.sprite_position.offset(-player.speed, 0);
-            },
+            }
             Direction::Right => {
                 player.sprite_position = player.sprite_position.offset(player.speed, 0);
-            },
+            }
         }
 
         if player.speed != 0 {
             // Cheat: using the fact that all animations are 3 frames (NOT extensible)
             player.current_frame = (player.current_frame + 1) % 3;
         }
-
     }
 
     pub(crate) async fn update_player_vision<'a>(
@@ -232,7 +269,7 @@ impl CollisionEngine {
         _new_player_position: Vec2,
     ) {
         //let mut map_manager_guard = map_manager_clone.lock().await;
-        let map_index = map_manager_clone.current_map_index;
+        let _map_index = map_manager_clone.current_map_index;
         let map_data = map_manager_clone.get_mut_current_map();
         map_data.set_player_vision(player, _new_player_position);
     }
@@ -281,7 +318,6 @@ impl CollisionEngine {
         let map_index = map_guard.current_map_index;
         if let Some(map_data) = map_guard.get_map_mut(map_index) {
             for monster in monster_manager.get_monsters_mut().values_mut() {
-
                 let cur_monster_pos = monster.position;
                 let mut new_pos = cur_monster_pos;
 
@@ -293,15 +329,20 @@ impl CollisionEngine {
                         cur_monster_pos,
                         player.position,
                         radius,
-                    ).await;
+                    )
+                    .await;
 
                     if new_pos == cur_monster_pos {
                         // if new pos is the same as cur mon pos than no path found to the player within given radius
                         // make the monster wander
                         new_pos = Pathfinding::wander(cur_monster_pos, &map_data.map);
-                        chat.lock().await.process_debug_message("monster is wandering", 0);
+                        chat.lock()
+                            .await
+                            .process_debug_message("monster is wandering", 0);
                     } else {
-                        chat.lock().await.process_debug_message("monster stopped wandering", 0);
+                        chat.lock()
+                            .await
+                            .process_debug_message("monster stopped wandering", 0);
                     }
                 }
 
@@ -375,7 +416,9 @@ impl CollisionEngine {
                 let map_data = map_manager_clone.get_map_mut(map_index).expect("map data");
                 let tmp_tile = map_data.map[new_mons_pos.y][new_mons_pos.x].tile_name;
 
-                map_data.map[monster.position.y][monster.position.x] = SpaceFactory::generate_space(self.update_monster_previous_tile(monster, tmp_tile));
+                map_data.map[monster.position.y][monster.position.x] = SpaceFactory::generate_space(
+                    self.update_monster_previous_tile(monster, tmp_tile),
+                );
                 monster.position = *new_mons_pos;
                 monster.tile_below = tmp_tile;
 
@@ -387,7 +430,11 @@ impl CollisionEngine {
         }
     }
 
-    fn update_player_previous_tile(&mut self, player: &mut Player, mut tmp_tile: &'static str) -> &'static str {
+    fn update_player_previous_tile(
+        &mut self,
+        player: &mut Player,
+        mut tmp_tile: &'static str,
+    ) -> &'static str {
         let tile_set = DEFAULT_TILE_SET;
 
         if tmp_tile == tile_set.open_door {
@@ -405,7 +452,11 @@ impl CollisionEngine {
         tmp_tile
     }
 
-    fn update_monster_previous_tile(&mut self, monster: &mut Monster, mut tmp_tile: &'static str) -> &'static str {
+    fn update_monster_previous_tile(
+        &mut self,
+        monster: &mut Monster,
+        mut tmp_tile: &'static str,
+    ) -> &'static str {
         let tile_set = DEFAULT_TILE_SET;
 
         if tmp_tile == tile_set.open_door {

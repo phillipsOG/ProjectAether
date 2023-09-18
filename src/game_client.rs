@@ -1,15 +1,14 @@
 use crate::chat::Chat;
-use std::io;
 
 use crate::player::Player;
 use crate::tile_set::DEFAULT_TILE_SET;
 
-use crossterm::{terminal, ExecutableCommand, QueueableCommand};
+use crossterm::{terminal, QueueableCommand};
 
 use crate::map_manager::MapManager;
-use crossterm::cursor::{DisableBlinking, SetCursorStyle};
+
 use futures::lock::{Mutex, MutexGuard};
-use std::io::{stdout, Write};
+use std::io::stdout;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -27,7 +26,7 @@ impl GameClient {
         chat: &mut Arc<Mutex<Chat>>,
     ) {
         let mut stdout = stdout();
-        let player_pos = player.position;
+        let _player_pos = player.position;
         //stdout.queue(crossterm::cursor::MoveTo(player_pos.x as u16, player_pos.y as u16)).unwrap();
 
         let mut str_map = String::new();

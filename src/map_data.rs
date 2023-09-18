@@ -1,6 +1,6 @@
 use crate::player::Player;
 use crate::space::Space;
-use crate::tile_set::{TileSet, DEFAULT_TILE_SET, MONSTER_TILE_SET};
+use crate::tile_set::{TileSet, DEFAULT_TILE_SET};
 use crate::vec2::Vec2;
 use crate::Map;
 use crossterm::{terminal, QueueableCommand};
@@ -54,6 +54,11 @@ impl MapData {
         self.calculate_vision_at_position(player, 0, 1);
         self.calculate_vision_at_position(player, 0, -1);
 
+        self.calculate_vision_at_position(player, 2, 0);
+        self.calculate_vision_at_position(player, -2, 0);
+        self.calculate_vision_at_position(player, 0, 2);
+        self.calculate_vision_at_position(player, 0, -2);
+
         self.calculate_vision_at_position(player, 1, 1);
         self.calculate_vision_at_position(player, 1, -1);
         self.calculate_vision_at_position(player, -1, 1);
@@ -61,13 +66,12 @@ impl MapData {
     }
 
     fn calculate_vision_at_position(&mut self, player: &Player, pos_x: i32, pos_y: i32) {
-        let vision_radius: isize = 2; //set to 2
 
-        for i in 1..vision_radius + 1 {
+        for i in 1..player.vision_radius + 1 {
             let y = player.position.y.wrapping_add((pos_y * i as i32) as usize);
             let x = player.position.x.wrapping_add((pos_x * i as i32) as usize);
 
-            if x >= self.width || y >= self.height {
+            if x >= self.width || y >= self.height  {
                 break;
             }
 

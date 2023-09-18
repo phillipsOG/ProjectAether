@@ -1,7 +1,7 @@
 use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
+use sdl2::rect::Point;
 use std::fmt;
 use std::ops::Deref;
-use sdl2::rect::{Point, Rect};
 
 #[derive(Clone, Copy)]
 pub struct Space {
@@ -16,7 +16,7 @@ pub struct Space {
     pub is_monster: bool,
     pub is_player: bool,
     pub is_occupied: bool,
-    pub is_item: bool
+    pub is_item: bool,
 }
 
 impl Space {

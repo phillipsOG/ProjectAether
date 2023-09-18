@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use futures::lock::MutexGuard;
+use std::collections::HashMap;
 
 use crate::monster::Monster;
 use crate::monster_generator::MonsterFactory;
@@ -19,9 +19,8 @@ pub struct MonsterManager {
 
 impl MonsterManager {
     pub(crate) fn new() -> Self {
-
         MonsterManager {
-            monsters: HashMap::<i32, Monster>::new()
+            monsters: HashMap::<i32, Monster>::new(),
         }
     }
 
@@ -36,7 +35,7 @@ impl MonsterManager {
         let map_width = map_data.width;
 
         let mut rng = rand::thread_rng();
-        let mut spawn_one = false;
+        let _spawn_one = false;
         let mut loop_limit = 0;
 
         for pos_y in 0..map_height {
@@ -55,8 +54,11 @@ impl MonsterManager {
                     && loop_limit != 8
                 /*spawn_onerng.gen_range(0..10) >= 9*/
                 {
-                    let mut new_monster = monster_factory
-                        .generate_monster(Vec2::new(pos_x, pos_y), (self.monsters.len()) as i32, monster_type);
+                    let mut new_monster = monster_factory.generate_monster(
+                        Vec2::new(pos_x, pos_y),
+                        (self.monsters.len()) as i32,
+                        monster_type,
+                    );
 
                     new_monster.tile_below = DEFAULT_TILE_SET.floor;
                     new_monster.position = Vec2::new(pos_x, pos_y);
@@ -92,7 +94,7 @@ impl MonsterManager {
         }
         None
     }
-    
+
     pub(crate) fn despawn(&mut self, monster_id: i32) {
         self.monsters.remove(&monster_id);
     }

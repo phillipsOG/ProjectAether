@@ -1,25 +1,18 @@
-use crate::chat::Chat;
-use crate::map_data::MapData;
-
 use crate::player::Player;
 use crate::space::Space;
-use crate::terrain_data::TerrainData;
-use crate::tile_set::DEFAULT_TILE_SET;
-use crate::{Map, Vec2};
 
-use crate::map_manager::MapManager;
-use futures::lock::{Mutex, MutexGuard};
-use rand::rngs::StdRng;
+use crate::tile_set::DEFAULT_TILE_SET;
+use crate::{Map, RotationAngle, Vec2};
+
 use rand::Rng;
-use rand::SeedableRng;
+
 use std::collections::hash_map::DefaultHasher;
 use std::fs::File;
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
-use std::sync::Arc;
-use sdl2::rect::{Point, Rect};
+
 use crate::space_factory::SpaceFactory;
 
 #[derive(Clone)]
@@ -93,7 +86,7 @@ impl MapFactory {
 
     pub(crate) fn generate_graphical_map(
         &mut self,
-        player: &mut Player,
+        _player: &mut Player,
         height: usize,
         width: usize,
         seed_phrase: &str,
@@ -102,31 +95,31 @@ impl MapFactory {
 
         let mut hasher = DefaultHasher::new();
         seed_phrase.hash(&mut hasher);
-        let seed = hasher.finish();
+        let _seed = hasher.finish();
 
-        let mut generated_ladder = false;
+        let _generated_ladder = false;
 
         // create a seeded RNG using the generated seed
-        for pos_y in 0..height {
-            for pos_x in 0..width {
+        for _pos_y in 0..height {
+            for _pos_x in 0..width {
                 let mut rng = rand::thread_rng();
-                let y: f64 = rng.gen(); // generates a float between 0 and 1
+                let _y: f64 = rng.gen(); // generates a float between 0 and 1
 
                 for pos_y in 0..height {
                     for pos_x in 0..width {
                         let mut new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor); // default to floor
 
                         // Check if it's along the top, left side, or bottom
-                        if pos_y == 0 || pos_x == 0 || pos_y == height - 1 || pos_x == width-1 {
+                        if pos_y == 0 || pos_x == 0 || pos_y == height - 1 || pos_x == width - 1 {
                             new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.wall);
                         } else {
-                            new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor); // open on the right
+                            new_space = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+                            // open on the right
                         }
 
                         map[pos_y][pos_x] = new_space;
                     }
                 }
-
             }
         }
 
@@ -135,8 +128,7 @@ impl MapFactory {
         map
     }
 
-    pub(crate) fn generate_object(&self, tile_name: &str, spawn_pos: Vec2, graphical_map: &mut Map, map: &mut Map) {
-
+    pub(crate) fn generate_object(&self, tile_name: &str, spawn_pos: Vec2, graphical_map: &mut Map, map: &mut Map, rotation_angle: RotationAngle) {
         if tile_name == DEFAULT_TILE_SET.key {
             map[spawn_pos.y][spawn_pos.x] = SpaceFactory::generate_space(tile_name);
         } else if tile_name == DEFAULT_TILE_SET.room {
@@ -146,7 +138,14 @@ impl MapFactory {
             // Generate a 3x3 room with walls on the outside
             for y in 0..5 {
                 for x in 0..4 {
-                    if y == 0 || y == 4 || x == 0 || x == 3 {
+                    let (rotated_x, rotated_y) = match rotation_angle {
+                        RotationAngle::Degrees90 => (x, 4 - y),     // Rotate 90 degrees
+                        RotationAngle::Degrees180 => (3 - x, 4 - y), // Rotate 180 degrees
+                        RotationAngle::Degrees270 => (3 - x, y),     // Rotate 270 degrees
+                        RotationAngle::None => (x, y),              // No rotation
+                    };
+
+                    if rotated_y == 0 || rotated_y == 4 || rotated_x == 0 || rotated_x == 3 {
                         graphical_map[spawn_pos.y + y][spawn_pos.x + x] = new_wall;
                         map[spawn_pos.y + y][spawn_pos.x + x] = new_wall;
                     } else {
@@ -156,14 +155,28 @@ impl MapFactory {
                 }
             }
 
-            // Add a door on the side
-            map[spawn_pos.y + 1][spawn_pos.x + 3] = SpaceFactory::generate_space(DEFAULT_TILE_SET.closed_door_side);
+            // Add a door on the side (rotated if needed)
+            let (door_x, door_y) = match rotation_angle {
+                RotationAngle::Degrees90 => (3, 1),     // Rotate 90 degrees
+                RotationAngle::Degrees180 => (0, 3),    // Rotate 180 degrees
+                RotationAngle::Degrees270 => (1, 0),    // Rotate 270 degrees
+                RotationAngle::None => (3, 1),          // No rotation
+            };
+            map[spawn_pos.y + door_y][spawn_pos.x + door_x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.closed_door_side);
 
-            // Ensure that the door tile isn't altered
-            graphical_map[spawn_pos.y + 1][spawn_pos.x + 3] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+            // Ensure that the door tile isn't altered (rotated if needed)
+            let (door_x, door_y) = match rotation_angle {
+                RotationAngle::Degrees90 => (3, 1),     // Rotate 90 degrees
+                RotationAngle::Degrees180 => (0, 3),    // Rotate 180 degrees
+                RotationAngle::Degrees270 => (1, 0),    // Rotate 270 degrees
+                RotationAngle::None => (3, 1),          // No rotation
+            };
+            graphical_map[spawn_pos.y + door_y][spawn_pos.x + door_x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+        } else {
+            // Handle other tiles or error case if needed
         }
-
     }
+
 
     /*pub(crate) async fn generate_terrain<'a>(
         &mut self,

@@ -63,7 +63,7 @@ pub const LADDER_TILE_SET: TileSet = TileSet {
 pub struct MonsterTileSet {
     pub player: &'static str,
     pub snake: &'static str,
-    pub goblin: &'static str
+    pub goblin: &'static str,
 }
 
 impl MonsterTileSet {
@@ -81,11 +81,11 @@ impl MonsterTileSet {
 pub const MONSTER_TILE_SET: MonsterTileSet = MonsterTileSet {
     player: "@",
     snake: "s",
-    goblin: "g"
+    goblin: "g",
 };
 
 pub const MONSTER_TILE_SET_NAMES: MonsterTileSet = MonsterTileSet {
     player: "@",
     snake: "Snake",
-    goblin: "Goblin"
+    goblin: "Goblin",
 };

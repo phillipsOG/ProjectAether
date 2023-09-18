@@ -10,7 +10,7 @@ pub struct Monster {
     pub position: Vec2,
     pub tile_below: &'static str,
     pub in_battle: bool,
-    pub is_alive: bool
+    pub is_alive: bool,
 }
 
 impl Monster {
@@ -23,7 +23,7 @@ impl Monster {
             position,
             tile_below: " ",
             in_battle: false,
-            is_alive: true
+            is_alive: true,
         }
     }
 

@@ -1,8 +1,6 @@
 use crate::map_data::MapData;
-use crate::player::Player;
-use crate::space::Space;
-use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET};
-use crate::{Map, MovementType};
+
+use crate::MovementType;
 use crate::Vec2;
 
 use crate::chat::Chat;

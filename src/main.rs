@@ -1,3 +1,6 @@
+mod basic_colour;
+mod battle_system;
+mod camera;
 mod chat;
 mod collision_engine;
 mod game_client;
@@ -11,29 +14,26 @@ mod monster_manager;
 mod pathfinding;
 mod player;
 mod player_movement_data;
+mod renderer;
 mod space;
+mod space_factory;
 mod status;
 mod terrain_data;
 mod tile_set;
 mod vec2;
-mod battle_system;
-mod renderer;
-mod space_factory;
-mod camera;
-mod basic_colour;
 
 type Map = Vec<Vec<Space>>;
 
-use std::collections::HashMap;
 use crate::game_client::GameClient;
 use crate::space::Space;
-use std::io::stdout;
 use crossterm::{terminal, QueueableCommand};
 use futures::lock::Mutex;
-use futures::TryFutureExt;
+use std::collections::HashMap;
+use std::io::stdout;
+
+use sdl2::event::Event;
 use std::sync::Arc;
 use std::time::Duration;
-use sdl2::event::Event;
 use vec2::Vec2;
 
 use crate::battle_system::BattleSystem;
@@ -44,16 +44,16 @@ use crate::map_manager::MapManager;
 use crate::monster_generator::MonsterFactory;
 use crate::monster_manager::MonsterManager;
 use crate::player::Player;
-use crate::tile_set::{DEFAULT_TILE_SET, LADDER_TILE_SET, MONSTER_TILE_SET};
-use sdl2::pixels::Color;
-use sdl2::keyboard::Keycode;
-use sdl2::image::{self, LoadTexture, InitFlag};
+use crate::tile_set::{DEFAULT_TILE_SET, MONSTER_TILE_SET};
+
 use crate::basic_colour::COLOUR;
-use crate::map_data::MapData;
-use crate::renderer::Renderer;
 use crate::camera::Camera;
+use crate::map_data::MapData;
 use crate::monster::Monster;
+use crate::renderer::Renderer;
 use crate::space_factory::SpaceFactory;
+use sdl2::image::{self, InitFlag};
+use sdl2::keyboard::Keycode;
 
 type Monsters = HashMap<i32, Monster>;
 
@@ -79,17 +79,24 @@ enum MovementType {
     Battle,
 }
 
-// Define grid parameters
+#[derive(PartialEq)]
+enum RotationAngle {
+    None,
+    Degrees90,
+    Degrees180,
+    Degrees270,
+}
+
+// define grid parameters
 const GRID_ROWS: usize = 4; // Number of rows
 const GRID_COLS: usize = 4; // Number of columns
-const CELL_SIZE: i32 = 1;   // Size of each grid cell in pixels
-const START_X: i32 = 0;      // X-coordinate of the top-left corner of the grid
-const START_Y: i32 = 0;      // Y-coordinate of the top-left corner of the grid
-
+const CELL_SIZE: i32 = 1; // Size of each grid cell in pixels
+const START_X: i32 = 0; // X-coordinate of the top-left corner of the grid
+const START_Y: i32 = 0; // Y-coordinate of the top-left corner of the grid
 
 #[tokio::main]
 async fn main() {
-    let mut player = Arc::new(Mutex::new(Player::new()));
+    let player = Arc::new(Mutex::new(Player::new()));
     let player_clone = Arc::clone(&player);
     let mut player_guard = player_clone.lock().await;
 
@@ -98,7 +105,7 @@ async fn main() {
 
     let terminal = Arc::new(Mutex::new(GameClient::new()));
     let terminal_clone = Arc::clone(&terminal);
-    let mut terminal_guard = terminal_clone.lock().await;
+    let terminal_guard = terminal_clone.lock().await;
 
     let monster_manager = Arc::new(Mutex::new(MonsterManager::new()));
     let monster_manager_clone = Arc::clone(&monster_manager);
@@ -121,19 +128,49 @@ async fn main() {
     new_map.map = new_graphical_map.clone();
 
     let spawn_pos = Vec2::new(7, 5);
-    map_factory.generate_object(DEFAULT_TILE_SET.key, spawn_pos, &mut new_graphical_map, &mut new_map.map);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.key,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::None,
+    );
 
     let spawn_pos = Vec2::new(0, 0);
-    map_factory.generate_object(DEFAULT_TILE_SET.room, spawn_pos, &mut new_graphical_map, &mut new_map.map);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.room,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::None,
+    );
 
     let spawn_pos = Vec2::new(5, 4);
-    map_factory.generate_object(DEFAULT_TILE_SET.room, spawn_pos, &mut new_graphical_map, &mut new_map.map);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.room,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::None,
+    );
 
     let spawn_pos = Vec2::new(0, 5);
-    map_factory.generate_object(DEFAULT_TILE_SET.room, spawn_pos, &mut new_graphical_map, &mut new_map.map);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.room,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::None,
+    );
 
     let spawn_pos = Vec2::new(1, 7);
-    map_factory.generate_object(DEFAULT_TILE_SET.key, spawn_pos, &mut new_graphical_map, &mut new_map.map);
+    map_factory.generate_object(
+        DEFAULT_TILE_SET.key,
+        spawn_pos,
+        &mut new_graphical_map,
+        &mut new_map.map,
+        RotationAngle::None,
+    );
 
     let plr_spawn = Vec2::new(1, 6);
     player_guard.position = plr_spawn;
@@ -152,8 +189,7 @@ async fn main() {
     //map_manager_guard.add_map_set_player_position(&mut player_guard, "map2", Vec2::new(6, 2));
     map_manager_guard.load_map("gen_map", MovementType::Normal);
 
-    monster_manager_guard
-        .spawn_monsters(&mut map_manager_guard, monster_factory);
+    monster_manager_guard.spawn_monsters(&mut map_manager_guard, monster_factory);
 
     let collision_engine = Arc::new(Mutex::new(CollisionEngine::new()));
     let collision_engine_clone = Arc::clone(&collision_engine);
@@ -185,13 +221,16 @@ async fn main() {
     let _image_context = image::init(InitFlag::PNG | InitFlag::JPG).unwrap();
 
     // obviously the main game window
-    let window = video_subsystem.window("ProjectAether", SCREEN_WIDTH, SCREEN_HEIGHT)
+    let window = video_subsystem
+        .window("ProjectAether", SCREEN_WIDTH, SCREEN_HEIGHT)
         .position_centered()
         .build()
         .expect("could not initialize video subsystem");
 
     // draw to our window by building the canvas
-    let mut canvas = window.into_canvas().build()
+    let mut canvas = window
+        .into_canvas()
+        .build()
         .expect("could not make a canvas");
 
     tokio::spawn({
@@ -209,8 +248,9 @@ async fn main() {
                 player_clone,
                 monster_manager_clone,
                 &mut chat_clone,
-                terminal_clone
-            ).await;
+                terminal_clone,
+            )
+            .await;
         }
     });
 
@@ -223,9 +263,11 @@ async fn main() {
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } |
-
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
                     break 'running;
                 }
                 _ => {}
@@ -264,7 +306,7 @@ async fn main() {
                         )
                         .await;
                     cur_pos = new_player_pos;
-                },
+                }
                 MovementType::Battle => {
                     let position = Vec2::new(new_player_pos.x, new_player_pos.y);
 
@@ -276,11 +318,8 @@ async fn main() {
             }
 
             collision_engine_guard
-                .update_player_vision(
-                    &mut map_manager_guard,
-                    &mut player_guard,
-                    new_player_pos,
-                ).await;
+                .update_player_vision(&mut map_manager_guard, &mut player_guard, new_player_pos)
+                .await;
 
             drop(map_manager_guard);
             drop(player_guard);
@@ -332,30 +371,94 @@ async fn main() {
         let cell_y = 0;
 
         let tiles_to_render = vec![DEFAULT_TILE_SET.wall, DEFAULT_TILE_SET.floor];
-        let objects_to_render = vec![DEFAULT_TILE_SET.closed_door_side, DEFAULT_TILE_SET.open_door, DEFAULT_TILE_SET.key];
+        let objects_to_render = vec![
+            DEFAULT_TILE_SET.closed_door_side,
+            DEFAULT_TILE_SET.open_door,
+            DEFAULT_TILE_SET.key,
+        ];
         let monsters_to_render = vec![MONSTER_TILE_SET.snake];
 
         // we pass in the normal map because the graphical map doesn't have tile visibility updated
         // renders the base map, walls and floor (can update this later for procedural gen)
-        Renderer::render_tiles(&mut canvas, &mut new_graphical_map, &mut map_manager_guard.get_mut_current_map(), &tiles_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
+        Renderer::render_tiles(
+            &mut canvas,
+            &mut new_graphical_map,
+            &mut map_manager_guard.get_mut_current_map(),
+            &tiles_to_render,
+            cell_x,
+            cell_y,
+            tile_width,
+            tile_height,
+            camera.x,
+            camera.y,
+        )
+        .unwrap();
 
         // doors closed/open, keys etc.
-        Renderer::render_objects(&mut canvas, &mut map_manager_guard.get_mut_current_map(), &objects_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
+        Renderer::render_objects(
+            &mut canvas,
+            &mut map_manager_guard.get_mut_current_map(),
+            &objects_to_render,
+            cell_x,
+            cell_y,
+            tile_width,
+            tile_height,
+            camera.x,
+            camera.y,
+        )
+        .unwrap();
 
         // monsters, snakes, goblins, goons, ghouls etc.
-        Renderer::render_monsters(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), &monsters_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
-        Renderer::render_player(&mut canvas, &player_guard, &mut map_manager_guard.get_mut_current_map(), cell_x, cell_y, camera.x, camera.y).unwrap();
-        Renderer::render_monsters_status(&mut canvas, &mut map_manager_guard.get_mut_current_map(), monster_manager_guard.get_monsters_mut(), &monsters_to_render, cell_x, cell_y, tile_width, tile_height, camera.x, camera.y).unwrap();
+        Renderer::render_monsters(
+            &mut canvas,
+            &mut map_manager_guard.get_mut_current_map(),
+            monster_manager_guard.get_monsters_mut(),
+            &monsters_to_render,
+            cell_x,
+            cell_y,
+            tile_width,
+            tile_height,
+            camera.x,
+            camera.y,
+        )
+        .unwrap();
+        Renderer::render_player(
+            &mut canvas,
+            &player_guard,
+            &mut map_manager_guard.get_mut_current_map(),
+            cell_x,
+            cell_y,
+            camera.x,
+            camera.y,
+        )
+        .unwrap();
+        Renderer::render_monsters_status(
+            &mut canvas,
+            &mut map_manager_guard.get_mut_current_map(),
+            monster_manager_guard.get_monsters_mut(),
+            &monsters_to_render,
+            cell_x,
+            cell_y,
+            tile_width,
+            tile_height,
+            camera.x,
+            camera.y,
+        )
+        .unwrap();
 
         // @TODO make this a function call inside monster_manager to cull dead monsters
         let mut monsters_to_remove = Vec::<i32>::new();
         for monster in monster_manager_guard.get_monsters_mut().values_mut() {
             if !monster.is_alive {
-                let mut map = map_manager_guard.get_mut_current_map();
+                let map = map_manager_guard.get_mut_current_map();
                 monsters_to_remove.push(monster.id);
 
-                chat_clone.lock().await.process_debug_message(&format!("mon dead at pos: {:?}", monster.position), 3);
-                map.map[monster.position.y][monster.position.x] = SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
+                chat_clone
+                    .lock()
+                    .await
+                    .process_debug_message(&format!("mon dead at pos: {:?}", monster.position), 3);
+                map.map[monster.position.y][monster.position.x] =
+                    SpaceFactory::generate_space(DEFAULT_TILE_SET.floor);
             }
         }
         for monster_id in monsters_to_remove {
@@ -382,7 +485,7 @@ async fn update_monsters_async(
     player_clone: Arc<Mutex<Player>>,
     monster_manager_clone: Arc<Mutex<MonsterManager>>,
     chat_clone: &mut Arc<Mutex<Chat>>,
-    terminal_clone: Arc<Mutex<GameClient>>
+    terminal_clone: Arc<Mutex<GameClient>>,
 ) {
     loop {
         let mut collision_engine_guard = collision_engine_clone.lock().await;
@@ -422,8 +525,8 @@ async fn update_monsters_async(
 
         // relic
         /*terminal_guard
-            .print_terminal(&player_guard, &mut map_manager_guard, chat_clone)
-            .await;*/
+        .print_terminal(&player_guard, &mut map_manager_guard, chat_clone)
+        .await;*/
 
         drop(collision_engine_guard);
         drop(terminal_guard);
