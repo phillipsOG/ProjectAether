@@ -61,6 +61,7 @@ impl CollisionEngine {
             } => {
                 player.direction = Direction::Up;
                 player.key_code = Keycode::Up;
+                chat_guard.process_chat_message("You walk up.");
                 return Vec2::new(player.position.x, player.position.y - 1);
             }
             Event::KeyDown {
@@ -70,6 +71,7 @@ impl CollisionEngine {
             } => {
                 player.direction = Direction::Down;
                 player.key_code = Keycode::Down;
+                chat_guard.process_chat_message("You walk down.");
                 return Vec2::new(player.position.x, player.position.y + 1);
             }
             Event::KeyDown {
@@ -79,6 +81,7 @@ impl CollisionEngine {
             } => {
                 player.direction = Direction::Left;
                 player.key_code = Keycode::Left;
+                chat_guard.process_chat_message("You walk left.");
                 return Vec2::new(player.position.x - 1, player.position.y);
             }
             Event::KeyDown {
@@ -88,6 +91,7 @@ impl CollisionEngine {
             } => {
                 player.direction = Direction::Right;
                 player.key_code = Keycode::Right;
+                chat_guard.process_chat_message("You walk right.");
                 return Vec2::new(player.position.x + 1, player.position.y);
             }
 
@@ -118,7 +122,7 @@ impl CollisionEngine {
                 repeat: false,
                 ..
             } => {
-                println!("Please enter a command: ");
+                /*println!("Please enter a command: ");
 
                 let mut input = String::new();
                 if let Err(_) = io::stdin().read_line(&mut input) {
@@ -135,7 +139,7 @@ impl CollisionEngine {
                     }
                 } else {
                     chat_guard.process_chat_message("Invalid command.");
-                }
+                }*/
             }
 
             _ => {}
@@ -338,11 +342,11 @@ impl CollisionEngine {
                         new_pos = Pathfinding::wander(cur_monster_pos, &map_data.map);
                         chat.lock()
                             .await
-                            .process_debug_message("monster is wandering", 0);
+                            .process_chat_message("monster is wandering");
                     } else {
                         chat.lock()
                             .await
-                            .process_debug_message("monster stopped wandering", 0);
+                            .process_chat_message("monster begun hunting");
                     }
                 }
 

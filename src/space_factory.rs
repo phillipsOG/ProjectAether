@@ -49,7 +49,11 @@ impl SpaceFactory {
             key.tile_sprite_position = Point::new(460, 20);
             key
         } else {
-            Space::new(DEFAULT_TILE_SET.floor)
+            let mut new_space = Space::new(DEFAULT_TILE_SET.floor);
+            new_space.tile_sprite_position = Point::new(180, 30);
+            new_space.tile_width = 20;
+            new_space.tile_height = 20;
+            new_space
         }
     }
 }

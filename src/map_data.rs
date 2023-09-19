@@ -1,5 +1,4 @@
 use crate::player::Player;
-use crate::space::Space;
 use crate::tile_set::{TileSet, DEFAULT_TILE_SET};
 use crate::vec2::Vec2;
 use crate::Map;

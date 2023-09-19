@@ -204,19 +204,12 @@ impl Pathfinding {
 
     fn calculate_distance(monster_position: Vec2, player_position: Vec2) -> usize {
         // calculate the Manhattan distance (L1 distance) between the two positions
-        let dx = (player_position.x as isize - monster_position.x as isize).abs() as usize;
-        let dy = (player_position.y as isize - monster_position.y as isize).abs() as usize;
-        let manhattan_distance = dx + dy;
-
-        return manhattan_distance;
+        return (player_position.x as isize - monster_position.x as isize).abs() as usize + (player_position.y as isize - monster_position.y as isize).abs() as usize;
     }
 
     async fn calculate_heuristic(node_position: Vec2, player_position: Vec2) -> usize {
         // calculate the Manhattan distance (L1 distance) between the two positions
-        let dx = (player_position.x as isize - node_position.x as isize).abs() as usize;
-        let dy = (player_position.y as isize - node_position.y as isize).abs() as usize;
-        let manhattan_distance = dx + dy;
-        manhattan_distance
+        return (player_position.x as isize - node_position.x as isize).abs() as usize + (player_position.y as isize - node_position.y as isize).abs() as usize;
     }
 
     async fn reconstruct_path(
@@ -233,7 +226,7 @@ impl Pathfinding {
 
         // start from the player's position and work backward
         while current_position != monster_position {
-            /*if loop_count <= 15 {
+            /*if loop_count >= 15 {
                 break;
             }*/
 
@@ -304,39 +297,26 @@ impl Pathfinding {
         ignore_monsters: bool,
     ) -> Vec<Vec2> {
         let mut neighbours = Vec::new();
+        let map_width = map[0].len() as i32;
+        let map_height = map.len() as i32;
 
         let directions = [(0, -1), (-1, 0), (0, 1), (1, 0)];
 
-        for (dx, dy) in directions.iter() {
+        for (dx, dy) in &directions {
             let new_x = current_node_position.x as i32 + dx;
             let new_y = current_node_position.y as i32 + dy;
 
-            if new_x >= 0 && new_x < map[0].len() as i32 && new_y >= 0 && new_y < map.len() as i32 {
+            if new_x >= 0 && new_x < map_width && new_y >= 0 && new_y < map_height {
                 let tile = &map[new_y as usize][new_x as usize];
                 let tile_pos = Vec2::new(new_x as usize, new_y as usize);
 
-                if tile.is_traversable {
-                    neighbours.push(tile_pos);
-                }
-
-                if ignore_monsters {
-                    if tile.is_monster {
-                        neighbours.push(tile_pos);
-                    }
-                }
-
-                // for when the player has been found
-                if tile_pos == player_pos {
-                    neighbours.push(tile_pos);
-                }
-
-                // for when the monster has been found
-                if tile_pos == monster_pos {
-                    neighbours.push(tile_pos);
+                if tile.is_traversable || (ignore_monsters && tile.is_monster) || (tile_pos == player_pos) || (tile_pos == monster_pos) {
+                    neighbours.push(Vec2::new(new_x as usize, new_y as usize));
                 }
             }
         }
 
         neighbours
     }
+
 }

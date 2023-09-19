@@ -1,5 +1,6 @@
 use crossterm::{terminal, QueueableCommand};
 use std::io::stdout;
+use crate::vec2::Vec2;
 
 #[derive(Clone)]
 pub struct Chat {
@@ -40,6 +41,10 @@ impl Chat {
         for i in 0..self.chat.len() {
             println!("{}", self.chat[i]);
         }
+    }
+
+    pub(crate) fn get_chat(&mut self) -> &[String; 10] {
+        &self.chat
     }
 
     pub(crate) fn clear_chat(&mut self) {
